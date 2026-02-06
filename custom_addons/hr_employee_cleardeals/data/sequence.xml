@@ -1,0 +1,11 @@
+<odoo>
+    <data noupdate="1">
+        <record id="seq_employee_id_cleardeals" model="ir.sequence">
+            <name>Employee ID Sequence</name>
+            <code>hr.employee.cd.id</code>
+            <prefix>CD</prefix>
+            <padding>4</padding>
+            <company_id eval="False"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,50 @@
+<record id="view_employee_form_cleardeals_inherit" model="ir.ui.view">
+    <field name="name">hr.employee.form.cleardeals.inherit</field>
+    <field name="model">hr.employee</field>
+    <field name="inherit_id" ref="hr.view_employee_form"/>
+    <field name="arch" type="xml">
+        
+        <xpath expr="//group[@name='citizenship']" position="attributes">
+            <attribute name="invisible">1</attribute>
+        </xpath>
+        
+        <xpath expr="//group[@name='has_work_permit']" position="attributes">
+            <attribute name="invisible">1</attribute>
+        </xpath>
+
+        <xpath expr="//field[@name='mobile_phone']" position="after">
+            <field name="registration_number" string="Emp ID" readonly="1"/>
+            <field name="personal_mobile" widget="phone"/>
+            <field name="personal_email" widget="email"/>
+        </xpath>
+
+        <xpath expr="//notebook" position="inside">
+            <page string="Indian Statutory &amp; Bank" groups="hr.group_hr_user">
+                <group>
+                    <group string="Identification Documents">
+                        <field name="aadhar_number"/>
+                        <field name="pan_number"/>
+                        <field name="blood_group"/>
+                        <field name="passport_photo" widget="image" class="oe_avatar"/>
+                        <field name="cibil_score"/>
+                    </group>
+                    <group string="Bank Account Details">
+                        <field name="name_as_per_bank"/>
+                        <field name="bank_name"/>
+                        <field name="bank_acc_number"/>
+                        <field name="account_type"/>
+                        <field name="ifsc_code"/>
+                    </group>
+                </group>
+                <group string="Education &amp; Background">
+                    <field name="education_background" placeholder="Details of Degree, 10th, 12th..."/>
+                </group>
+            </page>
+        </xpath>
+
+        <xpath expr="//field[@name='emergency_contact']" position="after">
+            <field name="emergency_contact_relation" string="Relation"/>
+        </xpath>
+
+    </field>
+</record>
