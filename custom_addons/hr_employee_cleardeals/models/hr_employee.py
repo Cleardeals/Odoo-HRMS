@@ -6,6 +6,7 @@ class HrEmployee(models.Model):
     # Identity & Personal
     personal_mobile = fields.Char(string='Personal Mobile')
     personal_email = fields.Char(string='Personal Email')
+    emergency_contact_relation = fields.Char(string='Emergency Contact Relation')
 
     aadhar_number = fields.Char(string='Aadhar Number')
     pan_number = fields.Char(string='PAN Number')
