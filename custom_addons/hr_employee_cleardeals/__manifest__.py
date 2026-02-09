@@ -2,7 +2,8 @@
     'name': 'ClearDeals HR India Customizations',
     'version': '1.0',
     'category': 'Human Resources',
-    'depends': ['hr', 'ohrms_core', 'oh_employee_documents_expiry'],
+    'summary': 'ClearDeals-specific employee form with Indian statutory fields',
+    'depends': ['hr', 'hr_employee_updation'],
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
@@ -10,4 +11,6 @@
         'views/hr_employee_view.xml',
     ],
     'installable': True,
+    'auto_install': False,
+    'license': 'LGPL-3',
 }
