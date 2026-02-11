@@ -329,6 +329,12 @@ class BaseAPIController(http.Controller):
                 'description': 'Get asset allocation and details by employee ID',
                 'auth_required': True
             },
+            {
+                'path': '/api/v1/employees/pending-documents',
+                'method': 'GET',
+                'description': 'Get list of employees with pending/missing documents',
+                'auth_required': True
+            },
         ]
         
         return api_response(

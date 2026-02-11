@@ -731,7 +731,7 @@ Authorization: Bearer your_api_key_here
 
 ### Available Endpoints
 
-**Total Endpoints: 8**
+**Total Endpoints: 9**
 
 | # | Endpoint | Method | Auth | Description | Controller File |
 |---|----------|--------|------|-------------|-----------------|
@@ -743,12 +743,14 @@ Authorization: Bearer your_api_key_here
 | 6 | `/api/v1/employees/<id>/documents/<doc_id>/download` | GET | Yes | Download document file | employee_api.py |
 | 7 | `/api/v1/employees/<id>/emergency-contact` | GET | Yes | Get emergency contact info | emergency_contact_api.py |
 | 8 | `/api/v1/employees/<id>/assets` | GET | Yes | Get asset allocation details | assets_api.py |
+| 9 | `/api/v1/employees/pending-documents` | GET | Yes | List employees with pending documents | documents_api.py |
 
 **Code Organization:**
 - `controllers/main.py` - Base controller, authentication, health check
 - `controllers/employee_api.py` - Employee listing and details endpoints
 - `controllers/emergency_contact_api.py` - Emergency contact endpoint
 - `controllers/assets_api.py` - Asset management endpoint
+- `controllers/documents_api.py` - Document compliance and tracking endpoint
 
 ---
 
@@ -1312,6 +1314,304 @@ def export_all_employee_assets(employee_ids):
 
 # Usage
 export_all_employee_assets(['CD-0001', 'CD-0002', 'CD-0003'])
+```
+
+---
+
+#### 9. Get Employees with Pending Documents (NEW)
+
+**Endpoint:** `GET /api/v1/employees/pending-documents`  
+**Auth Required:** Yes  
+**Description:** Retrieve list of employees with pending/missing documents for compliance tracking
+
+**Use Cases:**
+- HR compliance monitoring and reporting
+- Onboarding document checklist tracking
+- Audit trail for missing documents
+- Automated reminder systems
+- Document collection during offboarding
+- Regulatory compliance reporting
+
+**Query Parameters:**
+- `employee_status` (string, optional) - Filter by employee status: onboarding, active, notice, resigned, terminated
+- `department` (string, optional) - Filter by department name
+- `document_category` (string, optional) - Filter by document category: onboarding, identity, bank, address, experience, lifecycle, all (default: all)
+- `show_all_documents` (boolean, default: false) - Show all document fields including uploaded ones
+- `page` (integer, default: 1) - Page number
+- `per_page` (integer, default: 20, max: 100) - Records per page
+
+**Document Categories:**
+- **onboarding** - Offer letter, appointment letter, NDA, bond, contract
+- **identity** - PAN card, passport, passport photo
+- **bank** - Bank document (cancelled cheque/passbook)
+- **address** - Address proof documents
+- **experience** - Relieving letter, experience letter, salary slips, resume
+- **lifecycle** - Appraisal documents, increment letters
+
+**Usage Examples:**
+
+```bash
+# Get all employees with pending documents
+curl -X GET "http://localhost:8069/api/v1/employees/pending-documents" \
+  -H "X-API-Key: your_api_key_here"
+
+# Get onboarding employees with missing onboarding documents
+curl -X GET "http://localhost:8069/api/v1/employees/pending-documents?employee_status=onboarding&document_category=onboarding" \
+  -H "X-API-Key: your_api_key_here"
+
+# Get pending documents for Engineering department
+curl -X GET "http://localhost:8069/api/v1/employees/pending-documents?department=Engineering" \
+  -H "X-API-Key: your_api_key_here"
+
+# Get complete document status (including uploaded)
+curl -X GET "http://localhost:8069/api/v1/employees/pending-documents?show_all_documents=true" \
+  -H "X-API-Key: your_api_key_here"
+
+# Filter by identity documents only
+curl -X GET "http://localhost:8069/api/v1/employees/pending-documents?document_category=identity" \
+  -H "X-API-Key: your_api_key_here"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Employees with pending documents retrieved successfully",
+  "timestamp": "2026-02-11T12:00:00Z",
+  "data": {
+    "employees": [
+      {
+        "id": 1,
+        "employee_id": "CD-0001",
+        "name": "John Doe",
+        "work_email": "john@company.com",
+        "department": "Engineering",
+        "job_title": "Senior Developer",
+        "employee_status": "onboarding",
+        "date_of_joining": "2025-01-15",
+        "pending_documents": {
+          "onboarding": [
+            {
+              "field_name": "offer_letter",
+              "document_name": "Offer Letter",
+              "category": "onboarding",
+              "is_uploaded": false,
+              "is_required": true
+            },
+            {
+              "field_name": "appointment_letter",
+              "document_name": "Appointment Letter",
+              "category": "onboarding",
+              "is_uploaded": false,
+              "is_required": true
+            }
+          ],
+          "identity": [
+            {
+              "field_name": "pan_card_doc",
+              "document_name": "PAN Card",
+              "category": "identity",
+              "is_uploaded": false,
+              "is_required": true
+            }
+          ]
+        },
+        "pending_count": 3,
+        "total_documents": 20,
+        "uploaded_documents": 17,
+        "compliance_percentage": 85
+      }
+    ],
+    "summary": {
+      "total_employees_checked": 50,
+      "employees_with_pending_documents": 1,
+      "total_pending_documents": 3,
+      "average_compliance_rate": 95
+    }
+  },
+  "meta": {
+    "pagination": {
+      "current_page": 1,
+      "per_page": 20,
+      "total_records": 1,
+      "total_pages": 1,
+      "has_next": false,
+      "has_prev": false
+    }
+  }
+}
+```
+
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `employees[].pending_documents` | object | Categorized list of pending documents |
+| `employees[].pending_count` | integer | Total number of pending documents |
+| `employees[].total_documents` | integer | Total document fields checked |
+| `employees[].uploaded_documents` | integer | Number of uploaded documents |
+| `employees[].compliance_percentage` | integer | Document compliance percentage (0-100) |
+| `summary.total_employees_checked` | integer | Total employees in the query |
+| `summary.employees_with_pending_documents` | integer | Employees with at least one pending doc |
+| `summary.total_pending_documents` | integer | Total pending documents across all employees |
+| `summary.average_compliance_rate` | integer | Average compliance percentage |
+
+**Required Documents by Employee Status:**
+
+| Status | Required Documents |
+|--------|-------------------|
+| **onboarding** | Offer letter, appointment letter, PAN card, bank document, passport photo |
+| **active** | PAN card, bank document, passport photo |
+| **notice/resigned** | PAN card |
+| **terminated** | None (all optional) |
+
+**Integration Examples:**
+
+**Python - Compliance Dashboard:**
+```python
+import requests
+
+def generate_compliance_report(department=None):
+    BASE_URL = "http://localhost:8069/api/v1"
+    API_KEY = "your_api_key_here"
+    
+    params = {}
+    if department:
+        params['department'] = department
+    
+    response = requests.get(
+        f"{BASE_URL}/employees/pending-documents",
+        headers={"X-API-Key": API_KEY},
+        params=params
+    )
+    
+    if response.status_code == 200:
+        data = response.json()['data']
+        summary = data['summary']
+        
+        print("=" * 50)
+        print("DOCUMENT COMPLIANCE REPORT")
+        print("=" * 50)
+        print(f"Total Employees: {summary['total_employees_checked']}")
+        print(f"Employees with Pending Docs: {summary['employees_with_pending_documents']}")
+        print(f"Total Pending Documents: {summary['total_pending_documents']}")
+        print(f"Average Compliance Rate: {summary['average_compliance_rate']}%")
+        print("=" * 50)
+        
+        # List employees with pending documents
+        for emp in data['employees']:
+            print(f"\n{emp['name']} ({emp['employee_id']})")
+            print(f"  Status: {emp['employee_status']}")
+            print(f"  Compliance: {emp['compliance_percentage']}%")
+            print(f"  Pending: {emp['pending_count']} documents")
+            
+            for category, docs in emp['pending_documents'].items():
+                print(f"  {category.upper()}:")
+                for doc in docs:
+                    status = "✓" if doc['is_uploaded'] else "✗"
+                    required = "*REQUIRED*" if doc['is_required'] else ""
+                    print(f"    {status} {doc['document_name']} {required}")
+        
+        return data
+    else:
+        print(f"Error: {response.json()['message']}")
+        return None
+
+# Usage
+generate_compliance_report(department='Engineering')
+```
+
+**JavaScript - Auto-Reminder System:**
+```javascript
+async function sendDocumentReminders() {
+    const BASE_URL = 'http://localhost:8069/api/v1';
+    const API_KEY = 'your_api_key_here';
+    
+    // Get employees with pending onboarding documents
+    const response = await fetch(
+        `${BASE_URL}/employees/pending-documents?employee_status=onboarding&document_category=onboarding`,
+        {
+            headers: {'X-API-Key': API_KEY}
+        }
+    );
+    
+    if (response.ok) {
+        const result = await response.json();
+        const employees = result.data.employees;
+        
+        for (const emp of employees) {
+            if (emp.pending_count > 0) {
+                // Send reminder email/notification
+                const pendingDocs = [];
+                for (const category in emp.pending_documents) {
+                    emp.pending_documents[category].forEach(doc => {
+                        if (!doc.is_uploaded && doc.is_required) {
+                            pendingDocs.push(doc.document_name);
+                        }
+                    });
+                }
+                
+                console.log(`Reminder: ${emp.name} - Missing ${pendingDocs.join(', ')}`);
+                // sendEmail(emp.work_email, pendingDocs);
+            }
+        }
+        
+        return employees.length;
+    }
+}
+
+// Run daily
+sendDocumentReminders().then(count => 
+    console.log(`Sent reminders to ${count} employees`)
+);
+```
+
+**Excel Report Generation:**
+```python
+import requests
+import pandas as pd
+
+def export_pending_documents_report():
+    BASE_URL = "http://localhost:8069/api/v1"
+    API_KEY = "your_api_key_here"
+    
+    response = requests.get(
+        f"{BASE_URL}/employees/pending-documents?show_all_documents=true",
+        headers={"X-API-Key": API_KEY}
+    )
+    
+    if response.status_code == 200:
+        data = response.json()['data']
+        
+        report_data = []
+        for emp in data['employees']:
+            # Flatten pending documents for Excel
+            for category, docs in emp['pending_documents'].items():
+                for doc in docs:
+                    report_data.append({
+                        'Employee ID': emp['employee_id'],
+                        'Employee Name': emp['name'],
+                        'Department': emp['department'],
+                        'Status': emp['employee_status'],
+                        'Document Category': category,
+                        'Document Name': doc['document_name'],
+                        'Is Uploaded': 'Yes' if doc['is_uploaded'] else 'No',
+                        'Is Required': 'Yes' if doc['is_required'] else 'No',
+                        'Compliance %': emp['compliance_percentage'],
+                    })
+        
+        # Create DataFrame and export
+        df = pd.DataFrame(report_data)
+        df.to_excel('pending_documents_report.xlsx', index=False)
+        print(f"Exported {len(report_data)} document records")
+        
+        return df
+    else:
+        print(f"Error: {response.json()['message']}")
+        return None
+
+# Usage
+export_pending_documents_report()
 ```
 
 ---
