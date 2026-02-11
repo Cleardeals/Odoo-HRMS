@@ -1,7 +1,11 @@
 import re
+import logging
+import base64
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 class HrEmployee(models.Model):
@@ -35,6 +39,16 @@ class HrEmployee(models.Model):
         ('resigned', 'Resigned'),
         ('terminated', 'Terminated'),
     ], string='Employee Status', default='onboarding', required=True, tracking=True)
+
+
+    #====================================================================
+    # DOCUMENT VAULT INTEGRATION 
+    # ====================================================================
+    # Note: oh_employee_documents_expiry already provides:
+    # - document_ids field
+    # - document_count computed field  
+    # - action_document_view() smart button
+    # We only add the auto-sync functionality here
 
     # ===================================================================
     #  TAB 1 – WORK INFORMATION
@@ -126,6 +140,7 @@ class HrEmployee(models.Model):
     account_type = fields.Selection([
         ('savings', 'Savings'),
         ('current', 'Current'),
+        ('salary', 'Salary'),
     ], string='Account Type', default='savings', groups="hr.group_hr_user", tracking=True)
 
     # Payroll verification
@@ -288,4 +303,158 @@ class HrEmployee(models.Model):
                     self.env['ir.sequence'].next_by_code('hr.employee.cd.id')
                     or 'CD-0000'
                 )
-        return super(HrEmployee, self).create(vals_list)
+        employees = super(HrEmployee, self).create(vals_list)
+
+        # Auto sync documents to vault after employee creation
+        for employee in employees:
+            employee._sync_documents_to_vault()
+        
+        return employees
+    
+    def write(self, vals):
+        """Auto sync documents when binary fields are updated."""
+        _logger.info(f"[DOCUMENT SYNC] write() called with vals: {list(vals.keys())}")
+        result = super(HrEmployee, self).write(vals)
+
+        # Check if any document field was updated
+        document_fields = self._get_document_field_mapping().keys()
+        if any(field in vals for field in document_fields):
+            _logger.info(f"[DOCUMENT SYNC] Document field detected, triggering sync for {len(self)} employee(s)")
+            for employee in self:
+                employee._sync_documents_to_vault()
+        
+        return result
+    
+
+    def _get_document_field_mapping(self):
+        """
+        Map binary fields to document type names.
+        Returns dict: {'binary_field_name': 'Document Type Name'}
+        """
+        return {
+            # Onboarding Documents
+            'offer_letter': 'Offer Letter',
+            'appointment_letter': 'Appointment Letter',
+            'nda_document': 'NDA',
+            'bond_document': 'Bond Document',
+            'contract_document': 'Employment Contract',
+            
+            # Identity Documents
+            'pan_card_doc': 'PAN Card',
+            'passport_doc': 'Passport',
+            
+            # Bank Documents
+            'bank_document': 'Bank Document',
+            
+            # Address Proof
+            'address_proof_document': 'Address Proof',
+            
+            # Experience Documents
+            'relieving_letter': 'Relieving Letter',
+            'experience_letter': 'Experience Letter',
+            'salary_slip_1': 'Salary Slip',
+            'salary_slip_2': 'Salary Slip',
+            'salary_slip_3': 'Salary Slip',
+            
+            # Educational Documents
+            'resume_doc': 'Resume/CV',
+            
+            # Lifecycle Documents
+            'appraisal_doc': 'Appraisal Document',
+            'increment_letter': 'Increment Letter',
+            'notice_period_doc': 'Notice Period Document',
+            
+            # Photo
+            'passport_photo': 'Passport Photo',
+        }
+    
+    def _get_or_create_document_type(self, doc_type_name):
+        """
+        Get existing document type by name or create if not exists.
+        Returns document.type record.
+        """
+        DocumentType = self.env['document.type']
+        doc_type = DocumentType.sudo().search([('name', '=', doc_type_name)], limit=1)
+        
+        if not doc_type:
+            _logger.info(f"[DOCUMENT SYNC] Creating new document type: {doc_type_name}")
+            doc_type = DocumentType.sudo().create({
+                'name': doc_type_name,
+            })
+        
+        return doc_type
+    
+    def _sync_documents_to_vault(self):
+        """
+        Automatically create/update hr.employee.document records
+        from binary field uploads in the employee form.
+        """
+        self.ensure_one()
+        _logger.info(f"[DOCUMENT SYNC] Starting vault sync for employee: {self.name} (ID: {self.id})")
+
+        DocumentModel = self.env['hr.employee.document']
+        AttachmentModel = self.env['ir.attachment']
+        field_mapping = self._get_document_field_mapping()
+
+        synced_count = 0
+        for field_name, doc_type_name in field_mapping.items():
+            binary_data = self[field_name]
+
+            if not binary_data:
+                continue
+
+            # Get filename
+            filename_field = f"{field_name}_filename"
+            filename = self[filename_field] if filename_field in self._fields else 'document.pdf'
+            if not filename:
+                filename = f"{field_name}.pdf"
+
+            # Get or create document type
+            doc_type = self._get_or_create_document_type(doc_type_name)
+
+            # Generate document name
+            doc_name = filename
+            if field_name in ['salary_slip_1', 'salary_slip_2', 'salary_slip_3']:
+                month_num = field_name.split('_')[-1]
+                doc_name = f"Salary Slip - Month {month_num}"
+
+            _logger.info(f"[DOCUMENT SYNC] Processing {field_name} -> {doc_name}")
+
+            # Search for existing document vault record
+            existing_doc = DocumentModel.search([
+                ('employee_ref_id', '=', self.id),
+                ('document_type_id', '=', doc_type.id),
+                ('name', '=', doc_name)
+            ], limit=1)
+
+            # Create ir.attachment record
+            attachment = AttachmentModel.sudo().create({
+                'name': filename,
+                'datas': binary_data,
+                'res_model': 'hr.employee.document',
+                'res_id': existing_doc.id if existing_doc else 0,
+                'mimetype': 'application/pdf',
+            })
+            _logger.info(f"[DOCUMENT SYNC] Created attachment ID: {attachment.id}")
+
+            # Prepare document vault values
+            doc_vals = {
+                'employee_ref_id': self.id,
+                'document_type_id': doc_type.id,
+                'name': doc_name,
+                'issue_date': fields.Date.today(),
+                'doc_attachment_ids': [(4, attachment.id)],  # Link attachment via Many2many
+            }
+
+            if existing_doc:
+                _logger.info(f"[DOCUMENT SYNC] Updating existing vault record ID: {existing_doc.id}")
+                existing_doc.sudo().write(doc_vals)
+            else:
+                new_doc = DocumentModel.sudo().create(doc_vals)
+                _logger.info(f"[DOCUMENT SYNC] Created new vault record ID: {new_doc.id}")
+                # Update attachment res_id
+                attachment.sudo().write({'res_id': new_doc.id})
+            
+            synced_count += 1
+        
+        _logger.info(f"[DOCUMENT SYNC] Completed: {synced_count} documents synced to vault")

@@ -3,7 +3,7 @@
     'version': '1.0',
     'category': 'Human Resources',
     'summary': 'ClearDeals-specific employee form with Indian statutory fields',
-    'depends': ['hr', 'hr_employee_updation'],
+    'depends': ['hr', 'hr_employee_updation', 'oh_employee_documents_expiry'],
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
