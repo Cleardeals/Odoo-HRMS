@@ -702,6 +702,294 @@ All critical operations are logged with prefix `[DOCUMENT SYNC]`:
 
 Monitor logs regularly for sync issues and errors.
 
+---
+
+## REST API Endpoints
+
+The module provides RESTful API endpoints for external system integration and programmatic access to employee data.
+
+### API Configuration
+
+**1. Set API Key:**
+```
+Settings → Technical → Parameters → System Parameters
+Key: hr_employee_cleardeals.api_key
+Value: your_secure_api_key
+```
+
+**2. Authentication:**
+
+All API endpoints (except health check) require authentication via API key:
+
+```bash
+# Method 1: X-API-Key header (Recommended)
+X-API-Key: your_api_key_here
+
+# Method 2: Authorization Bearer token
+Authorization: Bearer your_api_key_here
+```
+
+### Available Endpoints
+
+#### 1. Health Check
+
+**Endpoint:** `GET /api/v1/health`  
+**Auth Required:** No  
+**Description:** Check API availability and module status
+
+```bash
+curl http://localhost:8069/api/v1/health
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "API is healthy",
+  "timestamp": "2026-02-11T12:00:00Z",
+  "data": {
+    "status": "healthy",
+    "version": "1.0",
+    "module": "hr_employee_cleardeals"
+  }
+}
+```
+
+---
+
+#### 2. List All Active Employees (NEW)
+
+**Endpoint:** `GET /api/v1/employees/active`  
+**Auth Required:** Yes  
+**Description:** Retrieve all employees with active status
+
+**Query Parameters:**
+- `department` (string, optional) - Filter by department name
+- `search` (string, optional) - Search by name or employee_id
+- `page` (integer, default: 1) - Page number
+- `per_page` (integer, default: 20, max: 100) - Records per page
+- `fields` (string, optional) - Additional field groups: contact, banking, address, assets, documents, statutory
+
+**Usage Examples:**
+
+```bash
+# Get all active employees (basic info only)
+curl -X GET "http://localhost:8069/api/v1/employees/active" \
+  -H "X-API-Key: your_api_key_here"
+
+# Get active employees with contact and banking info
+curl -X GET "http://localhost:8069/api/v1/employees/active?fields=basic,contact,banking" \
+  -H "X-API-Key: your_api_key_here"
+
+# Filter by department
+curl -X GET "http://localhost:8069/api/v1/employees/active?department=Engineering" \
+  -H "X-API-Key: your_api_key_here"
+
+# Search by name
+curl -X GET "http://localhost:8069/api/v1/employees/active?search=John" \
+  -H "X-API-Key: your_api_key_here"
+
+# Pagination with additional fields
+curl -X GET "http://localhost:8069/api/v1/employees/active?page=1&per_page=50&fields=basic,contact,documents" \
+  -H "X-API-Key: your_api_key_here"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Active employees retrieved successfully",
+  "timestamp": "2026-02-11T12:00:00Z",
+  "data": {
+    "employees": [
+      {
+        "id": 1,
+        "employee_id": "CD-0001",
+        "name": "John Doe",
+        "work_email": "john@company.com",
+        "department": "Engineering",
+        "job_title": "Senior Developer",
+        "employee_status": "active",
+        "date_of_joining": "2025-01-15",
+        "contact": {
+          "work_phone": "+91-9876543210",
+          "personal_email": "john.doe@gmail.com",
+          "personal_phone": "+91-9876543211",
+          "emergency_contact_name": "Jane Doe",
+          "emergency_contact_phone": "+91-9876543212"
+        },
+        "banking": {
+          "bank_account_number": "12345678901234",
+          "ifsc_code": "HDFC0001234",
+          "account_type": "savings",
+          "uan_number": "123456789012",
+          "esic_number": "1234567890"
+        }
+      }
+    ],
+    "total_count": 1
+  },
+  "meta": {
+    "pagination": {
+      "current_page": 1,
+      "per_page": 20,
+      "total_records": 1,
+      "total_pages": 1,
+      "has_next": false,
+      "has_prev": false
+    }
+  }
+}
+```
+
+**Field Groups Available:**
+- `basic` - Default employee information (always included)
+- `contact` - Contact details (phone, email, emergency contact)
+- `banking` - Bank account, UAN, ESIC, IFSC details
+- `address` - Permanent and current address information
+- `assets` - Laptop and asset allocation details
+- `documents` - Document count and URL
+- `statutory` - PAN, Aadhaar numbers
+
+---
+
+#### 3. List All Employees
+
+**Endpoint:** `GET /api/v1/employees`  
+**Auth Required:** Yes  
+**Description:** List all employees with optional status filtering
+
+**Query Parameters:**
+- `department` (string, optional) - Filter by department
+- `status` (string, optional) - Filter by status: onboarding, active, notice, resigned, terminated
+- `search` (string, optional) - Search by name or employee_id
+- `page` (integer, default: 1) - Page number
+- `per_page` (integer, default: 20, max: 100) - Records per page
+
+```bash
+# Get all employees
+curl -X GET "http://localhost:8069/api/v1/employees" \
+  -H "X-API-Key: your_api_key_here"
+
+# Filter by status and department
+curl -X GET "http://localhost:8069/api/v1/employees?status=active&department=Sales" \
+  -H "X-API-Key: your_api_key_here"
+```
+
+---
+
+#### 4. Get Employee Details
+
+**Endpoint:** `GET /api/v1/employees/<employee_id>`  
+**Auth Required:** Yes  
+**Description:** Get detailed information about a specific employee
+
+```bash
+curl -X GET "http://localhost:8069/api/v1/employees/CD-0001?fields=basic,contact,banking" \
+  -H "X-API-Key: your_api_key_here"
+```
+
+---
+
+#### 5. Get Employee Documents
+
+**Endpoint:** `GET /api/v1/employees/<employee_id>/documents`  
+**Auth Required:** Yes  
+**Description:** Fetch all documents for an employee
+
+**Query Parameters:**
+- `document_type` (string, optional) - Filter by document type
+- `include_binary` (boolean, default: false) - Include base64 file data
+- `page` (integer, default: 1) - Page number
+- `per_page` (integer, default: 20, max: 100) - Records per page
+
+```bash
+# Get document list
+curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/documents" \
+  -H "X-API-Key: your_api_key_here"
+
+# Get documents with binary data
+curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/documents?include_binary=true" \
+  -H "X-API-Key: your_api_key_here"
+```
+
+---
+
+#### 6. Download Employee Document
+
+**Endpoint:** `GET /api/v1/employees/<employee_id>/documents/<document_id>/download`  
+**Auth Required:** Yes  
+**Description:** Download a specific document file
+
+```bash
+curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/documents/1/download" \
+  -H "X-API-Key: your_api_key_here" \
+  -o document.pdf
+```
+
+### API Response Format
+
+All API responses follow this structure:
+
+```json
+{
+  "success": true/false,
+  "message": "Human-readable message",
+  "timestamp": "ISO 8601 timestamp",
+  "data": {...},
+  "errors": [...],
+  "meta": {
+    "pagination": {...}
+  }
+}
+```
+
+### Error Codes
+
+| Code | Description |
+|------|-------------|
+| 200 | Success |
+| 400 | Bad Request - Invalid parameters |
+| 401 | Unauthorized - Invalid/missing API key |
+| 403 | Forbidden - Insufficient permissions |
+| 404 | Not Found - Resource doesn't exist |
+| 500 | Internal Server Error |
+
+### Integration Examples
+
+**Python:**
+```python
+import requests
+
+BASE_URL = "http://localhost:8069/api/v1"
+API_KEY = "your_api_key_here"
+headers = {"X-API-Key": API_KEY}
+
+# Get all active employees
+response = requests.get(
+    f"{BASE_URL}/employees/active",
+    headers=headers,
+    params={"fields": "basic,contact"}
+)
+employees = response.json()['data']['employees']
+```
+
+**JavaScript:**
+```javascript
+const BASE_URL = 'http://localhost:8069/api/v1';
+const API_KEY = 'your_api_key_here';
+
+async function getActiveEmployees() {
+    const response = await fetch(`${BASE_URL}/employees/active`, {
+        headers: {'X-API-Key': API_KEY}
+    });
+    const data = await response.json();
+    return data.data.employees;
+}
+```
+
+---
+
 ## Future Enhancements
 
 ### Planned Features

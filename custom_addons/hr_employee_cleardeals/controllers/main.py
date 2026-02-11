@@ -282,15 +282,39 @@ class BaseAPIController(http.Controller):
                 'auth_required': False
             },
             {
-                'path': '/api/v1/employees/<employee_id>/documents',
+                'path': '/api/v1/info',
                 'method': 'GET',
-                'description': 'Fetch documents for specific employee',
+                'description': 'API information and documentation',
+                'auth_required': False
+            },
+            {
+                'path': '/api/v1/employees',
+                'method': 'GET',
+                'description': 'List all employees with optional filtering',
+                'auth_required': True
+            },
+            {
+                'path': '/api/v1/employees/active',
+                'method': 'GET',
+                'description': 'List all active employees (recommended for most use cases)',
                 'auth_required': True
             },
             {
                 'path': '/api/v1/employees/<employee_id>',
                 'method': 'GET',
-                'description': 'Get employee details',
+                'description': 'Get detailed employee information',
+                'auth_required': True
+            },
+            {
+                'path': '/api/v1/employees/<employee_id>/documents',
+                'method': 'GET',
+                'description': 'Fetch all documents for specific employee',
+                'auth_required': True
+            },
+            {
+                'path': '/api/v1/employees/<employee_id>/documents/<document_id>/download',
+                'method': 'GET',
+                'description': 'Download a specific document file',
                 'auth_required': True
             },
         ]
@@ -306,9 +330,10 @@ class BaseAPIController(http.Controller):
                     'methods': [
                         'Header: X-API-Key',
                         'Header: Authorization: Bearer <token>'
-                    ]
+                    ],
+                    'setup': 'Settings → Technical → Parameters → System Parameters → Key: hr_employee_cleardeals.api_key'
                 },
                 'endpoints': endpoints,
-                'documentation': '/api/v1/docs'
+                'documentation': 'See module README.md for comprehensive API documentation'
             }
         )

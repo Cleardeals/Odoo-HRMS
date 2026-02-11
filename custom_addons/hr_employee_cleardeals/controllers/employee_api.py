@@ -494,3 +494,176 @@ class EmployeeAPIController(BaseAPIController):
             },
             meta=meta
         )
+    
+    # ========================================================================
+    # ACTIVE EMPLOYEES LIST
+    # ========================================================================
+    
+    @http.route('/api/v1/employees/active', 
+                type='http', auth='public', methods=['GET'], 
+                csrf=False, cors='*')
+    @validate_api_key
+    @handle_api_errors
+    def list_active_employees(self, **kwargs):
+        """
+        List all active employees with optional filtering.
+        
+        Endpoint: GET /api/v1/employees/active
+        
+        Query Parameters:
+            department (str): Filter by department name (optional)
+            search (str): Search by name or employee_id (optional)
+            page (int): Page number (default: 1)
+            per_page (int): Records per page (default: 20, max: 100)
+            fields (str): Comma-separated list of field groups to include (optional)
+                          Options: basic, contact, banking, documents, assets, address, statutory
+                          Default: basic
+        
+        Headers:
+            X-API-Key: Your API key
+        
+        Response Format:
+            {
+                "success": true,
+                "message": "Active employees retrieved successfully",
+                "timestamp": "2026-02-11T12:00:00Z",
+                "data": {
+                    "employees": [
+                        {
+                            "id": 1,
+                            "employee_id": "CD-0001",
+                            "name": "John Doe",
+                            "work_email": "john@company.com",
+                            "department": "Engineering",
+                            "job_title": "Senior Developer",
+                            "employee_status": "active",
+                            "date_of_joining": "2025-01-15",
+                            "contact": {...},  // if fields=contact
+                            "banking": {...},  // if fields=banking
+                            ...
+                        }
+                    ],
+                    "total_count": 50
+                },
+                "meta": {
+                    "pagination": {...}
+                }
+            }
+        
+        Error Responses:
+            401: Invalid API key
+            400: Invalid parameters
+        """
+        # Parse parameters
+        department = kwargs.get('department')
+        search = kwargs.get('search')
+        page = int(kwargs.get('page', 1))
+        per_page = min(int(kwargs.get('per_page', 20)), 100)
+        fields_param = kwargs.get('fields', 'basic')
+        requested_fields = [f.strip() for f in fields_param.split(',')]
+        
+        # Build search domain - ONLY active employees
+        domain = [('employee_status', '=', 'active')]
+        
+        if department:
+            domain.append(('department_id.name', 'ilike', department))
+        
+        if search:
+            domain.append('|')
+            domain.append(('name', 'ilike', search))
+            domain.append(('employee_id', 'ilike', search))
+        
+        # Search employees
+        employees = request.env['hr.employee'].sudo().search(
+            domain,
+            order='employee_id asc'
+        )
+        
+        # Paginate
+        paginated, meta = paginate_response(employees, page, per_page)
+        
+        # Format response with optional additional fields
+        employees_data = []
+        for emp in paginated:
+            emp_data = {
+                'id': emp.id,
+                'employee_id': emp.employee_id,
+                'name': emp.name,
+                'work_email': emp.work_email,
+                'department': emp.department_id.name if emp.department_id else None,
+                'job_title': emp.job_id.name if emp.job_id else None,
+                'employee_status': emp.employee_status,
+                'date_of_joining': emp.date_of_joining.strftime('%Y-%m-%d') if emp.date_of_joining else None,
+            }
+            
+            # Add optional field groups based on request
+            if 'contact' in requested_fields:
+                emp_data['contact'] = {
+                    'work_phone': emp.work_phone,
+                    'personal_email': emp.personal_email,
+                    'personal_phone': emp.personal_phone,
+                    'emergency_contact_name': emp.emergency_contact,
+                    'emergency_contact_phone': emp.emergency_phone,
+                }
+            
+            if 'banking' in requested_fields:
+                emp_data['banking'] = {
+                    'bank_account_number': emp.bank_acc_number,
+                    'ifsc_code': emp.ifsc_code,
+                    'account_type': emp.account_type,
+                    'uan_number': emp.uan_number,
+                    'esic_number': emp.esic_number,
+                }
+            
+            if 'address' in requested_fields:
+                emp_data['address'] = {
+                    'permanent': {
+                        'address': emp.permanent_address,
+                        'state': emp.permanent_state_id.name if emp.permanent_state_id else None,
+                        'country': emp.permanent_country_id.name if emp.permanent_country_id else None,
+                        'pincode': emp.permanent_pincode,
+                    },
+                    'current': {
+                        'address': emp.current_address,
+                        'state': emp.current_state_id.name if emp.current_state_id else None,
+                        'country': emp.current_country_id.name if emp.current_country_id else None,
+                        'pincode': emp.current_pincode,
+                    }
+                }
+            
+            if 'assets' in requested_fields:
+                emp_data['assets'] = {
+                    'laptop_brand': emp.laptop_brand,
+                    'laptop_serial_number': emp.laptop_serial_number,
+                    'laptop_model': emp.laptop_model,
+                    'ram': emp.ram,
+                    'storage': emp.storage,
+                    'processor': emp.processor,
+                }
+            
+            if 'documents' in requested_fields:
+                doc_count = request.env['hr.employee.document'].sudo().search_count([
+                    ('employee_ref_id', '=', emp.id)
+                ])
+                emp_data['documents'] = {
+                    'total_documents': doc_count,
+                    'documents_url': f'/api/v1/employees/{emp.employee_id}/documents'
+                }
+            
+            if 'statutory' in requested_fields:
+                emp_data['statutory'] = {
+                    'aadhaar_number': emp.identification_id,
+                    'pan_number': emp.pan_number,
+                }
+            
+            employees_data.append(emp_data)
+        
+        return api_response(
+            success=True,
+            message='Active employees retrieved successfully',
+            data={
+                'employees': employees_data,
+                'total_count': len(employees)
+            },
+            meta=meta
+        )
