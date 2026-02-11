@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!--
+        ClearDeals India – Employee Form Customisation
+        ==============================================
+        Inherits hr.view_employee_form via xpath.
+        Priority 20 so it loads AFTER ohrms / hr_employee_updation views.
+
+        Design philosophy
+        ─────────────────
+        • Reuse every base / addon field that already exists.
+        • Only add ClearDeals-specific new fields.
+        • Use Many2one with create/edit ability everywhere possible.
+        • Use the Odoo structured address widget for permanent address.
+        • Keep the header clean: Image + Name + Job Title + Work contacts
+          + Employee ID + Status.
+    -->
+
+    <record id="view_employee_form_cleardeals_inherit" model="ir.ui.view">
+        <field name="name">hr.employee.form.cleardeals</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- ============================================================
+                 HEADER – Employee ID + Status in the identity block
+                 ============================================================ -->
+
+            <!-- Add Employee ID below Work Mobile -->
+            <xpath expr="//field[@name='mobile_phone']" position="after">
+                <h5 class="d-flex align-items-baseline mb-0">
+                    <i class="fa fa-id-card fa-fw me-1 text-primary" title="Employee ID"/>
+                    <field name="employee_id" string="Employee ID"
+                           class="fw-bold" style="color: #714B67;"/>
+                </h5>
+            </xpath>
+
+            <!-- Replace the Tags (category_ids) row with Status field -->
+            <xpath expr="//div[hasclass('oe_title')]//field[@name='category_ids']/.." position="replace">
+                <h5 class="d-flex align-items-baseline mb-0">
+                    <i class="fa fa-flag fa-fw me-1 text-primary" title="Status"/>
+                    <field name="employee_status" 
+                           options="{'horizontal': true}"
+                           class="ms-2"/>
+                </h5>
+            </xpath>
+
+            <!-- Hide the employee_properties block (not needed) -->
+            <xpath expr="//field[@name='employee_properties']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- ============================================================
+                 TAB 1 – WORK INFORMATION  (rewrite the base "Work" page)
+                 ============================================================ -->
+
+            <!-- Replace the Work tab content area -->
+            <xpath expr="//page[@name='work_information']//div[@id='o_work_information']" position="replace">
+                <div id="o_work_information" class="o_hr_column col-lg-7 d-flex flex-column">
+
+                    <group string="Organisation">
+                        <field name="department_id"
+                               context="{'default_company_id': company_id}"/>
+                        <field name="job_id" string="Job Position"
+                               context="{'default_no_of_recruitment': 0, 'default_is_favorite': False, 'default_department_id': department_id}"
+                               placeholder="e.g. Business Development Executive"/>
+                        <field name="job_title" placeholder="e.g. Senior BDE"/>
+                    </group>
+
+                    <group string="Reporting">
+                        <field name="parent_id" string="Manager"
+                               widget="many2one_avatar_employee"
+                               domain="['|', ('company_id', '=', False), ('company_id', 'in', allowed_company_ids)]"/>
+                    </group>
+
+                    <group string="Timeline">
+                        <field name="date_of_joining"/>
+                        <field name="company_id" groups="base.group_multi_company"
+                               domain="[('id', 'in', allowed_company_ids)]"/>
+                    </group>
+
+                    <group string="Assets Issued">
+                        <div class="d-flex flex-wrap gap-4" colspan="2">
+                            <span class="d-flex align-items-center gap-1">
+                                <field name="asset_laptop" widget="boolean_toggle"/>
+                                <label for="asset_laptop"/>
+                            </span>
+                            <span class="d-flex align-items-center gap-1">
+                                <field name="asset_sim" widget="boolean_toggle"/>
+                                <label for="asset_sim"/>
+                            </span>
+                            <span class="d-flex align-items-center gap-1">
+                                <field name="asset_phone" widget="boolean_toggle"/>
+                                <label for="asset_phone"/>
+                            </span>
+                            <span class="d-flex align-items-center gap-1">
+                                <field name="asset_pc" widget="boolean_toggle"/>
+                                <label for="asset_pc"/>
+                            </span>
+                            <span class="d-flex align-items-center gap-1">
+                                <field name="asset_physical_id" widget="boolean_toggle"/>
+                                <label for="asset_physical_id"/>
+                            </span>
+                        </div>
+                    </group>
+
+                    <group name="departure" string="Departure" invisible="active">
+                        <field name="departure_reason_id"
+                               options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
+                        <field name="departure_description"/>
+                        <field name="departure_date"/>
+                    </group>
+
+                </div>
+            </xpath>
+
+            <!-- ============================================================
+                 TAB 2 – PERSONAL DETAILS  (replace the base "Personal" page)
+                 ============================================================ -->
+
+            <xpath expr="//page[@name='personal_information']" position="replace">
+                <page name="personal_information" string="Personal Details" groups="hr.group_hr_user">
+                    <group>
+                        <!-- ── Legal Identity ── -->
+                        <group string="Legal Identity">
+                            <field name="legal_name" string="Full Legal Name"
+                                   placeholder="As per government ID"/>
+                            <field name="sex" string="Gender"/>
+                            <field name="marital" string="Marital Status"/>
+                            <field name="birthday" string="Date of Birth"/>
+                            <field name="blood_group"/>
+                        </group>
+
+                        <!-- ── Private Contact ── -->
+                        <group string="Private Contact">
+                            <field name="private_phone" widget="phone"
+                                   string="Personal Mobile" placeholder="+91-XXXXXXXXXX"/>
+                            <field name="private_email" widget="email"
+                                   string="Personal Email"
+                                   placeholder="personal@example.com"/>
+                        </group>
+
+                        <!-- ── Permanent Address (Odoo structured widget) ── -->
+                        <group string="Permanent Address" name="hr_location_group">
+                            <label for="private_street" string="Address"/>
+                            <div class="o_address_format">
+                                <field name="private_street" placeholder="Street..."
+                                       class="o_address_street"/>
+                                <field name="private_street2" placeholder="Street 2..."
+                                       class="o_address_street"/>
+                                <field name="private_city" placeholder="City"
+                                       class="o_address_city"/>
+                                <field name="private_state_id" class="o_address_state"
+                                       placeholder="State"
+                                       options='{"no_open": True}'
+                                       context="{'default_country_id': private_country_id}"
+                                       domain="[('id', 'in', allowed_country_state_ids)]"/>
+                                <field name="private_zip" placeholder="PIN Code"
+                                       class="o_address_zip"/>
+                                <field name="private_country_id" placeholder="Country"
+                                       class="o_address_country"
+                                       options='{"no_open": True}'/>
+                            </div>
+                        </group>
+
+                        <!-- ── Current Address ── -->
+                        <group string="Current Address">
+                            <field name="same_as_permanent" widget="boolean_toggle"/>
+                            <field name="current_address"
+                                   placeholder="Enter current residential address..."
+                                   invisible="same_as_permanent"/>
+                        </group>
+
+                        <!-- ── Emergency Contact (grouped) ── -->
+                        <group string="Emergency Contact">
+                            <field name="emergency_contact" string="Name"/>
+                            <field name="emergency_phone" widget="phone" string="Phone"
+                                   class="o_force_ltr"/>
+                            <field name="emergency_contact_relationship"
+                                   string="Relationship"/>
+                        </group>
+
+                        <!-- ── Government IDs ── -->
+                        <group string="Government IDs">
+                            <field name="identification_id"
+                                   string="Aadhaar Card Number"
+                                   placeholder="XXXX XXXX XXXX (12 digits)"/>
+                            <field name="pan_number"
+                                   placeholder="ABCDE1234F"/>
+                        </group>
+
+                        <!-- ── Passport Photo ── -->
+                        <group string="Passport Photo">
+                            <field name="passport_photo" widget="image"
+                                   class="oe_avatar" nolabel="1"
+                                   options='{"size": [120, 150]}'/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+
+            <!-- ============================================================
+                 TAB 3 – INDIAN STATUTORY &amp; BANK  (new page)
+                 ============================================================ -->
+
+            <xpath expr="//page[@name='personal_information']" position="after">
+                <page name="indian_statutory_bank"
+                      string="Indian Statutory &amp; Bank"
+                      groups="hr.group_hr_user">
+                    <group>
+                        <group string="Bank Account Information">
+                            <field name="bank_name"
+                                   placeholder="e.g. State Bank of India"/>
+                            <field name="bank_acc_number"
+                                   placeholder="Account Number"/>
+                            <field name="ifsc_code"
+                                   placeholder="e.g. SBIN0001234"/>
+                            <field name="account_type"/>
+                        </group>
+                        <group string="Payroll Verification">
+                            <field name="name_as_per_bank"
+                                   placeholder="Exact name on bank account"/>
+                            <field name="cibil_score"/>
+                        </group>
+                    </group>
+                    <group string="Bank Document Upload">
+                        <group>
+                            <field name="bank_document_type"/>
+                            <field name="bank_document" widget="binary"
+                                   filename="bank_document_filename"
+                                   invisible="not bank_document_type"/>
+                            <field name="bank_document_filename" invisible="1"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+
+            <!-- ============================================================
+                 TAB 4 – BACKGROUND &amp; ACADEMICS  (new page)
+                 ============================================================ -->
+
+            <xpath expr="//page[@name='indian_statutory_bank']" position="after">
+                <page name="background_academics"
+                      string="Background &amp; Academics"
+                      groups="hr.group_hr_user">
+                    <group>
+                        <group string="Education Background" colspan="2">
+                            <field name="education_background" nolabel="1"
+                                   colspan="2"
+                                   placeholder="10th – Board, %&#10;12th – Board, Stream, %&#10;Graduation – University, Degree, Year&#10;Post-Graduation – University, Degree, Year"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Experience Documents (Last Employer)">
+                            <field name="relieving_letter" widget="binary"
+                                   filename="relieving_letter_filename"/>
+                            <field name="relieving_letter_filename" invisible="1"/>
+
+                            <field name="experience_letter" widget="binary"
+                                   filename="experience_letter_filename"/>
+                            <field name="experience_letter_filename" invisible="1"/>
+                        </group>
+
+                        <group string="Last 3-Month Salary Slips">
+                            <field name="salary_slip_1" widget="binary"
+                                   filename="salary_slip_1_filename"/>
+                            <field name="salary_slip_1_filename" invisible="1"/>
+
+                            <field name="salary_slip_2" widget="binary"
+                                   filename="salary_slip_2_filename"/>
+                            <field name="salary_slip_2_filename" invisible="1"/>
+
+                            <field name="salary_slip_3" widget="binary"
+                                   filename="salary_slip_3_filename"/>
+                            <field name="salary_slip_3_filename" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Resume &amp; Skills">
+                            <field name="resume_doc" widget="binary"
+                                   filename="resume_doc_filename"/>
+                            <field name="resume_doc_filename" invisible="1"/>
+
+                            <field name="skill_set_summary" nolabel="1"
+                                   colspan="2"
+                                   placeholder="Key skills: Python, Odoo, Sales, Negotiation…"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+
+            <!-- ============================================================
+                 TAB 5 – DOCUMENT CHECKLIST (COMPLIANCE)  (new page)
+                 ============================================================ -->
+
+            <xpath expr="//page[@name='background_academics']" position="after">
+                <page name="document_checklist"
+                      string="Document Checklist"
+                      groups="hr.group_hr_user">
+
+                    <!-- Onboarding Documents -->
+                    <group string="Onboarding Documents">
+                        <group>
+                            <field name="offer_letter" widget="binary"
+                                   filename="offer_letter_filename"/>
+                            <field name="offer_letter_filename" invisible="1"/>
+
+                            <field name="appointment_letter" widget="binary"
+                                   filename="appointment_letter_filename"/>
+                            <field name="appointment_letter_filename"
+                                   invisible="1"/>
+
+                            <field name="bond_document" widget="binary"
+                                   filename="bond_document_filename"/>
+                            <field name="bond_document_filename" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="contract_document" widget="binary"
+                                   filename="contract_document_filename"/>
+                            <field name="contract_document_filename"
+                                   invisible="1"/>
+
+                            <field name="nda_document" widget="binary"
+                                   filename="nda_document_filename"/>
+                            <field name="nda_document_filename" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <!-- Address Proof -->
+                    <group string="Address Proof">
+                        <group>
+                            <field name="address_proof_type"/>
+                            <field name="address_proof_document" widget="binary"
+                                   filename="address_proof_filename"
+                                   invisible="not address_proof_type"/>
+                            <field name="address_proof_filename" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <!-- Other Identity Documents -->
+                    <group string="Other Identity Documents">
+                        <group>
+                            <field name="id_card"
+                                   string="Aadhaar Card Copy"/>
+                            <field name="pan_card_doc" widget="binary"
+                                   filename="pan_card_doc_filename"/>
+                            <field name="pan_card_doc_filename" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="driving_license"
+                                   string="Driving License"
+                                   help="Mandatory for BDEs"/>
+                            <field name="passport_doc" widget="binary"
+                                   filename="passport_doc_filename"
+                                   help="Optional"/>
+                            <field name="passport_doc_filename" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <!-- Internal Lifecycle Documents -->
+                    <group string="Internal Lifecycle">
+                        <group>
+                            <field name="appraisal_doc" widget="binary"
+                                   filename="appraisal_doc_filename"/>
+                            <field name="appraisal_doc_filename"
+                                   invisible="1"/>
+
+                            <field name="increment_letter" widget="binary"
+                                   filename="increment_letter_filename"/>
+                            <field name="increment_letter_filename"
+                                   invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="notice_period_doc" widget="binary"
+                                   filename="notice_period_doc_filename"/>
+                            <field name="notice_period_doc_filename"
+                                   invisible="1"/>
+                        </group>
+                    </group>
+
+                </page>
+            </xpath>
+
+            <!-- ============================================================
+                 HIDE BASE SECTIONS NOT RELEVANT TO CLEARDEALS
+                 ============================================================ -->
+
+            <!-- Hide the Resume tab (we use Background &amp; Academics instead) -->
+            <xpath expr="//page[@name='resume']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Hide the Payroll tab (managed separately via payroll module) -->
+            <xpath expr="//page[@name='payroll_information']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

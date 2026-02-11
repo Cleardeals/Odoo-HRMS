@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- 
+        Document Type Master Data
+        These map to the binary fields in hr_employee.py
+    -->
+
+    <!-- ONBOARDING DOCUMENTS -->
+    <record id="doc_type_offer_letter" model="document.type">
+        <field name="name">Offer Letter</field>
+        <field name="code">OFFER</field>
+    </record>
+
+    <record id="doc_type_appointment_letter" model="document.type">
+        <field name="name">Appointment Letter</field>
+        <field name="code">APPOINT</field>
+    </record>
+
+    <record id="doc_type_nda" model="document.type">
+        <field name="name">NDA (Non-Disclosure Agreement)</field>
+        <field name="code">NDA</field>
+    </record>
+
+    <record id="doc_type_bond" model="document.type">
+        <field name="name">Bond Document</field>
+        <field name="code">BOND</field>
+    </record>
+
+    <record id="doc_type_contract" model="document.type">
+        <field name="name">Employment Contract</field>
+        <field name="code">CONTRACT</field>
+    </record>
+
+    <!-- IDENTITY DOCUMENTS -->
+    <record id="doc_type_aadhaar" model="document.type">
+        <field name="name">Aadhaar Card</field>
+        <field name="code">AADHAAR</field>
+    </record>
+
+    <record id="doc_type_pan" model="document.type">
+        <field name="name">PAN Card</field>
+        <field name="code">PAN</field>
+    </record>
+
+    <record id="doc_type_passport" model="document.type">
+        <field name="name">Passport</field>
+        <field name="code">PASSPORT</field>
+    </record>
+
+    <record id="doc_type_driving_license" model="document.type">
+        <field name="name">Driving License</field>
+        <field name="code">DL</field>
+    </record>
+
+    <!-- BANK DOCUMENTS -->
+    <record id="doc_type_bank_document" model="document.type">
+        <field name="name">Bank Document (Cheque/Passbook)</field>
+        <field name="code">BANK_DOC</field>
+    </record>
+
+    <!-- ADDRESS PROOF -->
+    <record id="doc_type_address_proof" model="document.type">
+        <field name="name">Address Proof</field>
+        <field name="code">ADDR_PROOF</field>
+    </record>
+
+    <!-- EXPERIENCE DOCUMENTS -->
+    <record id="doc_type_relieving_letter" model="document.type">
+        <field name="name">Relieving Letter</field>
+        <field name="code">RELIEVING</field>
+    </record>
+
+    <record id="doc_type_experience_letter" model="document.type">
+        <field name="name">Experience Letter</field>
+        <field name="code">EXPERIENCE</field>
+    </record>
+
+    <record id="doc_type_salary_slip" model="document.type">
+        <field name="name">Previous Salary Slip</field>
+        <field name="code">SALARY_SLIP</field>
+    </record>
+
+    <!-- EDUCATIONAL DOCUMENTS -->
+    <record id="doc_type_resume" model="document.type">
+        <field name="name">Resume/CV</field>
+        <field name="code">RESUME</field>
+    </record>
+
+    <!-- LIFECYCLE DOCUMENTS -->
+    <record id="doc_type_appraisal" model="document.type">
+        <field name="name">Appraisal Document</field>
+        <field name="code">APPRAISAL</field>
+    </record>
+
+    <record id="doc_type_increment" model="document.type">
+        <field name="name">Increment Letter</field>
+        <field name="code">INCREMENT</field>
+    </record>
+
+    <record id="doc_type_notice_period" model="document.type">
+        <field name="name">Notice Period Document</field>
+        <field name="code">NOTICE</field>
+    </record>
+
+    <!-- PHOTO -->
+    <record id="doc_type_passport_photo" model="document.type">
+        <field name="name">Passport Size Photo</field>
+        <field name="code">PHOTO</field>
+    </record>
+
+</odoo>
