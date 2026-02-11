@@ -731,17 +731,24 @@ Authorization: Bearer your_api_key_here
 
 ### Available Endpoints
 
-**Total Endpoints: 7**
+**Total Endpoints: 8**
 
-| # | Endpoint | Method | Auth | Description |
-|---|----------|--------|------|-------------|
-| 1 | `/api/v1/health` | GET | No | API health check |
-| 2 | `/api/v1/employees/active` | GET | Yes | List all active employees |
-| 3 | `/api/v1/employees` | GET | Yes | List all employees (with filtering) |
-| 4 | `/api/v1/employees/<id>` | GET | Yes | Get employee details |
-| 5 | `/api/v1/employees/<id>/documents` | GET | Yes | Get employee documents |
-| 6 | `/api/v1/employees/<id>/documents/<doc_id>/download` | GET | Yes | Download document file |
-| 7 | `/api/v1/employees/<id>/emergency-contact` | GET | Yes | Get emergency contact info |
+| # | Endpoint | Method | Auth | Description | Controller File |
+|---|----------|--------|------|-------------|-----------------|
+| 1 | `/api/v1/health` | GET | No | API health check | main.py |
+| 2 | `/api/v1/employees/active` | GET | Yes | List all active employees | employee_api.py |
+| 3 | `/api/v1/employees` | GET | Yes | List all employees (with filtering) | employee_api.py |
+| 4 | `/api/v1/employees/<id>` | GET | Yes | Get employee details | employee_api.py |
+| 5 | `/api/v1/employees/<id>/documents` | GET | Yes | Get employee documents | employee_api.py |
+| 6 | `/api/v1/employees/<id>/documents/<doc_id>/download` | GET | Yes | Download document file | employee_api.py |
+| 7 | `/api/v1/employees/<id>/emergency-contact` | GET | Yes | Get emergency contact info | emergency_contact_api.py |
+| 8 | `/api/v1/employees/<id>/assets` | GET | Yes | Get asset allocation details | assets_api.py |
+
+**Code Organization:**
+- `controllers/main.py` - Base controller, authentication, health check
+- `controllers/employee_api.py` - Employee listing and details endpoints
+- `controllers/emergency_contact_api.py` - Emergency contact endpoint
+- `controllers/assets_api.py` - Asset management endpoint
 
 ---
 
@@ -1095,6 +1102,220 @@ getEmergencyContacts(['CD-0001', 'CD-0002', 'CD-0003'])
 
 ---
 
+#### 8. Get Employee Assets (NEW)
+
+**Endpoint:** `GET /api/v1/employees/<employee_id>/assets`  
+**Auth Required:** Yes  
+**Description:** Retrieve complete asset allocation information for an employee
+
+**Use Cases:**
+- IT asset tracking and inventory management
+- Employee onboarding/offboarding asset checklists  
+- Asset return verification during exit process
+- Compliance and audit trails
+- Asset allocation reporting
+- Equipment lifecycle management
+
+**Query Parameters:**
+- `include_details` (boolean, default: true) - Include detailed laptop specifications
+- `include_allocation` (boolean, default: true) - Include allocation dates
+
+**Usage Examples:**
+
+```bash
+# Get all assets information
+curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/assets" \
+  -H "X-API-Key: your_api_key_here"
+
+# Get only asset status (without details)
+curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/assets?include_details=false" \
+  -H "X-API-Key: your_api_key_here"
+
+# Get assets with allocation dates
+curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/assets?include_allocation=true" \
+  -H "X-API-Key: your_api_key_here"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Asset information retrieved successfully",
+  "timestamp": "2026-02-11T12:00:00Z",
+  "data": {
+    "employee": {
+      "id": 1,
+      "employee_id": "CD-0001",
+      "name": "John Doe",
+      "department": "Engineering",
+      "job_title": "Senior Developer",
+      "employee_status": "active"
+    },
+    "issued_assets": {
+      "laptop": true,
+      "sim_card": true,
+      "phone": false,
+      "pc_desktop": false,
+      "physical_id_card": true
+    },
+    "laptop_details": {
+      "brand": "Dell",
+      "model": "Latitude 7420",
+      "serial_number": "ABC123XYZ789",
+      "ram": "16GB",
+      "storage": "512GB SSD",
+      "processor": "Intel Core i7",
+      "allocation_date": "2025-01-15"
+    },
+    "asset_summary": {
+      "total_assets_issued": 3,
+      "asset_types": ["Laptop", "SIM Card", "Physical ID Card"],
+      "has_laptop": true,
+      "has_mobile_assets": true
+    }
+  }
+}
+```
+
+**Response Fields:**
+
+| Field | Type | Always Included | Description |
+|-------|------|-----------------|-------------|
+| `employee.*` | object | Yes | Employee basic information |
+| `issued_assets.laptop` | boolean | Yes | Laptop issued status |
+| `issued_assets.sim_card` | boolean | Yes | SIM card issued status |
+| `issued_assets.phone` | boolean | Yes | Phone issued status |
+| `issued_assets.pc_desktop` | boolean | Yes | PC/Desktop issued status |
+| `issued_assets.physical_id_card` | boolean | Yes | ID card issued status |
+| `laptop_details.*` | object | If laptop issued & `include_details=true` | Laptop specifications |
+| `laptop_details.allocation_date` | string | If `include_allocation=true` | Date laptop was allocated |
+| `asset_summary.*` | object | Yes | Summary of all assets |
+
+**Integration Examples:**
+
+**Python - Asset Tracking System:**
+```python
+import requests
+
+def track_employee_assets(employee_id):
+    BASE_URL = "http://localhost:8069/api/v1"
+    API_KEY = "your_api_key_here"
+    
+    response = requests.get(
+        f"{BASE_URL}/employees/{employee_id}/assets",
+        headers={"X-API-Key": API_KEY}
+    )
+    
+    if response.status_code == 200:
+        data = response.json()['data']
+        
+        print(f"Employee: {data['employee']['name']}")
+        print(f"Total Assets: {data['asset_summary']['total_assets_issued']}")
+        print(f"Asset Types: {', '.join(data['asset_summary']['asset_types'])}")
+        
+        if data['asset_summary']['has_laptop']:
+            laptop = data.get('laptop_details', {})
+            print(f"\nLaptop Details:")
+            print(f"  Brand: {laptop.get('brand')}")
+            print(f"  Model: {laptop.get('model')}")
+            print(f"  Serial: {laptop.get('serial_number')}")
+        
+        return data
+    else:
+        print(f"Error: {response.json()['message']}")
+        return None
+
+# Example usage
+track_employee_assets('CD-0001')
+```
+
+**JavaScript - Asset Checklist App:**
+```javascript
+async function getEmployeeAssets(employeeId) {
+    const BASE_URL = 'http://localhost:8069/api/v1';
+    const API_KEY = 'your_api_key_here';
+    
+    const response = await fetch(
+        `${BASE_URL}/employees/${employeeId}/assets`,
+        {
+            headers: {'X-API-Key': API_KEY}
+        }
+    );
+    
+    if (response.ok) {
+        const result = await response.json();
+        const data = result.data;
+        
+        // Build asset checklist
+        const checklist = {
+            employee: data.employee.name,
+            assetStatus: {
+                laptop: data.issued_assets.laptop ? '✓' : '✗',
+                simCard: data.issued_assets.sim_card ? '✓' : '✗',
+                phone: data.issued_assets.phone ? '✓' : '✗',
+                pcDesktop: data.issued_assets.pc_desktop ? '✓' : '✗',
+                idCard: data.issued_assets.physical_id_card ? '✓' : '✗'
+            },
+            totalIssued: data.asset_summary.total_assets_issued
+        };
+        
+        return checklist;
+    } else {
+        console.error('Failed to fetch assets');
+        return null;
+    }
+}
+
+// Usage
+getEmployeeAssets('CD-0001')
+    .then(checklist => console.table(checklist.assetStatus));
+```
+
+**Excel/CSV Export Integration:**
+```python
+import requests
+import pandas as pd
+
+def export_all_employee_assets(employee_ids):
+    BASE_URL = "http://localhost:8069/api/v1"
+    API_KEY = "your_api_key_here"
+    
+    assets_data = []
+    
+    for emp_id in employee_ids:
+        response = requests.get(
+            f"{BASE_URL}/employees/{emp_id}/assets",
+            headers={"X-API-Key": API_KEY}
+        )
+        
+        if response.status_code == 200:
+            data = response.json()['data']
+            assets_data.append({
+                'Employee ID': data['employee']['employee_id'],
+                'Name': data['employee']['name'],
+                'Department': data['employee']['department'],
+                'Laptop': 'Yes' if data['issued_assets']['laptop'] else 'No',
+                'SIM Card': 'Yes' if data['issued_assets']['sim_card'] else 'No',
+                'Phone': 'Yes' if data['issued_assets']['phone'] else 'No',
+                'PC/Desktop': 'Yes' if data['issued_assets']['pc_desktop'] else 'No',
+                'ID Card': 'Yes' if data['issued_assets']['physical_id_card'] else 'No',
+                'Total Assets': data['asset_summary']['total_assets_issued'],
+                'Laptop Brand': data.get('laptop_details', {}).get('brand', 'N/A'),
+                'Laptop Model': data.get('laptop_details', {}).get('model', 'N/A'),
+                'Serial Number': data.get('laptop_details', {}).get('serial_number', 'N/A'),
+            })
+    
+    # Create DataFrame and export to Excel
+    df = pd.DataFrame(assets_data)
+    df.to_excel('employee_assets_report.xlsx', index=False)
+    print(f"Exported {len(assets_data)} employee asset records")
+
+# Usage
+export_all_employee_assets(['CD-0001', 'CD-0002', 'CD-0003'])
+```
+
+---
+
 ### API Response Format
 
 All API responses follow this structure:
@@ -1192,13 +1413,18 @@ This module is licensed under LGPL-3 (GNU Lesser General Public License v3).
 - Image format support (JPEG/PNG)
 - Comprehensive validation rules
 - Auto-sync document vault
-- **RESTful API endpoints (7 total)**:
+- **RESTful API endpoints (8 total)**:
   - Health check endpoint
   - Active employees listing with flexible field selection
   - All employees listing with filtering
   - Employee details retrieval
   - Document management (list & download)
   - Emergency contact information retrieval
+  - Asset allocation and tracking
+- **Clean API architecture**:
+  - Decoupled controllers for better maintainability
+  - Separate files: main.py, employee_api.py, emergency_contact_api.py, assets_api.py
+  - Modular design following single responsibility principle
 - API authentication via API key
 - Standardized JSON response format
 - CORS support for cross-origin requests

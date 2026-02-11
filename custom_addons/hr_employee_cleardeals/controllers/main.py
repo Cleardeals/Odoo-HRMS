@@ -323,6 +323,12 @@ class BaseAPIController(http.Controller):
                 'description': 'Get emergency contact information by employee ID',
                 'auth_required': True
             },
+            {
+                'path': '/api/v1/employees/<employee_id>/assets',
+                'method': 'GET',
+                'description': 'Get asset allocation and details by employee ID',
+                'auth_required': True
+            },
         ]
         
         return api_response(
