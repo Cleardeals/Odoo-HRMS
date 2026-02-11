@@ -128,6 +128,10 @@ class HrEmployee(models.Model):
         attachment=True,
         groups="hr.group_hr_user",
     )
+    passport_photo_filename = fields.Char(
+        string='Passport Photo Filename',
+        groups="hr.group_hr_user",
+    )
 
     # ===================================================================
     #  TAB 3 – INDIAN STATUTORY & BANK
@@ -384,6 +388,71 @@ class HrEmployee(models.Model):
         
         return doc_type
     
+    def _detect_mimetype_from_filename(self, filename):
+        """
+        Detect MIME type based on file extension.
+        Returns tuple: (mimetype, default_extension)
+        """
+        if not filename:
+            return ('application/pdf', '.pdf')
+        
+        filename_lower = filename.lower()
+        
+        # Image formats
+        if filename_lower.endswith(('.jpg', '.jpeg')):
+            return ('image/jpeg', '.jpg')
+        elif filename_lower.endswith('.png'):
+            return ('image/png', '.png')
+        elif filename_lower.endswith('.gif'):
+            return ('image/gif', '.gif')
+        elif filename_lower.endswith('.bmp'):
+            return ('image/bmp', '.bmp')
+        elif filename_lower.endswith('.tiff'):
+            return ('image/tiff', '.tiff')
+        
+        # Document formats
+        elif filename_lower.endswith('.pdf'):
+            return ('application/pdf', '.pdf')
+        elif filename_lower.endswith(('.doc', '.docx')):
+            return ('application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.docx')
+        elif filename_lower.endswith(('.xls', '.xlsx')):
+            return ('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.xlsx')
+        
+        # Default to PDF if unknown
+        return ('application/pdf', '.pdf')
+    
+    def _detect_mimetype_from_binary(self, binary_data):
+        """
+        Detect MIME type from binary data using magic numbers.
+        Returns tuple: (mimetype, extension) or None if cannot detect.
+        """
+        if not binary_data:
+            return None
+        
+        try:
+            # Decode base64 if needed
+            if isinstance(binary_data, str):
+                data = base64.b64decode(binary_data)
+            else:
+                data = binary_data
+            
+            # Check magic numbers (first few bytes)
+            if data[:2] == b'\xff\xd8':  # JPEG
+                return ('image/jpeg', '.jpg')
+            elif data[:8] == b'\x89PNG\r\n\x1a\n':  # PNG
+                return ('image/png', '.png')
+            elif data[:4] == b'%PDF':  # PDF
+                return ('application/pdf', '.pdf')
+            elif data[:2] == b'BM':  # BMP
+                return ('image/bmp', '.bmp')
+            elif data[:4] in [b'GIF87a', b'GIF89a']:  # GIF
+                return ('image/gif', '.gif')
+                
+        except Exception as e:
+            _logger.warning(f"[DOCUMENT SYNC] Could not detect MIME from binary: {e}")
+        
+        return None
+    
     def _sync_documents_to_vault(self):
         """
         Automatically create/update hr.employee.document records
@@ -405,9 +474,30 @@ class HrEmployee(models.Model):
 
             # Get filename
             filename_field = f"{field_name}_filename"
-            filename = self[filename_field] if filename_field in self._fields else 'document.pdf'
+            filename = self[filename_field] if filename_field in self._fields else None
+            
+            # Determine if this is a photo field (image) or document field
+            is_photo_field = field_name in ['passport_photo']
+            
+            # Detect MIME type - try filename first, then binary data
+            mimetype, default_ext = self._detect_mimetype_from_filename(filename)
+            
+            # If filename detection failed or returned default PDF for a photo field,
+            # try detecting from binary data
+            if is_photo_field and mimetype == 'application/pdf':
+                binary_detection = self._detect_mimetype_from_binary(binary_data)
+                if binary_detection:
+                    mimetype, default_ext = binary_detection
+                    _logger.info(f"[DOCUMENT SYNC] Detected MIME from binary data: {mimetype}")
+            
+            # Set default filename if not provided
             if not filename:
-                filename = f"{field_name}.pdf"
+                if is_photo_field:
+                    filename = f"{field_name}{default_ext}"  # Use detected extension
+                else:
+                    filename = f"{field_name}.pdf"  # Default to .pdf for documents
+            
+            _logger.info(f"[DOCUMENT SYNC] Final MIME type: {mimetype} for file: {filename}")
 
             # Get or create document type
             doc_type = self._get_or_create_document_type(doc_type_name)
@@ -427,15 +517,15 @@ class HrEmployee(models.Model):
                 ('name', '=', doc_name)
             ], limit=1)
 
-            # Create ir.attachment record
+            # Create ir.attachment record with detected MIME type
             attachment = AttachmentModel.sudo().create({
                 'name': filename,
                 'datas': binary_data,
                 'res_model': 'hr.employee.document',
                 'res_id': existing_doc.id if existing_doc else 0,
-                'mimetype': 'application/pdf',
+                'mimetype': mimetype,
             })
-            _logger.info(f"[DOCUMENT SYNC] Created attachment ID: {attachment.id}")
+            _logger.info(f"[DOCUMENT SYNC] Created attachment ID: {attachment.id} with MIME type: {mimetype}")
 
             # Prepare document vault values
             doc_vals = {
