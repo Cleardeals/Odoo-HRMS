@@ -307,6 +307,9 @@ class HrEmployee(models.Model):
                     self.env['ir.sequence'].next_by_code('hr.employee.cd.id')
                     or 'CD-0000'
                 )
+            # Normalize PAN to uppercase
+            if vals.get('pan_number'):
+                vals['pan_number'] = vals['pan_number'].upper()
         employees = super(HrEmployee, self).create(vals_list)
 
         # Auto sync documents to vault after employee creation
@@ -318,6 +321,10 @@ class HrEmployee(models.Model):
     def write(self, vals):
         """Auto sync documents when binary fields are updated."""
         _logger.info(f"[DOCUMENT SYNC] write() called with vals: {list(vals.keys())}")
+        
+        # Normalize PAN to uppercase
+        if vals.get('pan_number'):
+            vals['pan_number'] = vals['pan_number'].upper()
         result = super(HrEmployee, self).write(vals)
 
         # Check if any document field was updated
@@ -430,9 +437,16 @@ class HrEmployee(models.Model):
             return None
         
         try:
-            # Decode base64 if needed
+            # Try to decode base64 first (binary fields in Odoo are base64)
             if isinstance(binary_data, str):
                 data = base64.b64decode(binary_data)
+            elif isinstance(binary_data, bytes):
+                # Could be base64-encoded bytes or raw binary
+                try:
+                    data = base64.b64decode(binary_data)
+                except Exception:
+                    # If decode fails, it's already raw binary
+                    data = binary_data
             else:
                 data = binary_data
             
