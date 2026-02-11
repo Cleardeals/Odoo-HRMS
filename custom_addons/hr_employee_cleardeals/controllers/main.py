@@ -317,6 +317,12 @@ class BaseAPIController(http.Controller):
                 'description': 'Download a specific document file',
                 'auth_required': True
             },
+            {
+                'path': '/api/v1/employees/<employee_id>/emergency-contact',
+                'method': 'GET',
+                'description': 'Get emergency contact information by employee ID',
+                'auth_required': True
+            },
         ]
         
         return api_response(

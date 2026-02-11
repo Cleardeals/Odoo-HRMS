@@ -731,6 +731,20 @@ Authorization: Bearer your_api_key_here
 
 ### Available Endpoints
 
+**Total Endpoints: 7**
+
+| # | Endpoint | Method | Auth | Description |
+|---|----------|--------|------|-------------|
+| 1 | `/api/v1/health` | GET | No | API health check |
+| 2 | `/api/v1/employees/active` | GET | Yes | List all active employees |
+| 3 | `/api/v1/employees` | GET | Yes | List all employees (with filtering) |
+| 4 | `/api/v1/employees/<id>` | GET | Yes | Get employee details |
+| 5 | `/api/v1/employees/<id>/documents` | GET | Yes | Get employee documents |
+| 6 | `/api/v1/employees/<id>/documents/<doc_id>/download` | GET | Yes | Download document file |
+| 7 | `/api/v1/employees/<id>/emergency-contact` | GET | Yes | Get emergency contact info |
+
+---
+
 #### 1. Health Check
 
 **Endpoint:** `GET /api/v1/health`  
@@ -927,6 +941,160 @@ curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/documents/1/download
   -o document.pdf
 ```
 
+---
+
+#### 7. Get Employee Emergency Contact (NEW)
+
+**Endpoint:** `GET /api/v1/employees/<employee_id>/emergency-contact`  
+**Auth Required:** Yes  
+**Description:** Retrieve emergency contact information for an employee
+
+**Use Cases:**
+- Emergency situations requiring immediate contact
+- HR systems integration
+- Safety and security applications
+- Medical emergency response systems
+- Compliance and regulatory reporting
+
+**Query Parameters:**
+- `include_personal` (boolean, default: false) - Include employee's personal contact information
+- `include_medical` (boolean, default: false) - Include medical information (blood group)
+
+**Usage Examples:**
+
+```bash
+# Get emergency contact only
+curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/emergency-contact" \
+  -H "X-API-Key: your_api_key_here"
+
+# Get with personal contact info
+curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/emergency-contact?include_personal=true" \
+  -H "X-API-Key: your_api_key_here"
+
+# Get with medical info
+curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/emergency-contact?include_medical=true" \
+  -H "X-API-Key: your_api_key_here"
+
+# Get all information
+curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/emergency-contact?include_personal=true&include_medical=true" \
+  -H "X-API-Key: your_api_key_here"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Emergency contact information retrieved successfully",
+  "timestamp": "2026-02-11T12:00:00Z",
+  "data": {
+    "employee": {
+      "id": 1,
+      "employee_id": "CD-0001",
+      "name": "John Doe",
+      "department": "Engineering",
+      "job_title": "Senior Developer",
+      "employee_status": "active"
+    },
+    "emergency_contact": {
+      "name": "Jane Doe",
+      "phone": "+91-9876543210",
+      "relationship": "Spouse"
+    },
+    "personal_contact": {
+      "personal_phone": "+91-9876543211",
+      "personal_email": "john.doe@gmail.com",
+      "work_phone": "+91-9876543212",
+      "work_email": "john@company.com"
+    },
+    "medical_info": {
+      "blood_group": "O+"
+    }
+  }
+}
+```
+
+**Response Fields:**
+
+| Field | Type | Always Included | Description |
+|-------|------|-----------------|-------------|
+| `employee.id` | integer | Yes | Employee database ID |
+| `employee.employee_id` | string | Yes | Employee ID (CD-XXXX) |
+| `employee.name` | string | Yes | Employee full name |
+| `employee.department` | string | Yes | Department name |
+| `employee.job_title` | string | Yes | Job title/position |
+| `employee.employee_status` | string | Yes | Employment status |
+| `emergency_contact.name` | string | Yes | Emergency contact name |
+| `emergency_contact.phone` | string | Yes | Emergency contact phone |
+| `emergency_contact.relationship` | string | Yes | Relationship to employee |
+| `personal_contact.*` | object | If `include_personal=true` | Employee contact details |
+| `medical_info.*` | object | If `include_medical=true` | Medical information |
+
+**Integration Examples:**
+
+**Python - Emergency Alert System:**
+```python
+import requests
+
+def send_emergency_alert(employee_id, emergency_type):
+    BASE_URL = "http://localhost:8069/api/v1"
+    API_KEY = "your_api_key_here"
+    
+    # Get emergency contact
+    response = requests.get(
+        f"{BASE_URL}/employees/{employee_id}/emergency-contact",
+        headers={"X-API-Key": API_KEY},
+        params={"include_medical": "true"}
+    )
+    
+    if response.status_code == 200:
+        data = response.json()['data']
+        emergency_contact = data['emergency_contact']
+        
+        # Send SMS/call to emergency contact
+        print(f\"Contacting {emergency_contact['name']} at {emergency_contact['phone']}\")\n        print(f\"Employee: {data['employee']['name']}\")\n        print(f\"Blood Group: {data['medical_info']['blood_group']}\")\n        \n        return emergency_contact\n    else:
+        print(f\"Error: {response.json()['message']}\")\n        return None
+
+# Example usage
+send_emergency_alert('CD-0001', 'medical')
+```
+
+**JavaScript - Contact Directory App:**
+```javascript
+async function getEmergencyContacts(employeeIds) {
+    const BASE_URL = 'http://localhost:8069/api/v1';
+    const API_KEY = 'your_api_key_here';
+    
+    const contacts = [];
+    
+    for (const empId of employeeIds) {
+        const response = await fetch(
+            `${BASE_URL}/employees/${empId}/emergency-contact`,
+            {
+                headers: {'X-API-Key': API_KEY}
+            }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            contacts.push({
+                employee: data.data.employee.name,
+                emergencyName: data.data.emergency_contact.name,
+                emergencyPhone: data.data.emergency_contact.phone,
+                relationship: data.data.emergency_contact.relationship
+            });
+        }
+    }
+    
+    return contacts;
+}
+
+// Usage
+getEmergencyContacts(['CD-0001', 'CD-0002', 'CD-0003'])
+    .then(contacts => console.table(contacts));
+```
+
+---
+
 ### API Response Format
 
 All API responses follow this structure:
@@ -1024,6 +1192,17 @@ This module is licensed under LGPL-3 (GNU Lesser General Public License v3).
 - Image format support (JPEG/PNG)
 - Comprehensive validation rules
 - Auto-sync document vault
+- **RESTful API endpoints (7 total)**:
+  - Health check endpoint
+  - Active employees listing with flexible field selection
+  - All employees listing with filtering
+  - Employee details retrieval
+  - Document management (list & download)
+  - Emergency contact information retrieval
+- API authentication via API key
+- Standardized JSON response format
+- CORS support for cross-origin requests
+- Pagination support for large datasets
 
 ---
 
