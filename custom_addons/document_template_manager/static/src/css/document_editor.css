@@ -1,0 +1,146 @@
+/* Document Editor - Pure Knowledge-style (No Chatter) */
+
+/* ===== Form Container - Full width, no sidebars ===== */
+.o_document_editor_form .o_form_renderer {
+    width: 100% !important;
+}
+
+.o_document_editor_form .o_form_sheet_bg {
+    width: 100% !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+}
+
+/* ===== Form Sheet - Clean document page ===== */
+.o_document_editor_form .o_form_sheet {
+    max-width: 960px !important;
+    margin: 0 auto !important;
+    padding: 40px 60px 80px 60px !important;
+    border: none !important;
+    box-shadow: none !important;
+    min-height: 100vh !important;
+}
+
+/* ===== Header - Minimal ===== */
+.o_document_editor_form .o_form_statusbar {
+    border-bottom: 1px solid #e8e8e8;
+    padding: 8px 16px;
+}
+
+.o_document_editor_form .o_form_statusbar button {
+    margin: 0 4px;
+}
+
+/* ===== Document Title - Extra large and bold ===== */
+.o_document_editor_form .o_document_title {
+    margin-bottom: 12px;
+    margin-top: 8px;
+}
+
+.o_document_editor_form .o_document_title h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0;
+    color: #37352f;
+}
+
+.o_document_editor_form .o_document_title h1 input,
+.o_document_editor_form .o_document_title h1 .o_field_char,
+.o_document_editor_form .o_document_title h1 .o_field_widget input {
+    font-size: 2.5rem !important;
+    font-weight: 700 !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    width: 100% !important;
+    color: #37352f !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.o_document_editor_form .o_document_title h1 input:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.o_document_editor_form .o_document_title h1 input::placeholder {
+    color: #d0d0d0;
+    font-weight: 400;
+}
+
+/* ===== Metadata Bar - Ultra minimal ===== */
+.o_document_editor_form .o_document_meta {
+    font-size: 0.85rem;
+    opacity: 0.7;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.o_document_editor_form .o_document_meta .o_field_widget {
+    margin-bottom: 0;
+}
+
+.o_document_editor_form .o_document_meta .o_field_many2one input,
+.o_document_editor_form .o_document_meta .o_field_many2many_tags input {
+    border: none !important;
+    background: transparent !important;
+    font-size: 0.85rem !important;
+    padding: 2px 4px !important;
+}
+
+/* ===== Content Area - THE MAIN FOCUS ===== */
+.o_document_editor_form .o_document_content_area {
+    margin-top: 24px;
+    min-height: 70vh;
+}
+
+/* HTML Editor - Clean and spacious */
+.o_document_editor_form .o_field_html {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    min-height: 70vh;
+}
+
+.o_document_editor_form .o_field_html .note-editing-area,
+.o_document_editor_form .o_field_html .odoo-editor-editable,
+.o_document_editor_form .o_field_html .o_wysiwyg_wrapper,
+.o_document_editor_form .o_field_html .oe-bordered {
+    min-height: 70vh !important;
+    padding: 0 !important;
+    font-size: 1rem;
+    line-height: 1.75;
+    color: #37352f;
+    border: none !important;
+    background: transparent !important;
+}
+
+/* Editor in read mode */
+.o_document_editor_form .o_field_html[readonly] .o_readonly {
+    min-height: 70vh !important;
+    padding: 0 !important;
+    font-size: 1rem;
+    line-height: 1.75;
+    color: #37352f;
+}
+
+/* Clean placeholder */
+.o_document_editor_form .o_field_html input::placeholder,
+.o_document_editor_form .o_field_html textarea::placeholder,
+.o_document_editor_form .o_field_html .o_wysiwyg_wrapper::before {
+    color: #c8c8c8;
+    font-style: normal;
+}
+
+/* ===== Ribbon for archived ===== */
+.o_document_editor_form .o_web_ribbon {
+    z-index: 10;
+}
+
+/* ===== Remove button box if any ===== */
+.o_document_editor_form .oe_button_box {
+    display: none !important;
+}

@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Document List View -->
+    <record id="view_document_template_tree" model="ir.ui.view">
+        <field name="name">document.template.tree</field>
+        <field name="model">document.template</field>
+        <field name="arch" type="xml">
+            <list string="Documents">
+                <field name="favorite" widget="boolean_favorite" nolabel="1"/>
+                <field name="name"/>
+                <field name="category_id"/>
+                <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
+                <field name="write_date"/>
+                <field name="write_uid"/>
+                <field name="has_pdf" widget="boolean_toggle"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Document Form View - Pure Knowledge-style Editor -->
+    <record id="view_document_template_form" model="ir.ui.view">
+        <field name="name">document.template.form</field>
+        <field name="model">document.template</field>
+        <field name="arch" type="xml">
+            <form string="Document" class="o_document_editor_form">
+                <header>
+                    <button name="action_generate_pdf" 
+                            string="Export PDF" 
+                            type="object" 
+                            class="btn-secondary"
+                            icon="fa-file-pdf-o"/>
+                    <button name="action_download_pdf" 
+                            string="Download" 
+                            type="object" 
+                            class="btn-secondary"
+                            icon="fa-download"
+                            invisible="not has_pdf"/>
+                    <button name="action_duplicate" 
+                            string="Duplicate" 
+                            type="object"
+                            class="btn-secondary"
+                            icon="fa-copy"/>
+                    <button name="action_toggle_favorite" 
+                            string="★" 
+                            type="object"
+                            class="btn-link text-warning"
+                            title="Remove from favorites"
+                            invisible="not favorite"/>
+                    <button name="action_toggle_favorite" 
+                            string="☆" 
+                            type="object"
+                            class="btn-link text-muted"
+                            title="Add to favorites"
+                            invisible="favorite"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" 
+                            invisible="active"/>
+                    
+                    <!-- Document Title - Large and clean -->
+                    <div class="o_document_title mb-2">
+                        <h1>
+                            <field name="name" placeholder="Untitled" class="o_text_overflow"/>
+                        </h1>
+                    </div>
+                    
+                    <!-- Minimal inline metadata -->
+                    <div class="o_document_meta d-flex flex-wrap align-items-center gap-3 mb-3">
+                        <div class="d-flex align-items-center gap-1" style="font-size: 0.85rem;">
+                            <i class="fa fa-folder-o text-muted"/>
+                            <field name="category_id" placeholder="Category" 
+                                   options="{'no_open': True}" class="border-0"/>
+                        </div>
+                        <div class="d-flex align-items-center gap-1" style="font-size: 0.85rem;">
+                            <i class="fa fa-tags text-muted"/>
+                            <field name="tag_ids" widget="many2many_tags" 
+                                   placeholder="Tags"
+                                   options="{'color_field': 'color'}" class="border-0"/>
+                        </div>
+                    </div>
+                    
+                    <!-- Pure Rich Text Editor -->
+                    <div class="o_document_content_area">
+                        <field name="html_content" widget="html" 
+                               options="{'style-inline': true, 'collaborative': true}"
+                               placeholder="Start writing... Press '/' for commands"
+                               class="o_document_html_editor"/>
+                    </div>
+                    
+                    <!-- Hidden fields -->
+                    <field name="has_pdf" invisible="1"/>
+                    <field name="pdf_filename" invisible="1"/>
+                    <field name="pdf_file" invisible="1"/>
+                    <field name="active" invisible="1"/>
+                    <field name="summary" invisible="1"/>
+                    <field name="company_id" invisible="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Document Kanban View -->
+    <record id="view_document_template_kanban" model="ir.ui.view">
+        <field name="name">document.template.kanban</field>
+        <field name="model">document.template</field>
+        <field name="arch" type="xml">
+            <kanban string="Documents">
+                <field name="id"/>
+                <field name="name"/>
+                <field name="category_id"/>
+                <field name="tag_ids"/>
+                <field name="favorite"/>
+                <field name="active"/>
+                <field name="has_pdf"/>
+                <field name="write_date"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click">
+                            <div class="o_kanban_image">
+                                <i class="fa fa-file-text-o fa-3x" 
+                                   t-attf-style="color: #{record.category_id.raw_value ? '#875A7B' : '#7C7BAD'};"/>
+                            </div>
+                            <div class="oe_kanban_details">
+                                <strong class="o_kanban_record_title">
+                                    <field name="name"/>
+                                    <i class="fa fa-star text-warning ms-2" t-if="record.favorite.raw_value" title="Favorite"/>
+                                </strong>
+                                <div class="mt-2">
+                                    <field name="category_id" invisible="not category_id"/>
+                                </div>
+                                <div class="mt-1">
+                                    <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
+                                </div>
+                                <div class="text-muted mt-2">
+                                    Modified: <field name="write_date" widget="relative"/>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_bottom">
+                                <div class="oe_kanban_bottom_left">
+                                    <span class="badge text-bg-success" t-if="record.has_pdf.raw_value">
+                                        <i class="fa fa-file-pdf-o"/> PDF
+                                    </span>
+                                </div>
+                                <div class="oe_kanban_bottom_right">
+                                    <field name="write_uid" widget="many2one_avatar_user"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    
+    <!-- Document Search View -->
+    <record id="view_document_template_search" model="ir.ui.view">
+        <field name="name">document.template.search</field>
+        <field name="model">document.template</field>
+        <field name="arch" type="xml">
+            <search string="Search Documents">
+                <field name="name" string="Document"/>
+                <field name="category_id"/>
+                <field name="tag_ids"/>
+                <field name="html_content"/>
+                
+                <filter string="My Documents" name="my_documents" 
+                        domain="[('create_uid', '=', uid)]"/>
+                <filter string="Favorites" name="favorites" 
+                        domain="[('favorite', '=', True)]"/>
+                
+                <separator/>
+                <filter string="Has PDF" name="has_pdf" domain="[('has_pdf', '=', True)]"/>
+                <filter string="No PDF" name="no_pdf" domain="[('has_pdf', '=', False)]"/>
+                
+                <separator/>
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
+                
+                <group>
+                    <filter string="Category" name="group_category" 
+                            context="{'group_by': 'category_id'}"/>
+                    <filter string="Author" name="group_author" 
+                            context="{'group_by': 'create_uid'}"/>
+                    <filter string="Company" name="group_company" 
+                            context="{'group_by': 'company_id'}" 
+                            groups="base.group_multi_company"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    
+    <!-- Document Actions -->
+    <record id="action_document_template" model="ir.actions.act_window">
+        <field name="name">Documents</field>
+        <field name="res_model">document.template</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first document
+            </p>
+            <p>
+                Create rich text documents with formatting, images, and export to PDF.
+            </p>
+        </field>
+    </record>
+    
+    <record id="action_document_my_documents" model="ir.actions.act_window">
+        <field name="name">My Documents</field>
+        <field name="res_model">document.template</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_my_documents': 1, 'search_default_active': 1}</field>
+        <field name="domain">[('create_uid', '=', uid)]</field>
+    </record>
+    
+    <record id="action_document_favorites" model="ir.actions.act_window">
+        <field name="name">Favorite Documents</field>
+        <field name="res_model">document.template</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_favorites': 1}</field>
+        <field name="domain">[('favorite', '=', True), ('active', '=', True)]</field>
+    </record>
+    
+</odoo>
