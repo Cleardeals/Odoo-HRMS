@@ -267,6 +267,217 @@ class EmployeeAPIController(BaseAPIController):
         return request.make_response(file_content, headers)
     
     # ========================================================================
+    # DOCUMENT UPLOAD
+    # ========================================================================
+    
+    @http.route('/api/v1/employees/<string:employee_id>/documents/upload', 
+                type='http', auth='public', methods=['POST'], 
+                csrf=False, cors='*')
+    @validate_api_key
+    @handle_api_errors
+    def upload_employee_document(self, employee_id, **kwargs):
+        """
+        Upload a document for a specific employee.
+        
+        Endpoint: POST /api/v1/employees/<employee_id>/documents/upload
+        Content-Type: multipart/form-data
+        
+        Path Parameters:
+            employee_id (str): Employee ID (e.g., CD-0001)
+        
+        Form Data:
+            file (file): Document file to upload (required)
+            document_type (str): Type of document (required)
+        
+        Headers:
+            X-API-Key: Your API key
+        
+        Supported Document Types:
+            - passport_photo: Passport size photo
+            - bank_document: Cancelled cheque or passbook copy
+            - offer_letter: Offer letter
+            - appointment_letter: Appointment letter
+            - bond_document: Bond document
+            - contract_document: Employment contract
+            - nda_document: Non-disclosure agreement
+            - pan_card_doc: PAN card copy
+            - passport_doc: Passport copy
+            - address_proof_document: Address proof (utility bill, etc.)
+            - relieving_letter: Relieving letter from previous employer
+            - experience_letter: Experience certificate
+            - salary_slip_1: Salary slip month 1
+            - salary_slip_2: Salary slip month 2  
+            - salary_slip_3: Salary slip month 3
+            - resume_doc: Resume/CV
+            - appraisal_doc: Appraisal document
+            - increment_letter: Increment/promotion letter
+            - notice_period_doc: Notice period document
+        
+        File Restrictions:
+            - Max file size: 10 MB
+            - Supported formats: PDF, JPEG, JPG, PNG
+        
+        Response Format (Success):
+            {
+                "success": true,
+                "message": "Document uploaded successfully",
+                "timestamp": "2026-02-12T12:00:00Z",
+                "data": {
+                    "employee_id": "CD-0001",
+                    "document_type": "pan_card_doc",
+                    "filename": "pan_card.pdf",
+                    "file_size": 102400,
+                    "uploaded_at": "2026-02-12T12:00:00Z"
+                }
+            }
+        
+        Error Responses:
+            400: Missing required fields or invalid file
+            404: Employee not found
+            413: File too large
+            422: Unsupported document type or file format
+        
+        Usage Example:
+            curl -X POST "http://localhost:8069/api/v1/employees/CD-0001/documents/upload" \\
+              -H "X-API-Key: your_api_key_here" \\
+              -F "file=@/path/to/pan_card.pdf" \\
+              -F "document_type=pan_card_doc"
+        """
+        # Find employee by employee_id
+        employee = request.env['hr.employee'].sudo().search([
+            ('employee_id', '=', employee_id)
+        ], limit=1)
+        
+        if not employee:
+            return api_response(
+                success=False,
+                message='Employee not found',
+                errors={'employee_id': f'No employee found with ID {employee_id}'},
+                status=404
+            )
+        
+        # Get uploaded file from request
+        uploaded_file = request.httprequest.files.get('file')
+        document_type = request.httprequest.form.get('document_type')
+        
+        # Validate required fields
+        if not uploaded_file:
+            return api_response(
+                success=False,
+                message='Validation Error',
+                errors={'file': 'File is required'},
+                status=400
+            )
+        
+        if not document_type:
+            return api_response(
+                success=False,
+                message='Validation Error',
+                errors={'document_type': 'Document type is required'},
+                status=400
+            )
+        
+        # Map document types to field names
+        document_field_mapping = {
+            'passport_photo': ('passport_photo', 'passport_photo_filename'),
+            'bank_document': ('bank_document', 'bank_document_filename'),
+            'offer_letter': ('offer_letter', 'offer_letter_filename'),
+            'appointment_letter': ('appointment_letter', 'appointment_letter_filename'),
+            'bond_document': ('bond_document', 'bond_document_filename'),
+            'contract_document': ('contract_document', 'contract_document_filename'),
+            'nda_document': ('nda_document', 'nda_document_filename'),
+            'pan_card_doc': ('pan_card_doc', 'pan_card_doc_filename'),
+            'passport_doc': ('passport_doc', 'passport_doc_filename'),
+            'address_proof_document': ('address_proof_document', 'address_proof_filename'),
+            'relieving_letter': ('relieving_letter', 'relieving_letter_filename'),
+            'experience_letter': ('experience_letter', 'experience_letter_filename'),
+            'salary_slip_1': ('salary_slip_1', 'salary_slip_1_filename'),
+            'salary_slip_2': ('salary_slip_2', 'salary_slip_2_filename'),
+            'salary_slip_3': ('salary_slip_3', 'salary_slip_3_filename'),
+            'resume_doc': ('resume_doc', 'resume_doc_filename'),
+            'appraisal_doc': ('appraisal_doc', 'appraisal_doc_filename'),
+            'increment_letter': ('increment_letter', 'increment_letter_filename'),
+            'notice_period_doc': ('notice_period_doc', 'notice_period_doc_filename'),
+        }
+        
+        # Validate document type
+        if document_type not in document_field_mapping:
+            return api_response(
+                success=False,
+                message='Validation Error',
+                errors={
+                    'document_type': f'Invalid document type. Supported types: {", ".join(document_field_mapping.keys())}'
+                },
+                status=422
+            )
+        
+        # Get file content and metadata
+        filename = uploaded_file.filename
+        file_content = uploaded_file.read()
+        file_size = len(file_content)
+        
+        # Validate file size (10 MB limit)
+        MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+        if file_size > MAX_FILE_SIZE:
+            return api_response(
+                success=False,
+                message='File too large',
+                errors={'file': f'File size ({file_size / (1024*1024):.2f} MB) exceeds maximum allowed size (10 MB)'},
+                status=413
+            )
+        
+        # Validate file format based on extension
+        allowed_extensions = ['.pdf', '.jpeg', '.jpg', '.png']
+        file_extension = '.' + filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        
+        if file_extension not in allowed_extensions:
+            return api_response(
+                success=False,
+                message='Invalid file format',
+                errors={
+                    'file': f'File format {file_extension} not supported. Allowed formats: PDF, JPEG, JPG, PNG'
+                },
+                status=422
+            )
+        
+        # Convert file to base64
+        file_base64 = base64.b64encode(file_content)
+        
+        # Get field names for this document type
+        binary_field, filename_field = document_field_mapping[document_type]
+        
+        # Update employee record
+        try:
+            employee.write({
+                binary_field: file_base64,
+                filename_field: filename
+            })
+            
+            return api_response(
+                success=True,
+                message='Document uploaded successfully',
+                data={
+                    'employee_id': employee.employee_id,
+                    'employee_name': employee.name,
+                    'document_type': document_type,
+                    'filename': filename,
+                    'file_size': file_size,
+                    'file_size_mb': round(file_size / (1024 * 1024), 2),
+                    'uploaded_at': employee.write_date.strftime('%Y-%m-%d %H:%M:%S') if employee.write_date else None
+                },
+                status=201
+            )
+            
+        except Exception as e:
+            _logger.exception(f"Error uploading document for employee {employee_id}")
+            return api_response(
+                success=False,
+                message='Failed to upload document',
+                errors={'error': str(e)},
+                status=500
+            )
+    
+    # ========================================================================
     # EMPLOYEE DETAILS
     # ========================================================================
     
