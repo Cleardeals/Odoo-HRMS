@@ -294,6 +294,12 @@ class BaseAPIController(http.Controller):
                 'auth_required': True
             },
             {
+                'path': '/api/v1/employees',
+                'method': 'POST',
+                'description': 'Create a new employee record',
+                'auth_required': True
+            },
+            {
                 'path': '/api/v1/employees/active',
                 'method': 'GET',
                 'description': 'List all active employees (recommended for most use cases)',
@@ -315,6 +321,12 @@ class BaseAPIController(http.Controller):
                 'path': '/api/v1/employees/<employee_id>/documents/<document_id>/download',
                 'method': 'GET',
                 'description': 'Download a specific document file',
+                'auth_required': True
+            },
+            {
+                'path': '/api/v1/employees/<employee_id>/documents/upload',
+                'method': 'POST',
+                'description': 'Upload a document for an employee',
                 'auth_required': True
             },
             {

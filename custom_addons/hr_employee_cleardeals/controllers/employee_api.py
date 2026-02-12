@@ -6,9 +6,11 @@ Endpoints for employee management and document access.
 """
 import logging
 import base64
+import json
 
 from odoo import http
 from odoo.http import request
+from odoo.exceptions import ValidationError
 
 from .main import (
     BaseAPIController, 
@@ -263,6 +265,217 @@ class EmployeeAPIController(BaseAPIController):
         ]
         
         return request.make_response(file_content, headers)
+    
+    # ========================================================================
+    # DOCUMENT UPLOAD
+    # ========================================================================
+    
+    @http.route('/api/v1/employees/<string:employee_id>/documents/upload', 
+                type='http', auth='public', methods=['POST'], 
+                csrf=False, cors='*')
+    @validate_api_key
+    @handle_api_errors
+    def upload_employee_document(self, employee_id, **kwargs):
+        """
+        Upload a document for a specific employee.
+        
+        Endpoint: POST /api/v1/employees/<employee_id>/documents/upload
+        Content-Type: multipart/form-data
+        
+        Path Parameters:
+            employee_id (str): Employee ID (e.g., CD-0001)
+        
+        Form Data:
+            file (file): Document file to upload (required)
+            document_type (str): Type of document (required)
+        
+        Headers:
+            X-API-Key: Your API key
+        
+        Supported Document Types:
+            - passport_photo: Passport size photo
+            - bank_document: Cancelled cheque or passbook copy
+            - offer_letter: Offer letter
+            - appointment_letter: Appointment letter
+            - bond_document: Bond document
+            - contract_document: Employment contract
+            - nda_document: Non-disclosure agreement
+            - pan_card_doc: PAN card copy
+            - passport_doc: Passport copy
+            - address_proof_document: Address proof (utility bill, etc.)
+            - relieving_letter: Relieving letter from previous employer
+            - experience_letter: Experience certificate
+            - salary_slip_1: Salary slip month 1
+            - salary_slip_2: Salary slip month 2  
+            - salary_slip_3: Salary slip month 3
+            - resume_doc: Resume/CV
+            - appraisal_doc: Appraisal document
+            - increment_letter: Increment/promotion letter
+            - notice_period_doc: Notice period document
+        
+        File Restrictions:
+            - Max file size: 10 MB
+            - Supported formats: PDF, JPEG, JPG, PNG
+        
+        Response Format (Success):
+            {
+                "success": true,
+                "message": "Document uploaded successfully",
+                "timestamp": "2026-02-12T12:00:00Z",
+                "data": {
+                    "employee_id": "CD-0001",
+                    "document_type": "pan_card_doc",
+                    "filename": "pan_card.pdf",
+                    "file_size": 102400,
+                    "uploaded_at": "2026-02-12T12:00:00Z"
+                }
+            }
+        
+        Error Responses:
+            400: Missing required fields or invalid file
+            404: Employee not found
+            413: File too large
+            422: Unsupported document type or file format
+        
+        Usage Example:
+            curl -X POST "http://localhost:8069/api/v1/employees/CD-0001/documents/upload" \\
+              -H "X-API-Key: your_api_key_here" \\
+              -F "file=@/path/to/pan_card.pdf" \\
+              -F "document_type=pan_card_doc"
+        """
+        # Find employee by employee_id
+        employee = request.env['hr.employee'].sudo().search([
+            ('employee_id', '=', employee_id)
+        ], limit=1)
+        
+        if not employee:
+            return api_response(
+                success=False,
+                message='Employee not found',
+                errors={'employee_id': f'No employee found with ID {employee_id}'},
+                status=404
+            )
+        
+        # Get uploaded file from request
+        uploaded_file = request.httprequest.files.get('file')
+        document_type = request.httprequest.form.get('document_type')
+        
+        # Validate required fields
+        if not uploaded_file:
+            return api_response(
+                success=False,
+                message='Validation Error',
+                errors={'file': 'File is required'},
+                status=400
+            )
+        
+        if not document_type:
+            return api_response(
+                success=False,
+                message='Validation Error',
+                errors={'document_type': 'Document type is required'},
+                status=400
+            )
+        
+        # Map document types to field names
+        document_field_mapping = {
+            'passport_photo': ('passport_photo', 'passport_photo_filename'),
+            'bank_document': ('bank_document', 'bank_document_filename'),
+            'offer_letter': ('offer_letter', 'offer_letter_filename'),
+            'appointment_letter': ('appointment_letter', 'appointment_letter_filename'),
+            'bond_document': ('bond_document', 'bond_document_filename'),
+            'contract_document': ('contract_document', 'contract_document_filename'),
+            'nda_document': ('nda_document', 'nda_document_filename'),
+            'pan_card_doc': ('pan_card_doc', 'pan_card_doc_filename'),
+            'passport_doc': ('passport_doc', 'passport_doc_filename'),
+            'address_proof_document': ('address_proof_document', 'address_proof_filename'),
+            'relieving_letter': ('relieving_letter', 'relieving_letter_filename'),
+            'experience_letter': ('experience_letter', 'experience_letter_filename'),
+            'salary_slip_1': ('salary_slip_1', 'salary_slip_1_filename'),
+            'salary_slip_2': ('salary_slip_2', 'salary_slip_2_filename'),
+            'salary_slip_3': ('salary_slip_3', 'salary_slip_3_filename'),
+            'resume_doc': ('resume_doc', 'resume_doc_filename'),
+            'appraisal_doc': ('appraisal_doc', 'appraisal_doc_filename'),
+            'increment_letter': ('increment_letter', 'increment_letter_filename'),
+            'notice_period_doc': ('notice_period_doc', 'notice_period_doc_filename'),
+        }
+        
+        # Validate document type
+        if document_type not in document_field_mapping:
+            return api_response(
+                success=False,
+                message='Validation Error',
+                errors={
+                    'document_type': f'Invalid document type. Supported types: {", ".join(document_field_mapping.keys())}'
+                },
+                status=422
+            )
+        
+        # Get file content and metadata
+        filename = uploaded_file.filename
+        file_content = uploaded_file.read()
+        file_size = len(file_content)
+        
+        # Validate file size (10 MB limit)
+        MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+        if file_size > MAX_FILE_SIZE:
+            return api_response(
+                success=False,
+                message='File too large',
+                errors={'file': f'File size ({file_size / (1024*1024):.2f} MB) exceeds maximum allowed size (10 MB)'},
+                status=413
+            )
+        
+        # Validate file format based on extension
+        allowed_extensions = ['.pdf', '.jpeg', '.jpg', '.png']
+        file_extension = '.' + filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        
+        if file_extension not in allowed_extensions:
+            return api_response(
+                success=False,
+                message='Invalid file format',
+                errors={
+                    'file': f'File format {file_extension} not supported. Allowed formats: PDF, JPEG, JPG, PNG'
+                },
+                status=422
+            )
+        
+        # Convert file to base64
+        file_base64 = base64.b64encode(file_content)
+        
+        # Get field names for this document type
+        binary_field, filename_field = document_field_mapping[document_type]
+        
+        # Update employee record
+        try:
+            employee.write({
+                binary_field: file_base64,
+                filename_field: filename
+            })
+            
+            return api_response(
+                success=True,
+                message='Document uploaded successfully',
+                data={
+                    'employee_id': employee.employee_id,
+                    'employee_name': employee.name,
+                    'document_type': document_type,
+                    'filename': filename,
+                    'file_size': file_size,
+                    'file_size_mb': round(file_size / (1024 * 1024), 2),
+                    'uploaded_at': employee.write_date.strftime('%Y-%m-%d %H:%M:%S') if employee.write_date else None
+                },
+                status=201
+            )
+            
+        except Exception as e:
+            _logger.exception(f"Error uploading document for employee {employee_id}")
+            return api_response(
+                success=False,
+                message='Failed to upload document',
+                errors={'error': str(e)},
+                status=500
+            )
     
     # ========================================================================
     # EMPLOYEE DETAILS
@@ -669,3 +882,288 @@ class EmployeeAPIController(BaseAPIController):
             },
             meta=meta
         )
+    
+    # ========================================================================
+    # EMPLOYEE CREATION
+    # ========================================================================
+    
+    @http.route('/api/v1/employees', 
+                type='http', auth='public', methods=['POST'], 
+                csrf=False, cors='*')
+    @validate_api_key
+    @handle_api_errors
+    def create_employee(self, **kwargs):
+        """
+        Create a new employee record.
+        
+        Endpoint: POST /api/v1/employees
+        Content-Type: application/json
+        
+        Headers:
+            X-API-Key: Your API key
+            OR
+            Authorization: Bearer <your_api_key>
+        
+        Request Body (JSON):
+            {
+                "name": "John Doe",  // REQUIRED
+                "work_email": "john.doe@company.com",  // OPTIONAL but recommended
+                "work_phone": "+91-9876543210",
+                "mobile_phone": "+91-9876543210",
+                "job_title": "Software Engineer",
+                "department_id": 1,  // Department ID
+                "job_id": 5,  // Job Position ID
+                "date_of_joining": "2026-02-15",
+                "employee_status": "onboarding",  // onboarding/active/notice/resigned/terminated
+                
+                // Personal Information
+                "legal_name": "John Michael Doe",
+                "sex": "male",  // male/female/other
+                "marital": "single",  // single/married/cohabitant/widower/divorced
+                "birthday": "1995-05-15",
+                "private_phone": "+91-9988776655",
+                "private_email": "john.personal@gmail.com",
+                "blood_group": "o+",  // a+/a-/b+/b-/ab+/ab-/o+/o-
+                
+                // Address
+                "private_street": "123 Main Street",
+                "private_street2": "Apartment 4B",
+                "private_city": "Mumbai",
+                "private_state_id": 21,  // State ID
+                "private_zip": "400001",
+                "private_country_id": 104,  // Country ID (104 = India)
+                "current_address": "456 Work Street, Mumbai",
+                "same_as_permanent": false,
+                
+                // Emergency Contact
+                "emergency_contact": "Jane Doe",
+                "emergency_phone": "+91-9123456789",
+                "emergency_contact_relationship": "Spouse",
+                
+                // Identity Documents
+                "identification_id": "123456789012",  // Aadhaar (12 digits)
+                "pan_number": "ABCDE1234F",  // PAN format: 5 letters + 4 digits + 1 letter
+                
+                // Bank Details
+                "bank_name": "HDFC Bank",
+                "bank_acc_number": "12345678901234",
+                "ifsc_code": "HDFC0001234",
+                "account_type": "savings",  // savings/current/salary
+                "name_as_per_bank": "John Michael Doe",
+                "bank_document_type": "cancelled_cheque",  // cancelled_cheque/passbook_copy
+                
+                // Education & Skills
+                "education_background": "B.Tech in Computer Science from IIT Mumbai",
+                "skill_set_summary": "Python, JavaScript, React, Node.js",
+                
+                // Assets (boolean)
+                "asset_laptop": true,
+                "asset_sim": true,
+                "asset_phone": false,
+                "asset_pc": false,
+                "asset_physical_id": true
+            }
+        
+        Response Format:
+            {
+                "success": true,
+                "message": "Employee created successfully",
+                "timestamp": "2026-02-11T12:00:00Z",
+                "data": {
+                    "id": 15,
+                    "employee_id": "CD-0015",
+                    "name": "John Doe",
+                    "work_email": "john.doe@company.com",
+                    "employee_status": "onboarding",
+                    "date_of_joining": "2026-02-15",
+                    "department": "Engineering",
+                    "job_title": "Software Engineer",
+                    "created_date": "2026-02-11"
+                }
+            }
+        
+        Error Responses:
+            400: Missing required fields or validation errors
+            422: Invalid field values (e.g., wrong PAN format, invalid Aadhaar)
+        
+        Notes:
+            - Employee ID (CD-XXXX) is auto-generated
+            - Only 'name' field is required
+            - PAN number is auto-converted to uppercase
+            - Aadhaar must be exactly 12 digits
+            - PAN must follow format: ABCDE1234F
+            - Document binary fields should be uploaded separately via document upload endpoints
+        """
+        # Parse JSON from request body
+        try:
+            params = json.loads(request.httprequest.data.decode('utf-8'))
+        except (json.JSONDecodeError, AttributeError):
+            return api_response(
+                success=False,
+                message='Invalid JSON in request body',
+                errors={'json': 'Request body must be valid JSON'},
+                status=400
+            )
+        
+        # Validate required fields
+        if not params.get('name'):
+            return api_response(
+                success=False,
+                message='Validation Error',
+                errors={'name': 'Employee name is required'},
+                status=400
+            )
+        
+        # Prepare employee data
+        employee_data = {}
+        
+        # ========== BASIC INFORMATION ==========
+        # Required field
+        employee_data['name'] = params.get('name').strip()
+        
+        # Work contact information
+        if params.get('work_email'):
+            employee_data['work_email'] = params.get('work_email').strip()
+        if params.get('work_phone'):
+            employee_data['work_phone'] = params.get('work_phone')
+        if params.get('mobile_phone'):
+            employee_data['mobile_phone'] = params.get('mobile_phone')
+        
+        # Job information
+        if params.get('job_title'):
+            employee_data['job_title'] = params.get('job_title')
+        if params.get('department_id'):
+            employee_data['department_id'] = params.get('department_id')
+        if params.get('job_id'):
+            employee_data['job_id'] = params.get('job_id')
+        
+        # Employment details
+        if params.get('date_of_joining'):
+            employee_data['date_of_joining'] = params.get('date_of_joining')
+        if params.get('employee_status'):
+            employee_data['employee_status'] = params.get('employee_status')
+        
+        # ========== PERSONAL INFORMATION ==========
+        if params.get('legal_name'):
+            employee_data['legal_name'] = params.get('legal_name')
+        if params.get('sex'):
+            employee_data['sex'] = params.get('sex')
+        if params.get('marital'):
+            employee_data['marital'] = params.get('marital')
+        if params.get('birthday'):
+            employee_data['birthday'] = params.get('birthday')
+        if params.get('private_phone'):
+            employee_data['private_phone'] = params.get('private_phone')
+        if params.get('private_email'):
+            employee_data['private_email'] = params.get('private_email')
+        if params.get('blood_group'):
+            employee_data['blood_group'] = params.get('blood_group')
+        
+        # ========== ADDRESS ==========
+        if params.get('private_street'):
+            employee_data['private_street'] = params.get('private_street')
+        if params.get('private_street2'):
+            employee_data['private_street2'] = params.get('private_street2')
+        if params.get('private_city'):
+            employee_data['private_city'] = params.get('private_city')
+        if params.get('private_state_id'):
+            employee_data['private_state_id'] = params.get('private_state_id')
+        if params.get('private_zip'):
+            employee_data['private_zip'] = params.get('private_zip')
+        if params.get('private_country_id'):
+            employee_data['private_country_id'] = params.get('private_country_id')
+        if params.get('current_address'):
+            employee_data['current_address'] = params.get('current_address')
+        if params.get('same_as_permanent') is not None:
+            employee_data['same_as_permanent'] = params.get('same_as_permanent')
+        
+        # ========== EMERGENCY CONTACT ==========
+        if params.get('emergency_contact'):
+            employee_data['emergency_contact'] = params.get('emergency_contact')
+        if params.get('emergency_phone'):
+            employee_data['emergency_phone'] = params.get('emergency_phone')
+        if params.get('emergency_contact_relationship'):
+            employee_data['emergency_contact_relationship'] = params.get('emergency_contact_relationship')
+        
+        # ========== IDENTITY DOCUMENTS ==========
+        if params.get('identification_id'):
+            employee_data['identification_id'] = params.get('identification_id')
+        if params.get('pan_number'):
+            # PAN will be auto-converted to uppercase in model's create method
+            employee_data['pan_number'] = params.get('pan_number')
+        
+        # ========== BANK DETAILS ==========
+        if params.get('bank_name'):
+            employee_data['bank_name'] = params.get('bank_name')
+        if params.get('bank_acc_number'):
+            employee_data['bank_acc_number'] = params.get('bank_acc_number')
+        if params.get('ifsc_code'):
+            employee_data['ifsc_code'] = params.get('ifsc_code')
+        if params.get('account_type'):
+            employee_data['account_type'] = params.get('account_type')
+        if params.get('name_as_per_bank'):
+            employee_data['name_as_per_bank'] = params.get('name_as_per_bank')
+        if params.get('cibil_score'):
+            employee_data['cibil_score'] = params.get('cibil_score')
+        if params.get('bank_document_type'):
+            employee_data['bank_document_type'] = params.get('bank_document_type')
+        
+        # ========== EDUCATION & SKILLS ==========
+        if params.get('education_background'):
+            employee_data['education_background'] = params.get('education_background')
+        if params.get('skill_set_summary'):
+            employee_data['skill_set_summary'] = params.get('skill_set_summary')
+        
+        # ========== ASSETS ==========
+        if params.get('asset_laptop') is not None:
+            employee_data['asset_laptop'] = params.get('asset_laptop')
+        if params.get('asset_sim') is not None:
+            employee_data['asset_sim'] = params.get('asset_sim')
+        if params.get('asset_phone') is not None:
+            employee_data['asset_phone'] = params.get('asset_phone')
+        if params.get('asset_pc') is not None:
+            employee_data['asset_pc'] = params.get('asset_pc')
+        if params.get('asset_physical_id') is not None:
+            employee_data['asset_physical_id'] = params.get('asset_physical_id')
+        
+        # Create the employee record
+        try:
+            employee = request.env['hr.employee'].sudo().create(employee_data)
+            
+            # Prepare response data
+            response_data = {
+                'id': employee.id,
+                'employee_id': employee.employee_id,
+                'name': employee.name,
+                'work_email': employee.work_email or None,
+                'employee_status': employee.employee_status,
+                'date_of_joining': employee.date_of_joining.strftime('%Y-%m-%d') if employee.date_of_joining else None,
+                'department': employee.department_id.name if employee.department_id else None,
+                'department_id': employee.department_id.id if employee.department_id else None,
+                'job_title': employee.job_title or None,
+                'job_id': employee.job_id.id if employee.job_id else None,
+                'created_date': employee.create_date.strftime('%Y-%m-%d') if employee.create_date else None,
+            }
+            
+            return api_response(
+                success=True,
+                message='Employee created successfully',
+                data=response_data,
+                status=201
+            )
+            
+        except ValidationError as e:
+            return api_response(
+                success=False,
+                message='Validation Error',
+                errors={'validation': str(e)},
+                status=422
+            )
+        except Exception as e:
+            _logger.exception("Error creating employee")
+            return api_response(
+                success=False,
+                message='Failed to create employee',
+                errors={'error': str(e)},
+                status=500
+            )

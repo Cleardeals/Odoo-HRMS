@@ -731,19 +731,21 @@ Authorization: Bearer your_api_key_here
 
 ### Available Endpoints
 
-**Total Endpoints: 9**
+**Total Endpoints: 11**
 
 | # | Endpoint | Method | Auth | Description | Controller File |
 |---|----------|--------|------|-------------|-----------------|
 | 1 | `/api/v1/health` | GET | No | API health check | main.py |
 | 2 | `/api/v1/employees/active` | GET | Yes | List all active employees | employee_api.py |
 | 3 | `/api/v1/employees` | GET | Yes | List all employees (with filtering) | employee_api.py |
-| 4 | `/api/v1/employees/<id>` | GET | Yes | Get employee details | employee_api.py |
-| 5 | `/api/v1/employees/<id>/documents` | GET | Yes | Get employee documents | employee_api.py |
-| 6 | `/api/v1/employees/<id>/documents/<doc_id>/download` | GET | Yes | Download document file | employee_api.py |
-| 7 | `/api/v1/employees/<id>/emergency-contact` | GET | Yes | Get emergency contact info | emergency_contact_api.py |
-| 8 | `/api/v1/employees/<id>/assets` | GET | Yes | Get asset allocation details | assets_api.py |
-| 9 | `/api/v1/employees/pending-documents` | GET | Yes | List employees with pending documents | documents_api.py |
+| 4 | `/api/v1/employees` | POST | Yes | Create a new employee record | employee_api.py |
+| 5 | `/api/v1/employees/<id>` | GET | Yes | Get employee details | employee_api.py |
+| 6 | `/api/v1/employees/<id>/documents` | GET | Yes | Get employee documents | employee_api.py |
+| 7 | `/api/v1/employees/<id>/documents/<doc_id>/download` | GET | Yes | Download document file | employee_api.py |
+| 8 | `/api/v1/employees/<id>/documents/upload` | POST | Yes | Upload a document for employee | employee_api.py |
+| 9 | `/api/v1/employees/<id>/emergency-contact` | GET | Yes | Get emergency contact info | emergency_contact_api.py |
+| 10 | `/api/v1/employees/<id>/assets` | GET | Yes | Get asset allocation details | assets_api.py |
+| 11 | `/api/v1/employees/pending-documents` | GET | Yes | List employees with pending documents | documents_api.py |
 
 **Code Organization:**
 - `controllers/main.py` - Base controller, authentication, health check
@@ -901,7 +903,308 @@ curl -X GET "http://localhost:8069/api/v1/employees?status=active&department=Sal
 
 ---
 
-#### 4. Get Employee Details
+#### 4. Create New Employee (NEW)
+
+**Endpoint:** `POST /api/v1/employees`  
+**Auth Required:** Yes  
+**Description:** Create a new employee record with comprehensive information
+
+**Content-Type:** `application/json`
+
+**Required Fields:**
+- `name` (string) - Employee name
+
+**Optional Fields:**
+
+**Work Information:**
+- `work_email` (string) - Work email address
+- `work_phone` (string) - Work phone number
+- `mobile_phone` (string) - Work mobile number
+- `job_title` (string) - Job title/designation
+- `department_id` (integer) - Department ID
+- `job_id` (integer) - Job position ID
+- `date_of_joining` (string) - Date of joining (YYYY-MM-DD format)
+- `employee_status` (string) - Status: onboarding/active/notice/resigned/terminated (default: onboarding)
+
+**Personal Information:**
+- `legal_name` (string) - Full legal name
+- `sex` (string) - Gender: male/female/other
+- `marital` (string) - Marital status: single/married/cohabitant/widower/divorced
+- `birthday` (string) - Date of birth (YYYY-MM-DD)
+- `private_phone` (string) - Personal phone number
+- `private_email` (string) - Personal email address
+- `blood_group` (string) - Blood group: a+/a-/b+/b-/ab+/ab-/o+/o-
+
+**Address:**
+- `private_street` (string) - Permanent address line 1
+- `private_street2` (string) - Permanent address line 2
+- `private_city` (string) - City
+- `private_state_id` (integer) - State ID
+- `private_zip` (string) - PIN code
+- `private_country_id` (integer) - Country ID (104 = India)
+- `current_address` (text) - Current/temporary address
+- `same_as_permanent` (boolean) - Whether current address is same as permanent
+
+**Emergency Contact:**
+- `emergency_contact` (string) - Emergency contact name
+- `emergency_phone` (string) - Emergency contact phone
+- `emergency_contact_relationship` (string) - Relationship with employee
+
+**Identity Documents:**
+- `identification_id` (string) - Aadhaar number (12 digits)
+- `pan_number` (string) - PAN card (format: ABCDE1234F)
+
+**Bank Details:**
+- `bank_name` (string) - Bank name
+- `bank_acc_number` (string) - Account number
+- `ifsc_code` (string) - IFSC code
+- `account_type` (string) - Account type: savings/current/salary
+- `name_as_per_bank` (string) - Name as per bank account
+- `cibil_score` (integer) - CIBIL score
+- `bank_document_type` (string) - Document type: cancelled_cheque/passbook_copy
+
+**Education & Skills:**
+- `education_background` (text) - Education background details
+- `skill_set_summary` (text) - Skills summary
+
+**Assets:**
+- `asset_laptop` (boolean) - Laptop issued
+- `asset_sim` (boolean) - SIM card issued
+- `asset_phone` (boolean) - Phone issued
+- `asset_pc` (boolean) - PC/Desktop issued
+- `asset_physical_id` (boolean) - Physical ID card issued
+
+**Usage Examples:**
+
+```bash
+# Basic employee creation
+curl -X POST "http://localhost:8069/api/v1/employees" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key_here" \
+  -d '{
+    "name": "John Doe",
+    "work_email": "john.doe@company.com",
+    "work_phone": "+91-9876543210",
+    "department_id": 1,
+    "date_of_joining": "2026-02-15",
+    "employee_status": "onboarding"
+  }'
+
+# Comprehensive employee creation
+curl -X POST "http://localhost:8069/api/v1/employees" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key_here" \
+  -d '{
+    "name": "John Doe",
+    "legal_name": "John Michael Doe",
+    "work_email": "john.doe@company.com",
+    "work_phone": "+91-9876543210",
+    "mobile_phone": "+91-9876543210",
+    "job_title": "Software Engineer",
+    "department_id": 1,
+    "job_id": 5,
+    "date_of_joining": "2026-02-15",
+    "employee_status": "onboarding",
+    "sex": "male",
+    "marital": "single",
+    "birthday": "1995-05-15",
+    "private_phone": "+91-9988776655",
+    "private_email": "john.personal@gmail.com",
+    "blood_group": "o+",
+    "private_street": "123 Main Street",
+    "private_city": "Mumbai",
+    "private_state_id": 21,
+    "private_zip": "400001",
+    "private_country_id": 104,
+    "emergency_contact": "Jane Doe",
+    "emergency_phone": "+91-9123456789",
+    "emergency_contact_relationship": "Spouse",
+    "identification_id": "123456789012",
+    "pan_number": "ABCDE1234F",
+    "bank_name": "HDFC Bank",
+    "bank_acc_number": "12345678901234",
+    "ifsc_code": "HDFC0001234",
+    "account_type": "savings",
+    "asset_laptop": true,
+    "asset_sim": true
+  }'
+```
+
+**Response (Success - 201 Created):**
+```json
+{
+  "success": true,
+  "message": "Employee created successfully",
+  "timestamp": "2026-02-11T12:00:00Z",
+  "data": {
+    "id": 15,
+    "employee_id": "CD-0015",
+    "name": "John Doe",
+    "work_email": "john.doe@company.com",
+    "employee_status": "onboarding",
+    "date_of_joining": "2026-02-15",
+    "department": "Engineering",
+    "department_id": 1,
+    "job_title": "Software Engineer",
+    "job_id": 5,
+    "created_date": "2026-02-11"
+  }
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation Error",
+  "timestamp": "2026-02-11T12:00:00Z",
+  "errors": {
+    "name": "Employee name is required"
+  }
+}
+```
+
+**Error Response (422 Unprocessable Entity):**
+```json
+{
+  "success": false,
+  "message": "Validation Error",
+  "timestamp": "2026-02-11T12:00:00Z",
+  "errors": {
+    "validation": "PAN number must follow the format ABCDE1234F (5 uppercase letters, 4 digits, 1 uppercase letter)."
+  }
+}
+```
+
+**Python Integration Example:**
+
+```python
+import requests
+
+def create_employee(api_key, employee_data):
+    """
+    Create a new employee via API.
+    
+    Args:
+        api_key (str): Your API key
+        employee_data (dict): Employee information
+    
+    Returns:
+        dict: Created employee data
+    """
+    BASE_URL = "http://localhost:8069/api/v1"
+    
+    response = requests.post(
+        f"{BASE_URL}/employees",
+        json=employee_data,
+        headers={"X-API-Key": api_key}
+    )
+    
+    if response.status_code == 201:
+        result = response.json()
+        print(f"✓ Employee created: {result['data']['employee_id']}")
+        return result['data']
+    else:
+        error = response.json()
+        print(f"✗ Error: {error['message']}")
+        if 'errors' in error:
+            print(f"  Details: {error['errors']}")
+        return None
+
+# Usage
+employee = create_employee(
+    api_key="your_api_key_here",
+    employee_data={
+        "name": "John Doe",
+        "work_email": "john.doe@company.com",
+        "work_phone": "+91-9876543210",
+        "department_id": 1,
+        "date_of_joining": "2026-02-15",
+        "employee_status": "onboarding",
+        "pan_number": "ABCDE1234F",
+        "identification_id": "123456789012",
+        "bank_name": "HDFC Bank",
+        "bank_acc_number": "12345678901234",
+        "ifsc_code": "HDFC0001234",
+        "asset_laptop": True,
+        "asset_sim": True
+    }
+)
+```
+
+**JavaScript Integration Example:**
+
+```javascript
+async function createEmployee(apiKey, employeeData) {
+    const BASE_URL = 'http://localhost:8069/api/v1';
+    
+    try {
+        const response = await fetch(`${BASE_URL}/employees`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': apiKey
+            },
+            body: JSON.stringify(employeeData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log(`✓ Employee created: ${result.data.employee_id}`);
+            return result.data;
+        } else {
+            console.error(`✗ Error: ${result.message}`);
+            if (result.errors) {
+                console.error('Details:', result.errors);
+            }
+            return null;
+        }
+    } catch (error) {
+        console.error('Network error:', error);
+        return null;
+    }
+}
+
+// Usage
+const employee = await createEmployee(
+    'your_api_key_here',
+    {
+        name: 'John Doe',
+        work_email: 'john.doe@company.com',
+        work_phone: '+91-9876543210',
+        department_id: 1,
+        date_of_joining: '2026-02-15',
+        employee_status: 'onboarding',
+        pan_number: 'ABCDE1234F',
+        identification_id: '123456789012',
+        asset_laptop: true,
+        asset_sim: true
+    }
+);
+```
+
+**Validation Rules:**
+- **Name**: Required, cannot be empty
+- **Aadhaar (identification_id)**: Must be exactly 12 digits (spaces allowed)
+- **PAN Number**: Must follow format ABCDE1234F (5 letters + 4 digits + 1 letter), auto-converted to uppercase
+- **Email**: Must be valid email format
+- **Employee ID**: Auto-generated (CD-XXXX), cannot be manually set
+- **Date Fields**: Must be in YYYY-MM-DD format
+- **Status**: Must be one of: onboarding, active, notice, resigned, terminated
+- **Account Type**: Must be one of: savings, current, salary
+- **Blood Group**: Must be one of: a+, a-, b+, b-, ab+, ab-, o+, o-
+
+**Notes:**
+- Employee ID is auto-generated with sequence CD-0001, CD-0002, etc.
+- Document binary fields (passport photo, PAN card copy, etc.) should be uploaded separately using document upload endpoints
+- All date fields accept YYYY-MM-DD format
+- PAN number is automatically converted to uppercase
+- Department ID and Job ID should reference existing records
+
+---
+
+#### 5. Get Employee Details
 
 **Endpoint:** `GET /api/v1/employees/<employee_id>`  
 **Auth Required:** Yes  
@@ -914,7 +1217,7 @@ curl -X GET "http://localhost:8069/api/v1/employees/CD-0001?fields=basic,contact
 
 ---
 
-#### 5. Get Employee Documents
+#### 6. Get Employee Documents
 
 **Endpoint:** `GET /api/v1/employees/<employee_id>/documents`  
 **Auth Required:** Yes  
@@ -938,7 +1241,7 @@ curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/documents?include_bi
 
 ---
 
-#### 6. Download Employee Document
+#### 7. Download Employee Document
 
 **Endpoint:** `GET /api/v1/employees/<employee_id>/documents/<document_id>/download`  
 **Auth Required:** Yes  
@@ -952,7 +1255,337 @@ curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/documents/1/download
 
 ---
 
-#### 7. Get Employee Emergency Contact (NEW)
+#### 8. Upload Employee Document (NEW)
+
+**Endpoint:** `POST /api/v1/employees/<employee_id>/documents/upload`  
+**Auth Required:** Yes  
+**Description:** Upload a document file for an employee  
+**Content-Type:** `multipart/form-data`
+
+**Use Cases:**
+- Upload employee identity documents (PAN, Passport, Aadhaar)
+- Upload onboarding documents (offer letter, appointment letter, NDA)
+- Upload bank documents (cancelled cheque, passbook)
+- Upload experience documents (relieving letter, salary slips)
+- Upload lifecycle documents (appraisals, increment letters)
+- Bulk document uploads via automation scripts
+- Document management system integration
+
+**Form Data Parameters:**
+- `file` (file, required) - Document file to upload
+- `document_type` (string, required) - Type of document
+
+**Supported Document Types:**
+
+| Document Type | Description | Category |
+|---------------|-------------|----------|
+| `passport_photo` | Passport size photo | Identity |
+| `pan_card_doc` | PAN card copy | Identity |
+| `passport_doc` | Passport copy | Identity |
+| `bank_document` | Cancelled cheque or passbook | Banking |
+| `address_proof_document` | Address proof (utility bill, etc.) | Address |
+| `offer_letter` | Offer letter | Onboarding |
+| `appointment_letter` | Appointment letter | Onboarding |
+| `bond_document` | Bond document | Onboarding |
+| `contract_document` | Employment contract | Onboarding |
+| `nda_document` | Non-disclosure agreement | Onboarding |
+| `relieving_letter` | Relieving letter | Experience |
+| `experience_letter` | Experience certificate | Experience |
+| `salary_slip_1` | Salary slip month 1 | Experience |
+| `salary_slip_2` | Salary slip month 2 | Experience |
+| `salary_slip_3` | Salary slip month 3 | Experience |
+| `resume_doc` | Resume/CV | Experience |
+| `appraisal_doc` | Appraisal document | Lifecycle |
+| `increment_letter` | Increment/promotion letter | Lifecycle |
+| `notice_period_doc` | Notice period document | Lifecycle |
+
+**File Restrictions:**
+- **Maximum file size:** 10 MB
+- **Supported formats:** PDF, JPEG, JPG, PNG
+
+**Usage Examples:**
+
+```bash
+# Upload PAN card
+curl -X POST "http://localhost:8069/api/v1/employees/CD-0001/documents/upload" \
+  -H "X-API-Key: your_api_key_here" \
+  -F "file=@/path/to/pan_card.pdf" \
+  -F "document_type=pan_card_doc"
+
+# Upload passport photo
+curl -X POST "http://localhost:8069/api/v1/employees/CD-0001/documents/upload" \
+  -H "X-API-Key: your_api_key_here" \
+  -F "file=@/path/to/photo.jpg" \
+  -F "document_type=passport_photo"
+
+# Upload offer letter
+curl -X POST "http://localhost:8069/api/v1/employees/CD-0001/documents/upload" \
+  -H "X-API-Key: your_api_key_here" \
+  -F "file=@/path/to/offer_letter.pdf" \
+  -F "document_type=offer_letter"
+
+# Upload bank document
+curl -X POST "http://localhost:8069/api/v1/employees/CD-0001/documents/upload" \
+  -H "X-API-Key: your_api_key_here" \
+  -F "file=@/path/to/cancelled_cheque.pdf" \
+  -F "document_type=bank_document"
+```
+
+**Response (Success - 201 Created):**
+```json
+{
+  "success": true,
+  "message": "Document uploaded successfully",
+  "timestamp": "2026-02-12T12:00:00Z",
+  "data": {
+    "employee_id": "CD-0001",
+    "employee_name": "John Doe",
+    "document_type": "pan_card_doc",
+    "filename": "pan_card.pdf",
+    "file_size": 102400,
+    "file_size_mb": 0.1,
+    "uploaded_at": "2026-02-12 12:00:00"
+  }
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation Error",
+  "timestamp": "2026-02-12T12:00:00Z",
+  "errors": {
+    "file": "File is required"
+  }
+}
+```
+
+**Error Response (413 Payload Too Large):**
+```json
+{
+  "success": false,
+  "message": "File too large",
+  "timestamp": "2026-02-12T12:00:00Z",
+  "errors": {
+    "file": "File size (12.5 MB) exceeds maximum allowed size (10 MB)"
+  }
+}
+```
+
+**Error Response (422 Unprocessable Entity):**
+```json
+{
+  "success": false,
+  "message": "Invalid file format",
+  "timestamp": "2026-02-12T12:00:00Z",
+  "errors": {
+    "file": "File format .docx not supported. Allowed formats: PDF, JPEG, JPG, PNG"
+  }
+}
+```
+
+**Python Integration Example:**
+
+```python
+import requests
+
+def upload_employee_document(api_key, employee_id, file_path, document_type):
+    """
+    Upload a document for an employee.
+    
+    Args:
+        api_key (str): Your API key
+        employee_id (str): Employee ID (e.g., CD-0001)
+        file_path (str): Path to the file to upload
+        document_type (str): Type of document
+    
+    Returns:
+        dict: Upload response data
+    """
+    BASE_URL = "http://localhost:8069/api/v1"
+    
+    with open(file_path, 'rb') as file:
+        files = {'file': file}
+        data = {'document_type': document_type}
+        
+        response = requests.post(
+            f"{BASE_URL}/employees/{employee_id}/documents/upload",
+            headers={"X-API-Key": api_key},
+            files=files,
+            data=data
+        )
+    
+    if response.status_code == 201:
+        result = response.json()
+        print(f"✓ Document uploaded: {result['data']['filename']}")
+        print(f"  Size: {result['data']['file_size_mb']} MB")
+        return result['data']
+    else:
+        error = response.json()
+        print(f"✗ Error: {error['message']}")
+        if 'errors' in error:
+            print(f"  Details: {error['errors']}")
+        return None
+
+# Usage examples
+upload_employee_document(
+    api_key="your_api_key_here",
+    employee_id="CD-0001",
+    file_path="/path/to/pan_card.pdf",
+    document_type="pan_card_doc"
+)
+
+upload_employee_document(
+    api_key="your_api_key_here",
+    employee_id="CD-0001",
+    file_path="/path/to/passport_photo.jpg",
+    document_type="passport_photo"
+)
+```
+
+**JavaScript Integration Example:**
+
+```javascript
+async function uploadEmployeeDocument(apiKey, employeeId, file, documentType) {
+    const BASE_URL = 'http://localhost:8069/api/v1';
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('document_type', documentType);
+    
+    try {
+        const response = await fetch(
+            `${BASE_URL}/employees/${employeeId}/documents/upload`,
+            {
+                method: 'POST',
+                headers: {
+                    'X-API-Key': apiKey
+                },
+                body: formData
+            }
+        );
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log(`✓ Document uploaded: ${result.data.filename}`);
+            console.log(`  Size: ${result.data.file_size_mb} MB`);
+            return result.data;
+        } else {
+            console.error(`✗ Error: ${result.message}`);
+            if (result.errors) {
+                console.error('Details:', result.errors);
+            }
+            return null;
+        }
+    } catch (error) {
+        console.error('Network error:', error);
+        return null;
+    }
+}
+
+// Usage example (with file input element)
+const fileInput = document.getElementById('fileInput');
+const file = fileInput.files[0];
+
+uploadEmployeeDocument(
+    'your_api_key_here',
+    'CD-0001',
+    file,
+    'pan_card_doc'
+);
+```
+
+**Bulk Upload Script Example:**
+
+```python
+import os
+import requests
+
+def bulk_upload_documents(api_key, employee_id, documents_folder):
+    """
+    Bulk upload multiple documents for an employee.
+    
+    Args:
+        api_key (str): Your API key
+        employee_id (str): Employee ID
+        documents_folder (str): Folder containing documents
+    
+    Document naming convention:
+        - pan_card.pdf → pan_card_doc
+        - passport_photo.jpg → passport_photo
+        - offer_letter.pdf → offer_letter
+    """
+    # Map filenames to document types
+    filename_mapping = {
+        'pan_card': 'pan_card_doc',
+        'passport_photo': 'passport_photo',
+        'passport': 'passport_doc',
+        'offer_letter': 'offer_letter',
+        'appointment_letter': 'appointment_letter',
+        'bank_document': 'bank_document',
+        'nda': 'nda_document',
+        'resume': 'resume_doc',
+    }
+    
+    uploaded = []
+    failed = []
+    
+    for filename in os.listdir(documents_folder):
+        file_path = os.path.join(documents_folder, filename)
+        
+        if not os.path.isfile(file_path):
+            continue
+        
+        # Extract document type from filename
+        name_without_ext = os.path.splitext(filename)[0].lower()
+        document_type = filename_mapping.get(name_without_ext)
+        
+        if not document_type:
+            print(f"⊘ Skipping {filename} - unknown document type")
+            continue
+        
+        result = upload_employee_document(
+            api_key, employee_id, file_path, document_type
+        )
+        
+        if result:
+            uploaded.append(filename)
+        else:
+            failed.append(filename)
+    
+    print(f"\n📊 Upload Summary:")
+    print(f"  ✓ Uploaded: {len(uploaded)} files")
+    print(f"  ✗ Failed: {len(failed)} files")
+    
+    return uploaded, failed
+
+# Usage
+bulk_upload_documents(
+    api_key="your_api_key_here",
+    employee_id="CD-0001",
+    documents_folder="/path/to/employee_documents"
+)
+```
+
+**Validation Rules:**
+- **file**: Required, must be a valid file upload
+- **document_type**: Required, must be one of the supported types
+- **File size**: Maximum 10 MB
+- **File format**: PDF, JPEG, JPG, or PNG only
+- **Employee**: Must exist with valid employee_id
+
+**Notes:**
+- Files are automatically converted to base64 for storage
+- Each upload overwrites the previous file for that document type
+- Document sync to vault happens automatically after upload
+- File extension validation is case-insensitive
+- MIME type detection is performed automatically
+
+---
+
+#### 9. Get Employee Emergency Contact
 
 **Endpoint:** `GET /api/v1/employees/<employee_id>/emergency-contact`  
 **Auth Required:** Yes  
@@ -1104,7 +1737,7 @@ getEmergencyContacts(['CD-0001', 'CD-0002', 'CD-0003'])
 
 ---
 
-#### 8. Get Employee Assets (NEW)
+#### 10. Get Employee Assets (NEW)
 
 **Endpoint:** `GET /api/v1/employees/<employee_id>/assets`  
 **Auth Required:** Yes  
@@ -1318,7 +1951,7 @@ export_all_employee_assets(['CD-0001', 'CD-0002', 'CD-0003'])
 
 ---
 
-#### 9. Get Employees with Pending Documents (NEW)
+#### 11. Get Employees with Pending Documents (NEW)
 
 **Endpoint:** `GET /api/v1/employees/pending-documents`  
 **Auth Required:** Yes  
