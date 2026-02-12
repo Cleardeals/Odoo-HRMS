@@ -294,6 +294,12 @@ class BaseAPIController(http.Controller):
                 'auth_required': True
             },
             {
+                'path': '/api/v1/employees',
+                'method': 'POST',
+                'description': 'Create a new employee record',
+                'auth_required': True
+            },
+            {
                 'path': '/api/v1/employees/active',
                 'method': 'GET',
                 'description': 'List all active employees (recommended for most use cases)',

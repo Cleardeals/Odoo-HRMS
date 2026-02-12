@@ -6,9 +6,11 @@ Endpoints for employee management and document access.
 """
 import logging
 import base64
+import json
 
 from odoo import http
 from odoo.http import request
+from odoo.exceptions import ValidationError
 
 from .main import (
     BaseAPIController, 
@@ -669,3 +671,288 @@ class EmployeeAPIController(BaseAPIController):
             },
             meta=meta
         )
+    
+    # ========================================================================
+    # EMPLOYEE CREATION
+    # ========================================================================
+    
+    @http.route('/api/v1/employees', 
+                type='http', auth='public', methods=['POST'], 
+                csrf=False, cors='*')
+    @validate_api_key
+    @handle_api_errors
+    def create_employee(self, **kwargs):
+        """
+        Create a new employee record.
+        
+        Endpoint: POST /api/v1/employees
+        Content-Type: application/json
+        
+        Headers:
+            X-API-Key: Your API key
+            OR
+            Authorization: Bearer <your_api_key>
+        
+        Request Body (JSON):
+            {
+                "name": "John Doe",  // REQUIRED
+                "work_email": "john.doe@company.com",  // OPTIONAL but recommended
+                "work_phone": "+91-9876543210",
+                "mobile_phone": "+91-9876543210",
+                "job_title": "Software Engineer",
+                "department_id": 1,  // Department ID
+                "job_id": 5,  // Job Position ID
+                "date_of_joining": "2026-02-15",
+                "employee_status": "onboarding",  // onboarding/active/notice/resigned/terminated
+                
+                // Personal Information
+                "legal_name": "John Michael Doe",
+                "sex": "male",  // male/female/other
+                "marital": "single",  // single/married/cohabitant/widower/divorced
+                "birthday": "1995-05-15",
+                "private_phone": "+91-9988776655",
+                "private_email": "john.personal@gmail.com",
+                "blood_group": "o+",  // a+/a-/b+/b-/ab+/ab-/o+/o-
+                
+                // Address
+                "private_street": "123 Main Street",
+                "private_street2": "Apartment 4B",
+                "private_city": "Mumbai",
+                "private_state_id": 21,  // State ID
+                "private_zip": "400001",
+                "private_country_id": 104,  // Country ID (104 = India)
+                "current_address": "456 Work Street, Mumbai",
+                "same_as_permanent": false,
+                
+                // Emergency Contact
+                "emergency_contact": "Jane Doe",
+                "emergency_phone": "+91-9123456789",
+                "emergency_contact_relationship": "Spouse",
+                
+                // Identity Documents
+                "identification_id": "123456789012",  // Aadhaar (12 digits)
+                "pan_number": "ABCDE1234F",  // PAN format: 5 letters + 4 digits + 1 letter
+                
+                // Bank Details
+                "bank_name": "HDFC Bank",
+                "bank_acc_number": "12345678901234",
+                "ifsc_code": "HDFC0001234",
+                "account_type": "savings",  // savings/current/salary
+                "name_as_per_bank": "John Michael Doe",
+                "bank_document_type": "cancelled_cheque",  // cancelled_cheque/passbook_copy
+                
+                // Education & Skills
+                "education_background": "B.Tech in Computer Science from IIT Mumbai",
+                "skill_set_summary": "Python, JavaScript, React, Node.js",
+                
+                // Assets (boolean)
+                "asset_laptop": true,
+                "asset_sim": true,
+                "asset_phone": false,
+                "asset_pc": false,
+                "asset_physical_id": true
+            }
+        
+        Response Format:
+            {
+                "success": true,
+                "message": "Employee created successfully",
+                "timestamp": "2026-02-11T12:00:00Z",
+                "data": {
+                    "id": 15,
+                    "employee_id": "CD-0015",
+                    "name": "John Doe",
+                    "work_email": "john.doe@company.com",
+                    "employee_status": "onboarding",
+                    "date_of_joining": "2026-02-15",
+                    "department": "Engineering",
+                    "job_title": "Software Engineer",
+                    "created_date": "2026-02-11"
+                }
+            }
+        
+        Error Responses:
+            400: Missing required fields or validation errors
+            422: Invalid field values (e.g., wrong PAN format, invalid Aadhaar)
+        
+        Notes:
+            - Employee ID (CD-XXXX) is auto-generated
+            - Only 'name' field is required
+            - PAN number is auto-converted to uppercase
+            - Aadhaar must be exactly 12 digits
+            - PAN must follow format: ABCDE1234F
+            - Document binary fields should be uploaded separately via document upload endpoints
+        """
+        # Parse JSON from request body
+        try:
+            params = json.loads(request.httprequest.data.decode('utf-8'))
+        except (json.JSONDecodeError, AttributeError):
+            return api_response(
+                success=False,
+                message='Invalid JSON in request body',
+                errors={'json': 'Request body must be valid JSON'},
+                status=400
+            )
+        
+        # Validate required fields
+        if not params.get('name'):
+            return api_response(
+                success=False,
+                message='Validation Error',
+                errors={'name': 'Employee name is required'},
+                status=400
+            )
+        
+        # Prepare employee data
+        employee_data = {}
+        
+        # ========== BASIC INFORMATION ==========
+        # Required field
+        employee_data['name'] = params.get('name').strip()
+        
+        # Work contact information
+        if params.get('work_email'):
+            employee_data['work_email'] = params.get('work_email').strip()
+        if params.get('work_phone'):
+            employee_data['work_phone'] = params.get('work_phone')
+        if params.get('mobile_phone'):
+            employee_data['mobile_phone'] = params.get('mobile_phone')
+        
+        # Job information
+        if params.get('job_title'):
+            employee_data['job_title'] = params.get('job_title')
+        if params.get('department_id'):
+            employee_data['department_id'] = params.get('department_id')
+        if params.get('job_id'):
+            employee_data['job_id'] = params.get('job_id')
+        
+        # Employment details
+        if params.get('date_of_joining'):
+            employee_data['date_of_joining'] = params.get('date_of_joining')
+        if params.get('employee_status'):
+            employee_data['employee_status'] = params.get('employee_status')
+        
+        # ========== PERSONAL INFORMATION ==========
+        if params.get('legal_name'):
+            employee_data['legal_name'] = params.get('legal_name')
+        if params.get('sex'):
+            employee_data['sex'] = params.get('sex')
+        if params.get('marital'):
+            employee_data['marital'] = params.get('marital')
+        if params.get('birthday'):
+            employee_data['birthday'] = params.get('birthday')
+        if params.get('private_phone'):
+            employee_data['private_phone'] = params.get('private_phone')
+        if params.get('private_email'):
+            employee_data['private_email'] = params.get('private_email')
+        if params.get('blood_group'):
+            employee_data['blood_group'] = params.get('blood_group')
+        
+        # ========== ADDRESS ==========
+        if params.get('private_street'):
+            employee_data['private_street'] = params.get('private_street')
+        if params.get('private_street2'):
+            employee_data['private_street2'] = params.get('private_street2')
+        if params.get('private_city'):
+            employee_data['private_city'] = params.get('private_city')
+        if params.get('private_state_id'):
+            employee_data['private_state_id'] = params.get('private_state_id')
+        if params.get('private_zip'):
+            employee_data['private_zip'] = params.get('private_zip')
+        if params.get('private_country_id'):
+            employee_data['private_country_id'] = params.get('private_country_id')
+        if params.get('current_address'):
+            employee_data['current_address'] = params.get('current_address')
+        if params.get('same_as_permanent') is not None:
+            employee_data['same_as_permanent'] = params.get('same_as_permanent')
+        
+        # ========== EMERGENCY CONTACT ==========
+        if params.get('emergency_contact'):
+            employee_data['emergency_contact'] = params.get('emergency_contact')
+        if params.get('emergency_phone'):
+            employee_data['emergency_phone'] = params.get('emergency_phone')
+        if params.get('emergency_contact_relationship'):
+            employee_data['emergency_contact_relationship'] = params.get('emergency_contact_relationship')
+        
+        # ========== IDENTITY DOCUMENTS ==========
+        if params.get('identification_id'):
+            employee_data['identification_id'] = params.get('identification_id')
+        if params.get('pan_number'):
+            # PAN will be auto-converted to uppercase in model's create method
+            employee_data['pan_number'] = params.get('pan_number')
+        
+        # ========== BANK DETAILS ==========
+        if params.get('bank_name'):
+            employee_data['bank_name'] = params.get('bank_name')
+        if params.get('bank_acc_number'):
+            employee_data['bank_acc_number'] = params.get('bank_acc_number')
+        if params.get('ifsc_code'):
+            employee_data['ifsc_code'] = params.get('ifsc_code')
+        if params.get('account_type'):
+            employee_data['account_type'] = params.get('account_type')
+        if params.get('name_as_per_bank'):
+            employee_data['name_as_per_bank'] = params.get('name_as_per_bank')
+        if params.get('cibil_score'):
+            employee_data['cibil_score'] = params.get('cibil_score')
+        if params.get('bank_document_type'):
+            employee_data['bank_document_type'] = params.get('bank_document_type')
+        
+        # ========== EDUCATION & SKILLS ==========
+        if params.get('education_background'):
+            employee_data['education_background'] = params.get('education_background')
+        if params.get('skill_set_summary'):
+            employee_data['skill_set_summary'] = params.get('skill_set_summary')
+        
+        # ========== ASSETS ==========
+        if params.get('asset_laptop') is not None:
+            employee_data['asset_laptop'] = params.get('asset_laptop')
+        if params.get('asset_sim') is not None:
+            employee_data['asset_sim'] = params.get('asset_sim')
+        if params.get('asset_phone') is not None:
+            employee_data['asset_phone'] = params.get('asset_phone')
+        if params.get('asset_pc') is not None:
+            employee_data['asset_pc'] = params.get('asset_pc')
+        if params.get('asset_physical_id') is not None:
+            employee_data['asset_physical_id'] = params.get('asset_physical_id')
+        
+        # Create the employee record
+        try:
+            employee = request.env['hr.employee'].sudo().create(employee_data)
+            
+            # Prepare response data
+            response_data = {
+                'id': employee.id,
+                'employee_id': employee.employee_id,
+                'name': employee.name,
+                'work_email': employee.work_email or None,
+                'employee_status': employee.employee_status,
+                'date_of_joining': employee.date_of_joining.strftime('%Y-%m-%d') if employee.date_of_joining else None,
+                'department': employee.department_id.name if employee.department_id else None,
+                'department_id': employee.department_id.id if employee.department_id else None,
+                'job_title': employee.job_title or None,
+                'job_id': employee.job_id.id if employee.job_id else None,
+                'created_date': employee.create_date.strftime('%Y-%m-%d') if employee.create_date else None,
+            }
+            
+            return api_response(
+                success=True,
+                message='Employee created successfully',
+                data=response_data,
+                status=201
+            )
+            
+        except ValidationError as e:
+            return api_response(
+                success=False,
+                message='Validation Error',
+                errors={'validation': str(e)},
+                status=422
+            )
+        except Exception as e:
+            _logger.exception("Error creating employee")
+            return api_response(
+                success=False,
+                message='Failed to create employee',
+                errors={'error': str(e)},
+                status=500
+            )

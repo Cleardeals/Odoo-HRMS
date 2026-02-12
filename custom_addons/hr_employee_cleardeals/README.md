@@ -731,19 +731,20 @@ Authorization: Bearer your_api_key_here
 
 ### Available Endpoints
 
-**Total Endpoints: 9**
+**Total Endpoints: 10**
 
 | # | Endpoint | Method | Auth | Description | Controller File |
 |---|----------|--------|------|-------------|-----------------|
 | 1 | `/api/v1/health` | GET | No | API health check | main.py |
 | 2 | `/api/v1/employees/active` | GET | Yes | List all active employees | employee_api.py |
 | 3 | `/api/v1/employees` | GET | Yes | List all employees (with filtering) | employee_api.py |
-| 4 | `/api/v1/employees/<id>` | GET | Yes | Get employee details | employee_api.py |
-| 5 | `/api/v1/employees/<id>/documents` | GET | Yes | Get employee documents | employee_api.py |
-| 6 | `/api/v1/employees/<id>/documents/<doc_id>/download` | GET | Yes | Download document file | employee_api.py |
-| 7 | `/api/v1/employees/<id>/emergency-contact` | GET | Yes | Get emergency contact info | emergency_contact_api.py |
-| 8 | `/api/v1/employees/<id>/assets` | GET | Yes | Get asset allocation details | assets_api.py |
-| 9 | `/api/v1/employees/pending-documents` | GET | Yes | List employees with pending documents | documents_api.py |
+| 4 | `/api/v1/employees` | POST | Yes | Create a new employee record | employee_api.py |
+| 5 | `/api/v1/employees/<id>` | GET | Yes | Get employee details | employee_api.py |
+| 6 | `/api/v1/employees/<id>/documents` | GET | Yes | Get employee documents | employee_api.py |
+| 7 | `/api/v1/employees/<id>/documents/<doc_id>/download` | GET | Yes | Download document file | employee_api.py |
+| 8 | `/api/v1/employees/<id>/emergency-contact` | GET | Yes | Get emergency contact info | emergency_contact_api.py |
+| 9 | `/api/v1/employees/<id>/assets` | GET | Yes | Get asset allocation details | assets_api.py |
+| 10 | `/api/v1/employees/pending-documents` | GET | Yes | List employees with pending documents | documents_api.py |
 
 **Code Organization:**
 - `controllers/main.py` - Base controller, authentication, health check
@@ -901,7 +902,308 @@ curl -X GET "http://localhost:8069/api/v1/employees?status=active&department=Sal
 
 ---
 
-#### 4. Get Employee Details
+#### 4. Create New Employee (NEW)
+
+**Endpoint:** `POST /api/v1/employees`  
+**Auth Required:** Yes  
+**Description:** Create a new employee record with comprehensive information
+
+**Content-Type:** `application/json`
+
+**Required Fields:**
+- `name` (string) - Employee name
+
+**Optional Fields:**
+
+**Work Information:**
+- `work_email` (string) - Work email address
+- `work_phone` (string) - Work phone number
+- `mobile_phone` (string) - Work mobile number
+- `job_title` (string) - Job title/designation
+- `department_id` (integer) - Department ID
+- `job_id` (integer) - Job position ID
+- `date_of_joining` (string) - Date of joining (YYYY-MM-DD format)
+- `employee_status` (string) - Status: onboarding/active/notice/resigned/terminated (default: onboarding)
+
+**Personal Information:**
+- `legal_name` (string) - Full legal name
+- `sex` (string) - Gender: male/female/other
+- `marital` (string) - Marital status: single/married/cohabitant/widower/divorced
+- `birthday` (string) - Date of birth (YYYY-MM-DD)
+- `private_phone` (string) - Personal phone number
+- `private_email` (string) - Personal email address
+- `blood_group` (string) - Blood group: a+/a-/b+/b-/ab+/ab-/o+/o-
+
+**Address:**
+- `private_street` (string) - Permanent address line 1
+- `private_street2` (string) - Permanent address line 2
+- `private_city` (string) - City
+- `private_state_id` (integer) - State ID
+- `private_zip` (string) - PIN code
+- `private_country_id` (integer) - Country ID (104 = India)
+- `current_address` (text) - Current/temporary address
+- `same_as_permanent` (boolean) - Whether current address is same as permanent
+
+**Emergency Contact:**
+- `emergency_contact` (string) - Emergency contact name
+- `emergency_phone` (string) - Emergency contact phone
+- `emergency_contact_relationship` (string) - Relationship with employee
+
+**Identity Documents:**
+- `identification_id` (string) - Aadhaar number (12 digits)
+- `pan_number` (string) - PAN card (format: ABCDE1234F)
+
+**Bank Details:**
+- `bank_name` (string) - Bank name
+- `bank_acc_number` (string) - Account number
+- `ifsc_code` (string) - IFSC code
+- `account_type` (string) - Account type: savings/current/salary
+- `name_as_per_bank` (string) - Name as per bank account
+- `cibil_score` (integer) - CIBIL score
+- `bank_document_type` (string) - Document type: cancelled_cheque/passbook_copy
+
+**Education & Skills:**
+- `education_background` (text) - Education background details
+- `skill_set_summary` (text) - Skills summary
+
+**Assets:**
+- `asset_laptop` (boolean) - Laptop issued
+- `asset_sim` (boolean) - SIM card issued
+- `asset_phone` (boolean) - Phone issued
+- `asset_pc` (boolean) - PC/Desktop issued
+- `asset_physical_id` (boolean) - Physical ID card issued
+
+**Usage Examples:**
+
+```bash
+# Basic employee creation
+curl -X POST "http://localhost:8069/api/v1/employees" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key_here" \
+  -d '{
+    "name": "John Doe",
+    "work_email": "john.doe@company.com",
+    "work_phone": "+91-9876543210",
+    "department_id": 1,
+    "date_of_joining": "2026-02-15",
+    "employee_status": "onboarding"
+  }'
+
+# Comprehensive employee creation
+curl -X POST "http://localhost:8069/api/v1/employees" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key_here" \
+  -d '{
+    "name": "John Doe",
+    "legal_name": "John Michael Doe",
+    "work_email": "john.doe@company.com",
+    "work_phone": "+91-9876543210",
+    "mobile_phone": "+91-9876543210",
+    "job_title": "Software Engineer",
+    "department_id": 1,
+    "job_id": 5,
+    "date_of_joining": "2026-02-15",
+    "employee_status": "onboarding",
+    "sex": "male",
+    "marital": "single",
+    "birthday": "1995-05-15",
+    "private_phone": "+91-9988776655",
+    "private_email": "john.personal@gmail.com",
+    "blood_group": "o+",
+    "private_street": "123 Main Street",
+    "private_city": "Mumbai",
+    "private_state_id": 21,
+    "private_zip": "400001",
+    "private_country_id": 104,
+    "emergency_contact": "Jane Doe",
+    "emergency_phone": "+91-9123456789",
+    "emergency_contact_relationship": "Spouse",
+    "identification_id": "123456789012",
+    "pan_number": "ABCDE1234F",
+    "bank_name": "HDFC Bank",
+    "bank_acc_number": "12345678901234",
+    "ifsc_code": "HDFC0001234",
+    "account_type": "savings",
+    "asset_laptop": true,
+    "asset_sim": true
+  }'
+```
+
+**Response (Success - 201 Created):**
+```json
+{
+  "success": true,
+  "message": "Employee created successfully",
+  "timestamp": "2026-02-11T12:00:00Z",
+  "data": {
+    "id": 15,
+    "employee_id": "CD-0015",
+    "name": "John Doe",
+    "work_email": "john.doe@company.com",
+    "employee_status": "onboarding",
+    "date_of_joining": "2026-02-15",
+    "department": "Engineering",
+    "department_id": 1,
+    "job_title": "Software Engineer",
+    "job_id": 5,
+    "created_date": "2026-02-11"
+  }
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation Error",
+  "timestamp": "2026-02-11T12:00:00Z",
+  "errors": {
+    "name": "Employee name is required"
+  }
+}
+```
+
+**Error Response (422 Unprocessable Entity):**
+```json
+{
+  "success": false,
+  "message": "Validation Error",
+  "timestamp": "2026-02-11T12:00:00Z",
+  "errors": {
+    "validation": "PAN number must follow the format ABCDE1234F (5 uppercase letters, 4 digits, 1 uppercase letter)."
+  }
+}
+```
+
+**Python Integration Example:**
+
+```python
+import requests
+
+def create_employee(api_key, employee_data):
+    """
+    Create a new employee via API.
+    
+    Args:
+        api_key (str): Your API key
+        employee_data (dict): Employee information
+    
+    Returns:
+        dict: Created employee data
+    """
+    BASE_URL = "http://localhost:8069/api/v1"
+    
+    response = requests.post(
+        f"{BASE_URL}/employees",
+        json=employee_data,
+        headers={"X-API-Key": api_key}
+    )
+    
+    if response.status_code == 201:
+        result = response.json()
+        print(f"✓ Employee created: {result['data']['employee_id']}")
+        return result['data']
+    else:
+        error = response.json()
+        print(f"✗ Error: {error['message']}")
+        if 'errors' in error:
+            print(f"  Details: {error['errors']}")
+        return None
+
+# Usage
+employee = create_employee(
+    api_key="your_api_key_here",
+    employee_data={
+        "name": "John Doe",
+        "work_email": "john.doe@company.com",
+        "work_phone": "+91-9876543210",
+        "department_id": 1,
+        "date_of_joining": "2026-02-15",
+        "employee_status": "onboarding",
+        "pan_number": "ABCDE1234F",
+        "identification_id": "123456789012",
+        "bank_name": "HDFC Bank",
+        "bank_acc_number": "12345678901234",
+        "ifsc_code": "HDFC0001234",
+        "asset_laptop": True,
+        "asset_sim": True
+    }
+)
+```
+
+**JavaScript Integration Example:**
+
+```javascript
+async function createEmployee(apiKey, employeeData) {
+    const BASE_URL = 'http://localhost:8069/api/v1';
+    
+    try {
+        const response = await fetch(`${BASE_URL}/employees`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': apiKey
+            },
+            body: JSON.stringify(employeeData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log(`✓ Employee created: ${result.data.employee_id}`);
+            return result.data;
+        } else {
+            console.error(`✗ Error: ${result.message}`);
+            if (result.errors) {
+                console.error('Details:', result.errors);
+            }
+            return null;
+        }
+    } catch (error) {
+        console.error('Network error:', error);
+        return null;
+    }
+}
+
+// Usage
+const employee = await createEmployee(
+    'your_api_key_here',
+    {
+        name: 'John Doe',
+        work_email: 'john.doe@company.com',
+        work_phone: '+91-9876543210',
+        department_id: 1,
+        date_of_joining: '2026-02-15',
+        employee_status: 'onboarding',
+        pan_number: 'ABCDE1234F',
+        identification_id: '123456789012',
+        asset_laptop: true,
+        asset_sim: true
+    }
+);
+```
+
+**Validation Rules:**
+- **Name**: Required, cannot be empty
+- **Aadhaar (identification_id)**: Must be exactly 12 digits (spaces allowed)
+- **PAN Number**: Must follow format ABCDE1234F (5 letters + 4 digits + 1 letter), auto-converted to uppercase
+- **Email**: Must be valid email format
+- **Employee ID**: Auto-generated (CD-XXXX), cannot be manually set
+- **Date Fields**: Must be in YYYY-MM-DD format
+- **Status**: Must be one of: onboarding, active, notice, resigned, terminated
+- **Account Type**: Must be one of: savings, current, salary
+- **Blood Group**: Must be one of: a+, a-, b+, b-, ab+, ab-, o+, o-
+
+**Notes:**
+- Employee ID is auto-generated with sequence CD-0001, CD-0002, etc.
+- Document binary fields (passport photo, PAN card copy, etc.) should be uploaded separately using document upload endpoints
+- All date fields accept YYYY-MM-DD format
+- PAN number is automatically converted to uppercase
+- Department ID and Job ID should reference existing records
+
+---
+
+#### 5. Get Employee Details
 
 **Endpoint:** `GET /api/v1/employees/<employee_id>`  
 **Auth Required:** Yes  
@@ -914,7 +1216,7 @@ curl -X GET "http://localhost:8069/api/v1/employees/CD-0001?fields=basic,contact
 
 ---
 
-#### 5. Get Employee Documents
+#### 6. Get Employee Documents
 
 **Endpoint:** `GET /api/v1/employees/<employee_id>/documents`  
 **Auth Required:** Yes  
@@ -938,7 +1240,7 @@ curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/documents?include_bi
 
 ---
 
-#### 6. Download Employee Document
+#### 7. Download Employee Document
 
 **Endpoint:** `GET /api/v1/employees/<employee_id>/documents/<document_id>/download`  
 **Auth Required:** Yes  
@@ -952,7 +1254,7 @@ curl -X GET "http://localhost:8069/api/v1/employees/CD-0001/documents/1/download
 
 ---
 
-#### 7. Get Employee Emergency Contact (NEW)
+#### 8. Get Employee Emergency Contact (NEW)
 
 **Endpoint:** `GET /api/v1/employees/<employee_id>/emergency-contact`  
 **Auth Required:** Yes  
@@ -1104,7 +1406,7 @@ getEmergencyContacts(['CD-0001', 'CD-0002', 'CD-0003'])
 
 ---
 
-#### 8. Get Employee Assets (NEW)
+#### 9. Get Employee Assets (NEW)
 
 **Endpoint:** `GET /api/v1/employees/<employee_id>/assets`  
 **Auth Required:** Yes  
@@ -1318,7 +1620,7 @@ export_all_employee_assets(['CD-0001', 'CD-0002', 'CD-0003'])
 
 ---
 
-#### 9. Get Employees with Pending Documents (NEW)
+#### 10. Get Employees with Pending Documents (NEW)
 
 **Endpoint:** `GET /api/v1/employees/pending-documents`  
 **Auth Required:** Yes  
