@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- PDF Report Template -->
+    <template id="report_document_pdf_template">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <t t-raw="doc.html_content"/>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+    
+    <!-- PDF Report Action -->
+    <record id="action_report_document_pdf" model="ir.actions.report">
+        <field name="name">Document PDF</field>
+        <field name="model">document.generated</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">document_template_manager.report_document_pdf_template</field>
+        <field name="report_file">document_template_manager.report_document_pdf_template</field>
+        <field name="print_report_name">'Document - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="model_document_generated"/>
+        <field name="binding_type">report</field>
+    </record>
+    
+    <!-- Email Template for Sending Documents -->
+    <record id="email_template_send_document" model="mail.template">
+        <field name="name">Send Document</field>
+        <field name="model_id" ref="model_document_generated"/>
+        <field name="subject">${object.name}</field>
+        <field name="email_from">${user.email_formatted}</field>
+        <field name="body_html" type="html">
+            <div style="margin: 0px; padding: 0px;">
+                <p>Dear ${object.res_name or 'Recipient'},</p>
+                <p>
+                    Please find attached the document: <strong>${object.name}</strong>
+                </p>
+                <p>
+                    Document Type: ${object.template_type}<br/>
+                    Generated on: ${format_datetime(object.generated_date, tz=user.tz, dt_format='medium')}
+                </p>
+                <p>
+                    If you have any questions, please don't hesitate to contact us.
+                </p>
+                <p>
+                    Best regards,<br/>
+                    ${user.name}<br/>
+                    ${user.company_id.name}
+                </p>
+            </div>
+        </field>
+        <field name="report_template_ids" eval="[(4, ref('action_report_document_pdf'))]"/>
+        <field name="auto_delete" eval="False"/>
+    </record>
+    
+</odoo>

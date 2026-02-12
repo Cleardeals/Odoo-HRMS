@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_document_template_user,access.document.template.user,model_document_template,group_document_user,1,1,1,0
+access_document_template_manager,access.document.template.manager,model_document_template,group_document_manager,1,1,1,1
+access_document_category_user,access.document.category.user,model_document_category,group_document_user,1,0,0,0
+access_document_category_manager,access.document.category.manager,model_document_category,group_document_manager,1,1,1,1
+access_document_tag_user,access.document.tag.user,model_document_tag,group_document_user,1,0,1,0
+access_document_tag_manager,access.document.tag.manager,model_document_tag,group_document_manager,1,1,1,1
