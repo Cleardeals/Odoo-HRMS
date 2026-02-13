@@ -3,9 +3,9 @@ access_document_template_user,document.template.user,model_document_template,gro
 access_document_template_manager,document.template.manager,model_document_template,group_document_manager,1,1,1,1
 access_document_template_variable_user,document.template.variable.user,model_document_template_variable,group_document_user,1,1,1,1
 access_document_template_variable_manager,document.template.variable.manager,model_document_template_variable,group_document_manager,1,1,1,1
-access_document_category_user,document.category.user,model_document_category,group_document_user,1,0,0,0
+access_document_category_user,document.category.user,model_document_category,group_document_user,1,1,1,0
 access_document_category_manager,document.category.manager,model_document_category,group_document_manager,1,1,1,1
-access_document_tag_user,document.tag.user,model_document_tag,group_document_user,1,0,1,0
+access_document_tag_user,document.tag.user,model_document_tag,group_document_user,1,1,1,0
 access_document_tag_manager,document.tag.manager,model_document_tag,group_document_manager,1,1,1,1
 access_document_export_wizard_user,document.export.wizard.user,model_document_export_wizard,group_document_user,1,1,1,1
 access_document_export_wizard_manager,document.export.wizard.manager,model_document_export_wizard,group_document_manager,1,1,1,1
