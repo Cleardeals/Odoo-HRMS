@@ -76,9 +76,11 @@ class TestCategory(DocumentTemplateTestCase):
 
         # Create template with this category
         self._create_test_template(category_id=category.id)
+        category.invalidate_recordset()  # Refresh computed field
         self.assertEqual(category.document_count, 1)
 
         self._create_test_template(category_id=category.id)
+        category.invalidate_recordset()  # Refresh computed field
         self.assertEqual(category.document_count, 2)
 
     def test_06_category_color(self):

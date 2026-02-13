@@ -22,13 +22,21 @@ class TestTemplateAccess(DocumentTemplateTestCase):
         # Create test users with different access levels
         cls.group_user = cls.env.ref("base.group_user")
         cls.group_system = cls.env.ref("base.group_system")
+        cls.group_document_user = cls.env.ref(
+            "document_template_manager.group_document_user",
+        )
+        cls.group_document_manager = cls.env.ref(
+            "document_template_manager.group_document_manager",
+        )
 
         cls.basic_user = cls.env["res.users"].create(
             {
                 "name": "Basic User",
                 "login": "basic_user",
                 "email": "basic@test.com",
-                "groups_id": [Command.set([cls.group_user.id])],
+                "group_ids": [
+                    Command.set([cls.group_user.id, cls.group_document_user.id]),
+                ],
             },
         )
 
@@ -37,7 +45,15 @@ class TestTemplateAccess(DocumentTemplateTestCase):
                 "name": "Admin User",
                 "login": "admin_user",
                 "email": "admin@test.com",
-                "groups_id": [Command.set([cls.group_user.id, cls.group_system.id])],
+                "group_ids": [
+                    Command.set(
+                        [
+                            cls.group_user.id,
+                            cls.group_system.id,
+                            cls.group_document_manager.id,
+                        ],
+                    ),
+                ],
             },
         )
 
@@ -63,9 +79,16 @@ class TestTemplateAccess(DocumentTemplateTestCase):
 
     def test_03_user_can_edit_templates(self):
         """Test that users can edit templates."""
-        template = self._create_test_template()
+        # Create template as the basic user
+        template = self.Template.with_user(self.basic_user).create(
+            {
+                "name": "User Template",
+                "category_id": self.category_hr.id,
+                "html_content": "<p>User content</p>",
+            },
+        )
 
-        # Update as basic user
+        # Update as basic user (own template)
         template.with_user(self.basic_user).write(
             {
                 "name": "Updated by User",
@@ -74,15 +97,23 @@ class TestTemplateAccess(DocumentTemplateTestCase):
 
         self.assertEqual(template.name, "Updated by User")
 
-    def test_04_user_can_delete_templates(self):
-        """Test that users can delete templates."""
-        template = self._create_test_template()
+    def test_04_user_cannot_delete_templates(self):
+        """Test that regular users cannot delete templates."""
+        # Create template as the basic user
+        template = self.Template.with_user(self.basic_user).create(
+            {
+                "name": "User Template to Delete",
+                "category_id": self.category_hr.id,
+                "html_content": "<p>User content</p>",
+            },
+        )
         template_id = template.id
 
-        # Delete as basic user
-        template.with_user(self.basic_user).unlink()
+        # Delete as basic user (own template) should be blocked by ACL
+        with self.assertRaises(AccessError):
+            template.with_user(self.basic_user).unlink()
 
-        self.assertFalse(self.Template.browse(template_id).exists())
+        self.assertTrue(self.Template.browse(template_id).exists())
 
     def test_05_admin_has_full_access(self):
         """Test that admin users have full access."""
@@ -112,13 +143,18 @@ class TestVariableAccess(DocumentTemplateTestCase):
         super().setUpClass()
 
         cls.group_user = cls.env.ref("base.group_user")
+        cls.group_document_user = cls.env.ref(
+            "document_template_manager.group_document_user",
+        )
 
         cls.basic_user = cls.env["res.users"].create(
             {
                 "name": "Var User",
                 "login": "var_user",
                 "email": "varuser@test.com",
-                "groups_id": [Command.set([cls.group_user.id])],
+                "group_ids": [
+                    Command.set([cls.group_user.id, cls.group_document_user.id]),
+                ],
             },
         )
 
@@ -177,13 +213,18 @@ class TestWizardAccess(DocumentTemplateTestCase):
         super().setUpClass()
 
         cls.group_user = cls.env.ref("base.group_user")
+        cls.group_document_user = cls.env.ref(
+            "document_template_manager.group_document_user",
+        )
 
         cls.basic_user = cls.env["res.users"].create(
             {
                 "name": "Wizard User",
                 "login": "wizard_user",
                 "email": "wizuser@test.com",
-                "groups_id": [Command.set([cls.group_user.id])],
+                "group_ids": [
+                    Command.set([cls.group_user.id, cls.group_document_user.id]),
+                ],
             },
         )
 
@@ -233,13 +274,18 @@ class TestCategoryTagAccess(DocumentTemplateTestCase):
         super().setUpClass()
 
         cls.group_user = cls.env.ref("base.group_user")
+        cls.group_document_user = cls.env.ref(
+            "document_template_manager.group_document_user",
+        )
 
         cls.basic_user = cls.env["res.users"].create(
             {
                 "name": "Category User",
                 "login": "cat_user",
                 "email": "catuser@test.com",
-                "groups_id": [Command.set([cls.group_user.id])],
+                "group_ids": [
+                    Command.set([cls.group_user.id, cls.group_document_user.id]),
+                ],
             },
         )
 
@@ -322,13 +368,18 @@ class TestSecurityEdgeCases(DocumentTemplateTestCase):
         super().setUpClass()
 
         cls.group_user = cls.env.ref("base.group_user")
+        cls.group_document_user = cls.env.ref(
+            "document_template_manager.group_document_user",
+        )
 
         cls.test_user = cls.env["res.users"].create(
             {
                 "name": "Edge Case User",
                 "login": "edge_user",
                 "email": "edgeuser@test.com",
-                "groups_id": [Command.set([cls.group_user.id])],
+                "group_ids": [
+                    Command.set([cls.group_user.id, cls.group_document_user.id]),
+                ],
             },
         )
 

@@ -17,7 +17,7 @@ class TestVariableCreation(DocumentTemplateTestCase):
     def test_01_create_simple_variable(self):
         """Test creating a basic char variable."""
         template = self._create_test_template()
-        variable = self.Variable.create(
+        variable = self.Variable.new(
             {
                 "template_id": template.id,
                 "name": "employee_name",
@@ -203,7 +203,7 @@ class TestVariableComputes(DocumentTemplateTestCase):
     def test_02_placeholder_tag_empty_name(self):
         """Test placeholder_tag when name is empty."""
         template = self._create_test_template()
-        variable = self.Variable.create(
+        variable = self.Variable.new(
             {
                 "template_id": template.id,
                 "name": "",
@@ -319,7 +319,8 @@ class TestVariableConstraints(DocumentTemplateTestCase):
         )
 
         with self.assertRaises(
-            ValidationError, msg="Duplicate variable name should raise error",
+            ValidationError,
+            msg="Duplicate variable name should raise error",
         ):
             self.Variable.create(
                 {

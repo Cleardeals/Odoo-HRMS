@@ -101,6 +101,15 @@ class DocumentTemplate(models.Model):
         for rec in self:
             rec.has_pdf = bool(rec.pdf_file)
 
+    # ── Validation ────────────────────────────────────────────────────
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            name = vals.get("name")
+            if not name or not str(name).strip():
+                raise ValidationError(_("Template name is required."))
+        return super().create(vals_list)
+
     # ── Actions ───────────────────────────────────────────────────────
     def action_export_pdf(self):
         """Export template as PDF.
@@ -350,6 +359,22 @@ class DocumentTemplateVariable(models.Model):
             name = re.sub(r"[^a-z0-9]+", "_", name)
             self.name = name.strip("_")
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if not vals.get("template_id"):
+                raise ValidationError(_("Template is required for variables."))
+
+            name = vals.get("name")
+            if not name or not str(name).strip():
+                raise ValidationError(_("Variable name is required."))
+
+            label = vals.get("label")
+            if not label or not str(label).strip():
+                raise ValidationError(_("Variable label is required."))
+
+        return super().create(vals_list)
+
     @api.constrains("template_id", "name")
     def _check_unique_name_per_template(self):
         for var in self:
@@ -387,7 +412,19 @@ class DocumentCategory(models.Model):
     child_ids = fields.One2many("document.category", "parent_id")
     document_count = fields.Integer(compute="_compute_document_count")
 
-    @api.depends("name")
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if not vals.get("name") or not vals.get("name").strip():
+                raise ValidationError(_("Category name is required."))
+        return super().create(vals_list)
+
+    @api.constrains("name")
+    def _check_name_not_empty(self):
+        for category in self:
+            if not category.name or not category.name.strip():
+                raise ValidationError(_("Category name is required."))
+
     def _compute_document_count(self):
         for cat in self:
             cat.document_count = self.env["document.template"].search_count(
@@ -403,17 +440,26 @@ class DocumentTag(models.Model):
     name = fields.Char(required=True, translate=True)
     color = fields.Integer(default=0)
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if not vals.get("name") or not vals.get("name").strip():
+                raise ValidationError(_("Tag name is required."))
+        return super().create(vals_list)
+
     @api.constrains("name")
     def _check_unique_name(self):
         for tag in self:
-            if tag.name:
-                count = self.search_count(
-                    [
-                        ("name", "=", tag.name),
-                        ("id", "!=", tag.id),
-                    ],
+            if not tag.name or not tag.name.strip():
+                raise ValidationError(_("Tag name is required."))
+            # Check uniqueness
+            count = self.search_count(
+                [
+                    ("name", "=", tag.name),
+                    ("id", "!=", tag.id),
+                ],
+            )
+            if count > 0:
+                raise ValidationError(
+                    _('Tag name "%s" already exists.', tag.name),
                 )
-                if count > 0:
-                    raise ValidationError(
-                        _('Tag name "%s" already exists.', tag.name),
-                    )
