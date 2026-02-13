@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 {
     'name': 'Document Template Manager',
     'version': '19.0.1.0.0',

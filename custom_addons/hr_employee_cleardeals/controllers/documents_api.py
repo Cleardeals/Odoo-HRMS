@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Documents Management API Controller
 
@@ -10,10 +9,10 @@ from odoo import http
 from odoo.http import request
 
 from .main import (
-    validate_api_key, 
-    handle_api_errors,
     api_response,
+    handle_api_errors,
     paginate_response,
+    validate_api_key,
 )
 
 _logger = logging.getLogger(__name__)
@@ -25,9 +24,9 @@ class DocumentsAPIController(http.Controller):
     
     Base URL: /api/v1/documents
     """
-    
-    @http.route('/api/v1/employees/pending-documents', 
-                type='http', auth='public', methods=['GET'], 
+
+    @http.route('/api/v1/employees/pending-documents',
+                type='http', auth='public', methods=['GET'],
                 csrf=False, cors='*')
     @validate_api_key
     @handle_api_errors
@@ -127,23 +126,23 @@ class DocumentsAPIController(http.Controller):
         page = int(kwargs.get('page', 1))
         per_page = min(int(kwargs.get('per_page', 20)), 100)
         show_all_documents = kwargs.get('show_all_documents', 'false').lower() == 'true'
-        
+
         # Build domain
         domain = []
         if employee_status:
             domain.append(('employee_status', '=', employee_status))
         if department:
             domain.append(('department_id.name', 'ilike', department))
-        
+
         # Get all employees matching criteria
         employees = request.env['hr.employee'].sudo().search(
             domain,
-            order='employee_id asc'
+            order='employee_id asc',
         )
-        
+
         # Document field mapping with categories
         document_mapping = self._get_categorized_document_mapping()
-        
+
         # Filter by document category if specified
         if document_category != 'all':
             if document_category in document_mapping:
@@ -151,31 +150,31 @@ class DocumentsAPIController(http.Controller):
                 document_mapping = filtered_docs
             else:
                 document_mapping = {}
-        
+
         # Process employees and check for pending documents
         employees_with_pending = []
         total_pending_count = 0
-        
+
         for emp in employees:
             pending_docs = {}
             pending_count = 0
             total_docs = 0
             uploaded_docs = 0
-            
+
             # Check each document category
             for category, docs in document_mapping.items():
                 category_pending = []
-                
+
                 for field_name, doc_name in docs.items():
                     total_docs += 1
                     is_uploaded = bool(getattr(emp, field_name, None))
-                    
+
                     if is_uploaded:
                         uploaded_docs += 1
-                    
+
                     # Determine if document is required based on employee status
                     is_required = self._is_document_required(field_name, emp.employee_status)
-                    
+
                     # Add to pending list if not uploaded and (required or show_all_documents)
                     if not is_uploaded and (is_required or show_all_documents):
                         category_pending.append({
@@ -194,14 +193,14 @@ class DocumentsAPIController(http.Controller):
                             'is_uploaded': is_uploaded,
                             'is_required': is_required,
                         })
-                
+
                 if category_pending:
                     pending_docs[category] = category_pending
-            
+
             # Only include employees with pending documents (or all if show_all_documents)
             if pending_count > 0 or show_all_documents:
-                compliance_percentage = int((uploaded_docs / total_docs * 100)) if total_docs > 0 else 100
-                
+                compliance_percentage = int(uploaded_docs / total_docs * 100) if total_docs > 0 else 100
+
                 employees_with_pending.append({
                     'employee': emp,
                     'pending_docs': pending_docs,
@@ -211,10 +210,10 @@ class DocumentsAPIController(http.Controller):
                     'compliance_percentage': compliance_percentage,
                 })
                 total_pending_count += pending_count
-        
+
         # Paginate results
         paginated, meta = paginate_response(employees_with_pending, page, per_page)
-        
+
         # Format response
         employees_data = []
         for item in paginated:
@@ -234,11 +233,11 @@ class DocumentsAPIController(http.Controller):
                 'uploaded_documents': item['uploaded_docs'],
                 'compliance_percentage': item['compliance_percentage'],
             })
-        
+
         # Calculate summary
         total_employees_with_pending = len(employees_with_pending)
         avg_compliance = int(sum([item['compliance_percentage'] for item in employees_with_pending]) / total_employees_with_pending) if total_employees_with_pending > 0 else 100
-        
+
         return api_response(
             success=True,
             message='Employees with pending documents retrieved successfully',
@@ -249,11 +248,11 @@ class DocumentsAPIController(http.Controller):
                     'employees_with_pending_documents': total_employees_with_pending,
                     'total_pending_documents': total_pending_count,
                     'average_compliance_rate': avg_compliance,
-                }
+                },
             },
-            meta=meta
+            meta=meta,
         )
-    
+
     def _get_categorized_document_mapping(self):
         """
         Get document mapping organized by category.
@@ -298,7 +297,7 @@ class DocumentsAPIController(http.Controller):
                 'increment_letter': 'Increment Letter',
             },
         }
-    
+
     def _is_document_required(self, field_name, employee_status):
         """
         Determine if a document is required based on employee status.
@@ -318,24 +317,23 @@ class DocumentsAPIController(http.Controller):
             'bank_document',
             'passport_photo',
         ]
-        
+
         # Required documents for all active employees
         active_required = [
             'pan_card_doc',
             'bank_document',
             'passport_photo',
         ]
-        
+
         # Required documents for employees on notice/resigning
         notice_required = [
             'pan_card_doc',
         ]
-        
+
         if employee_status == 'onboarding':
             return field_name in onboarding_required
-        elif employee_status == 'active':
+        if employee_status == 'active':
             return field_name in active_required
-        elif employee_status in ['notice', 'resigned']:
+        if employee_status in ['notice', 'resigned']:
             return field_name in notice_required
-        else:
-            return False
+        return False

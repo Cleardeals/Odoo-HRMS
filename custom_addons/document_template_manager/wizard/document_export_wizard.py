@@ -83,7 +83,7 @@ class DocumentExportWizard(models.TransientModel):
 
         # Validate required fields
         missing = self.line_ids.filtered(
-            lambda l: l.is_required and not l.value_char,
+            lambda line: line.is_required and not line.value_char,
         )
         if missing:
             names = ", ".join(missing.mapped("label"))

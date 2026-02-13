@@ -1,23 +1,22 @@
-# -*- coding: utf-8 -*-
 """
 Employee API Controller
 
 Endpoints for employee management and document access.
 """
-import logging
 import base64
 import json
+import logging
 
 from odoo import http
-from odoo.http import request
 from odoo.exceptions import ValidationError
+from odoo.http import request
 
 from .main import (
-    BaseAPIController, 
-    validate_api_key, 
-    handle_api_errors,
+    BaseAPIController,
     api_response,
-    paginate_response
+    handle_api_errors,
+    paginate_response,
+    validate_api_key,
 )
 
 _logger = logging.getLogger(__name__)
@@ -29,13 +28,13 @@ class EmployeeAPIController(BaseAPIController):
     
     Base URL: /api/v1/employees
     """
-    
+
     # ========================================================================
     # EMPLOYEE DOCUMENTS
     # ========================================================================
-    
-    @http.route('/api/v1/employees/<string:employee_id>/documents', 
-                type='http', auth='public', methods=['GET'], 
+
+    @http.route('/api/v1/employees/<string:employee_id>/documents',
+                type='http', auth='public', methods=['GET'],
                 csrf=False, cors='*')
     @validate_api_key
     @handle_api_errors
@@ -109,34 +108,34 @@ class EmployeeAPIController(BaseAPIController):
         include_binary = kwargs.get('include_binary', 'false').lower() == 'true'
         page = int(kwargs.get('page', 1))
         per_page = min(int(kwargs.get('per_page', 20)), 100)  # Max 100 per page
-        
+
         # Find employee by employee_id
         employee = request.env['hr.employee'].sudo().search([
-            ('employee_id', '=', employee_id)
+            ('employee_id', '=', employee_id),
         ], limit=1)
-        
+
         if not employee:
             return api_response(
                 success=False,
                 message=f'Employee with ID {employee_id} not found',
-                status=404
+                status=404,
             )
-        
+
         # Build domain for document search
         domain = [('employee_ref_id', '=', employee.id)]
-        
+
         if document_type:
             domain.append(('document_type_id.name', 'ilike', document_type))
-        
+
         # Fetch documents
         documents = request.env['hr.employee.document'].sudo().search(
             domain,
-            order='create_date desc'
+            order='create_date desc',
         )
-        
+
         # Paginate results
         paginated_docs, meta = paginate_response(documents, page, per_page)
-        
+
         # Format response data
         employee_data = {
             'id': employee.id,
@@ -147,22 +146,22 @@ class EmployeeAPIController(BaseAPIController):
             'job_title': employee.job_id.name if employee.job_id else None,
             'employee_status': employee.employee_status,
         }
-        
+
         documents_data = []
         for doc in paginated_docs:
             # Get first attachment if available
             attachment = doc.doc_attachment_ids[0] if doc.doc_attachment_ids else None
-            
+
             # Calculate expiry status
             is_expired = False
             is_expiring_soon = False
             if doc.expiry_date:
-                from datetime import datetime, timedelta
+                from datetime import datetime
                 today = datetime.now().date()
                 expiry = doc.expiry_date
                 is_expired = expiry < today
                 is_expiring_soon = (expiry - today).days <= 30 and not is_expired
-            
+
             doc_data = {
                 'id': doc.id,
                 'document_name': doc.name,
@@ -176,30 +175,30 @@ class EmployeeAPIController(BaseAPIController):
                 'is_expiring_soon': is_expiring_soon,
                 'description': doc.description or '',
             }
-            
+
             # Include binary data if requested
             if include_binary and attachment and attachment.datas:
                 doc_data['file_data'] = attachment.datas.decode('utf-8') if isinstance(attachment.datas, bytes) else attachment.datas
-            
+
             documents_data.append(doc_data)
-        
+
         return api_response(
             success=True,
             message='Documents retrieved successfully',
             data={
                 'employee': employee_data,
                 'documents': documents_data,
-                'document_count': len(documents)
+                'document_count': len(documents),
             },
-            meta=meta
+            meta=meta,
         )
-    
+
     # ========================================================================
     # SINGLE DOCUMENT DOWNLOAD
     # ========================================================================
-    
-    @http.route('/api/v1/employees/<string:employee_id>/documents/<int:document_id>/download', 
-                type='http', auth='public', methods=['GET'], 
+
+    @http.route('/api/v1/employees/<string:employee_id>/documents/<int:document_id>/download',
+                type='http', auth='public', methods=['GET'],
                 csrf=False, cors='*')
     @validate_api_key
     @handle_api_errors
@@ -221,57 +220,57 @@ class EmployeeAPIController(BaseAPIController):
         """
         # Find employee
         employee = request.env['hr.employee'].sudo().search([
-            ('employee_id', '=', employee_id)
+            ('employee_id', '=', employee_id),
         ], limit=1)
-        
+
         if not employee:
             return api_response(
                 success=False,
                 message=f'Employee with ID {employee_id} not found',
-                status=404
+                status=404,
             )
-        
+
         # Find document
         document = request.env['hr.employee.document'].sudo().search([
             ('id', '=', document_id),
-            ('employee_ref_id', '=', employee.id)
+            ('employee_ref_id', '=', employee.id),
         ], limit=1)
-        
+
         if not document:
             return api_response(
                 success=False,
                 message=f'Document {document_id} not found for employee {employee_id}',
-                status=404
+                status=404,
             )
-        
+
         # Get first attachment
         attachment = document.doc_attachment_ids[0] if document.doc_attachment_ids else None
-        
+
         if not attachment or not attachment.datas:
             return api_response(
                 success=False,
                 message='Document file data not available',
-                status=404
+                status=404,
             )
-        
+
         # Decode base64 file data
         file_content = base64.b64decode(attachment.datas)
-        
+
         # Return file as download
         headers = [
             ('Content-Type', attachment.mimetype or 'application/octet-stream'),
             ('Content-Disposition', f'attachment; filename="{attachment.name}"'),
-            ('Content-Length', len(file_content))
+            ('Content-Length', len(file_content)),
         ]
-        
+
         return request.make_response(file_content, headers)
-    
+
     # ========================================================================
     # DOCUMENT UPLOAD
     # ========================================================================
-    
-    @http.route('/api/v1/employees/<string:employee_id>/documents/upload', 
-                type='http', auth='public', methods=['POST'], 
+
+    @http.route('/api/v1/employees/<string:employee_id>/documents/upload',
+                type='http', auth='public', methods=['POST'],
                 csrf=False, cors='*')
     @validate_api_key
     @handle_api_errors
@@ -345,38 +344,38 @@ class EmployeeAPIController(BaseAPIController):
         """
         # Find employee by employee_id
         employee = request.env['hr.employee'].sudo().search([
-            ('employee_id', '=', employee_id)
+            ('employee_id', '=', employee_id),
         ], limit=1)
-        
+
         if not employee:
             return api_response(
                 success=False,
                 message='Employee not found',
                 errors={'employee_id': f'No employee found with ID {employee_id}'},
-                status=404
+                status=404,
             )
-        
+
         # Get uploaded file from request
         uploaded_file = request.httprequest.files.get('file')
         document_type = request.httprequest.form.get('document_type')
-        
+
         # Validate required fields
         if not uploaded_file:
             return api_response(
                 success=False,
                 message='Validation Error',
                 errors={'file': 'File is required'},
-                status=400
+                status=400,
             )
-        
+
         if not document_type:
             return api_response(
                 success=False,
                 message='Validation Error',
                 errors={'document_type': 'Document type is required'},
-                status=400
+                status=400,
             )
-        
+
         # Map document types to field names
         document_field_mapping = {
             'passport_photo': ('passport_photo', 'passport_photo_filename'),
@@ -399,60 +398,60 @@ class EmployeeAPIController(BaseAPIController):
             'increment_letter': ('increment_letter', 'increment_letter_filename'),
             'notice_period_doc': ('notice_period_doc', 'notice_period_doc_filename'),
         }
-        
+
         # Validate document type
         if document_type not in document_field_mapping:
             return api_response(
                 success=False,
                 message='Validation Error',
                 errors={
-                    'document_type': f'Invalid document type. Supported types: {", ".join(document_field_mapping.keys())}'
+                    'document_type': f'Invalid document type. Supported types: {", ".join(document_field_mapping.keys())}',
                 },
-                status=422
+                status=422,
             )
-        
+
         # Get file content and metadata
         filename = uploaded_file.filename
         file_content = uploaded_file.read()
         file_size = len(file_content)
-        
+
         # Validate file size (10 MB limit)
         MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
         if file_size > MAX_FILE_SIZE:
             return api_response(
                 success=False,
                 message='File too large',
-                errors={'file': f'File size ({file_size / (1024*1024):.2f} MB) exceeds maximum allowed size (10 MB)'},
-                status=413
+                errors={'file': f'File size ({file_size / (1024 * 1024):.2f} MB) exceeds maximum allowed size (10 MB)'},
+                status=413,
             )
-        
+
         # Validate file format based on extension
         allowed_extensions = ['.pdf', '.jpeg', '.jpg', '.png']
         file_extension = '.' + filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
-        
+
         if file_extension not in allowed_extensions:
             return api_response(
                 success=False,
                 message='Invalid file format',
                 errors={
-                    'file': f'File format {file_extension} not supported. Allowed formats: PDF, JPEG, JPG, PNG'
+                    'file': f'File format {file_extension} not supported. Allowed formats: PDF, JPEG, JPG, PNG',
                 },
-                status=422
+                status=422,
             )
-        
+
         # Convert file to base64
         file_base64 = base64.b64encode(file_content)
-        
+
         # Get field names for this document type
         binary_field, filename_field = document_field_mapping[document_type]
-        
+
         # Update employee record
         try:
             employee.write({
                 binary_field: file_base64,
-                filename_field: filename
+                filename_field: filename,
             })
-            
+
             return api_response(
                 success=True,
                 message='Document uploaded successfully',
@@ -463,26 +462,26 @@ class EmployeeAPIController(BaseAPIController):
                     'filename': filename,
                     'file_size': file_size,
                     'file_size_mb': round(file_size / (1024 * 1024), 2),
-                    'uploaded_at': employee.write_date.strftime('%Y-%m-%d %H:%M:%S') if employee.write_date else None
+                    'uploaded_at': employee.write_date.strftime('%Y-%m-%d %H:%M:%S') if employee.write_date else None,
                 },
-                status=201
+                status=201,
             )
-            
+
         except Exception as e:
-            _logger.exception(f"Error uploading document for employee {employee_id}")
+            _logger.exception("Error uploading document for employee %s", employee_id)
             return api_response(
                 success=False,
                 message='Failed to upload document',
                 errors={'error': str(e)},
-                status=500
+                status=500,
             )
-    
+
     # ========================================================================
     # EMPLOYEE DETAILS
     # ========================================================================
-    
-    @http.route('/api/v1/employees/<string:employee_id>', 
-                type='http', auth='public', methods=['GET'], 
+
+    @http.route('/api/v1/employees/<string:employee_id>',
+                type='http', auth='public', methods=['GET'],
                 csrf=False, cors='*')
     @validate_api_key
     @handle_api_errors
@@ -519,21 +518,21 @@ class EmployeeAPIController(BaseAPIController):
         # Parse fields parameter
         fields_param = kwargs.get('fields', 'basic,contact')
         requested_fields = [f.strip() for f in fields_param.split(',')]
-        
+
         # Find employee
         employee = request.env['hr.employee'].sudo().search([
-            ('employee_id', '=', employee_id)
+            ('employee_id', '=', employee_id),
         ], limit=1)
-        
+
         if not employee:
             return api_response(
                 success=False,
                 message=f'Employee with ID {employee_id} not found',
-                status=404
+                status=404,
             )
-        
+
         response_data = {}
-        
+
         # Basic information
         if 'basic' in requested_fields:
             response_data['basic'] = {
@@ -550,7 +549,7 @@ class EmployeeAPIController(BaseAPIController):
                 'department': employee.department_id.name if employee.department_id else None,
                 'job_title': employee.job_id.name if employee.job_id else None,
             }
-        
+
         # Contact information
         if 'contact' in requested_fields:
             response_data['contact'] = {
@@ -562,7 +561,7 @@ class EmployeeAPIController(BaseAPIController):
                 'emergency_contact_phone': employee.emergency_phone,
                 'emergency_contact_relationship': employee.emergency_contact_relationship,
             }
-        
+
         # Banking information
         if 'banking' in requested_fields:
             response_data['banking'] = {
@@ -573,7 +572,7 @@ class EmployeeAPIController(BaseAPIController):
                 'esic_number': employee.esic_number,
                 'cibil_score': employee.cibil_score,
             }
-        
+
         # Address information
         if 'address' in requested_fields:
             response_data['address'] = {
@@ -589,9 +588,9 @@ class EmployeeAPIController(BaseAPIController):
                     'country': employee.current_country_id.name if employee.current_country_id else None,
                     'pincode': employee.current_pincode,
                     'same_as_permanent': employee.same_as_permanent_address,
-                }
+                },
             }
-        
+
         # Asset information
         if 'assets' in requested_fields:
             response_data['assets'] = {
@@ -603,36 +602,36 @@ class EmployeeAPIController(BaseAPIController):
                 'processor': employee.processor,
                 'laptop_allocation_date': employee.laptop_allocation_date.strftime('%Y-%m-%d') if employee.laptop_allocation_date else None,
             }
-        
+
         # Document summary
         if 'documents' in requested_fields:
             doc_count = request.env['hr.employee.document'].sudo().search_count([
-                ('employee_ref_id', '=', employee.id)
+                ('employee_ref_id', '=', employee.id),
             ])
             response_data['documents'] = {
                 'total_documents': doc_count,
-                'documents_url': f'/api/v1/employees/{employee_id}/documents'
+                'documents_url': f'/api/v1/employees/{employee_id}/documents',
             }
-        
+
         # Statutory information
         if 'statutory' in requested_fields:
             response_data['statutory'] = {
                 'aadhaar_number': employee.identification_id,
                 'pan_number': employee.pan_number,
             }
-        
+
         return api_response(
             success=True,
             message='Employee details retrieved successfully',
-            data=response_data
+            data=response_data,
         )
-    
+
     # ========================================================================
     # EMPLOYEE LIST
     # ========================================================================
-    
-    @http.route('/api/v1/employees', 
-                type='http', auth='public', methods=['GET'], 
+
+    @http.route('/api/v1/employees',
+                type='http', auth='public', methods=['GET'],
                 csrf=False, cors='*')
     @validate_api_key
     @handle_api_errors
@@ -661,30 +660,30 @@ class EmployeeAPIController(BaseAPIController):
         search = kwargs.get('search')
         page = int(kwargs.get('page', 1))
         per_page = min(int(kwargs.get('per_page', 20)), 100)
-        
+
         # Build search domain
         domain = []
-        
+
         if department:
             domain.append(('department_id.name', 'ilike', department))
-        
+
         if status:
             domain.append(('employee_status', '=', status))
-        
+
         if search:
             domain.append('|')
             domain.append(('name', 'ilike', search))
             domain.append(('employee_id', 'ilike', search))
-        
+
         # Search employees
         employees = request.env['hr.employee'].sudo().search(
             domain,
-            order='employee_id asc'
+            order='employee_id asc',
         )
-        
+
         # Paginate
         paginated, meta = paginate_response(employees, page, per_page)
-        
+
         # Format response
         employees_data = []
         for emp in paginated:
@@ -698,23 +697,23 @@ class EmployeeAPIController(BaseAPIController):
                 'employee_status': emp.employee_status,
                 'date_of_joining': emp.date_of_joining.strftime('%Y-%m-%d') if emp.date_of_joining else None,
             })
-        
+
         return api_response(
             success=True,
             message='Employees retrieved successfully',
             data={
                 'employees': employees_data,
-                'total_count': len(employees)
+                'total_count': len(employees),
             },
-            meta=meta
+            meta=meta,
         )
-    
+
     # ========================================================================
     # ACTIVE EMPLOYEES LIST
     # ========================================================================
-    
-    @http.route('/api/v1/employees/active', 
-                type='http', auth='public', methods=['GET'], 
+
+    @http.route('/api/v1/employees/active',
+                type='http', auth='public', methods=['GET'],
                 csrf=False, cors='*')
     @validate_api_key
     @handle_api_errors
@@ -775,27 +774,27 @@ class EmployeeAPIController(BaseAPIController):
         per_page = min(int(kwargs.get('per_page', 20)), 100)
         fields_param = kwargs.get('fields', 'basic')
         requested_fields = [f.strip() for f in fields_param.split(',')]
-        
+
         # Build search domain - ONLY active employees
         domain = [('employee_status', '=', 'active')]
-        
+
         if department:
             domain.append(('department_id.name', 'ilike', department))
-        
+
         if search:
             domain.append('|')
             domain.append(('name', 'ilike', search))
             domain.append(('employee_id', 'ilike', search))
-        
+
         # Search employees
         employees = request.env['hr.employee'].sudo().search(
             domain,
-            order='employee_id asc'
+            order='employee_id asc',
         )
-        
+
         # Paginate
         paginated, meta = paginate_response(employees, page, per_page)
-        
+
         # Format response with optional additional fields
         employees_data = []
         for emp in paginated:
@@ -809,7 +808,7 @@ class EmployeeAPIController(BaseAPIController):
                 'employee_status': emp.employee_status,
                 'date_of_joining': emp.date_of_joining.strftime('%Y-%m-%d') if emp.date_of_joining else None,
             }
-            
+
             # Add optional field groups based on request
             if 'contact' in requested_fields:
                 emp_data['contact'] = {
@@ -820,7 +819,7 @@ class EmployeeAPIController(BaseAPIController):
                     'emergency_contact_phone': emp.emergency_phone,
                     'emergency_contact_relationship': emp.emergency_contact_relationship,
                 }
-            
+
             if 'banking' in requested_fields:
                 emp_data['banking'] = {
                     'bank_account_number': emp.bank_acc_number,
@@ -829,7 +828,7 @@ class EmployeeAPIController(BaseAPIController):
                     'uan_number': emp.uan_number,
                     'esic_number': emp.esic_number,
                 }
-            
+
             if 'address' in requested_fields:
                 emp_data['address'] = {
                     'permanent': {
@@ -843,9 +842,9 @@ class EmployeeAPIController(BaseAPIController):
                         'state': emp.current_state_id.name if emp.current_state_id else None,
                         'country': emp.current_country_id.name if emp.current_country_id else None,
                         'pincode': emp.current_pincode,
-                    }
+                    },
                 }
-            
+
             if 'assets' in requested_fields:
                 emp_data['assets'] = {
                     'laptop_brand': emp.laptop_brand,
@@ -855,40 +854,40 @@ class EmployeeAPIController(BaseAPIController):
                     'storage': emp.storage,
                     'processor': emp.processor,
                 }
-            
+
             if 'documents' in requested_fields:
                 doc_count = request.env['hr.employee.document'].sudo().search_count([
-                    ('employee_ref_id', '=', emp.id)
+                    ('employee_ref_id', '=', emp.id),
                 ])
                 emp_data['documents'] = {
                     'total_documents': doc_count,
-                    'documents_url': f'/api/v1/employees/{emp.employee_id}/documents'
+                    'documents_url': f'/api/v1/employees/{emp.employee_id}/documents',
                 }
-            
+
             if 'statutory' in requested_fields:
                 emp_data['statutory'] = {
                     'aadhaar_number': emp.identification_id,
                     'pan_number': emp.pan_number,
                 }
-            
+
             employees_data.append(emp_data)
-        
+
         return api_response(
             success=True,
             message='Active employees retrieved successfully',
             data={
                 'employees': employees_data,
-                'total_count': len(employees)
+                'total_count': len(employees),
             },
-            meta=meta
+            meta=meta,
         )
-    
+
     # ========================================================================
     # EMPLOYEE CREATION
     # ========================================================================
-    
-    @http.route('/api/v1/employees', 
-                type='http', auth='public', methods=['POST'], 
+
+    @http.route('/api/v1/employees',
+                type='http', auth='public', methods=['POST'],
                 csrf=False, cors='*')
     @validate_api_key
     @handle_api_errors
@@ -1002,25 +1001,25 @@ class EmployeeAPIController(BaseAPIController):
                 success=False,
                 message='Invalid JSON in request body',
                 errors={'json': 'Request body must be valid JSON'},
-                status=400
+                status=400,
             )
-        
+
         # Validate required fields
         if not params.get('name'):
             return api_response(
                 success=False,
                 message='Validation Error',
                 errors={'name': 'Employee name is required'},
-                status=400
+                status=400,
             )
-        
+
         # Prepare employee data
         employee_data = {}
-        
+
         # ========== BASIC INFORMATION ==========
         # Required field
         employee_data['name'] = params.get('name').strip()
-        
+
         # Work contact information
         if params.get('work_email'):
             employee_data['work_email'] = params.get('work_email').strip()
@@ -1028,7 +1027,7 @@ class EmployeeAPIController(BaseAPIController):
             employee_data['work_phone'] = params.get('work_phone')
         if params.get('mobile_phone'):
             employee_data['mobile_phone'] = params.get('mobile_phone')
-        
+
         # Job information
         if params.get('job_title'):
             employee_data['job_title'] = params.get('job_title')
@@ -1036,13 +1035,13 @@ class EmployeeAPIController(BaseAPIController):
             employee_data['department_id'] = params.get('department_id')
         if params.get('job_id'):
             employee_data['job_id'] = params.get('job_id')
-        
+
         # Employment details
         if params.get('date_of_joining'):
             employee_data['date_of_joining'] = params.get('date_of_joining')
         if params.get('employee_status'):
             employee_data['employee_status'] = params.get('employee_status')
-        
+
         # ========== PERSONAL INFORMATION ==========
         if params.get('legal_name'):
             employee_data['legal_name'] = params.get('legal_name')
@@ -1058,7 +1057,7 @@ class EmployeeAPIController(BaseAPIController):
             employee_data['private_email'] = params.get('private_email')
         if params.get('blood_group'):
             employee_data['blood_group'] = params.get('blood_group')
-        
+
         # ========== ADDRESS ==========
         if params.get('private_street'):
             employee_data['private_street'] = params.get('private_street')
@@ -1076,7 +1075,7 @@ class EmployeeAPIController(BaseAPIController):
             employee_data['current_address'] = params.get('current_address')
         if params.get('same_as_permanent') is not None:
             employee_data['same_as_permanent'] = params.get('same_as_permanent')
-        
+
         # ========== EMERGENCY CONTACT ==========
         if params.get('emergency_contact'):
             employee_data['emergency_contact'] = params.get('emergency_contact')
@@ -1084,14 +1083,14 @@ class EmployeeAPIController(BaseAPIController):
             employee_data['emergency_phone'] = params.get('emergency_phone')
         if params.get('emergency_contact_relationship'):
             employee_data['emergency_contact_relationship'] = params.get('emergency_contact_relationship')
-        
+
         # ========== IDENTITY DOCUMENTS ==========
         if params.get('identification_id'):
             employee_data['identification_id'] = params.get('identification_id')
         if params.get('pan_number'):
             # PAN will be auto-converted to uppercase in model's create method
             employee_data['pan_number'] = params.get('pan_number')
-        
+
         # ========== BANK DETAILS ==========
         if params.get('bank_name'):
             employee_data['bank_name'] = params.get('bank_name')
@@ -1107,13 +1106,13 @@ class EmployeeAPIController(BaseAPIController):
             employee_data['cibil_score'] = params.get('cibil_score')
         if params.get('bank_document_type'):
             employee_data['bank_document_type'] = params.get('bank_document_type')
-        
+
         # ========== EDUCATION & SKILLS ==========
         if params.get('education_background'):
             employee_data['education_background'] = params.get('education_background')
         if params.get('skill_set_summary'):
             employee_data['skill_set_summary'] = params.get('skill_set_summary')
-        
+
         # ========== ASSETS ==========
         if params.get('asset_laptop') is not None:
             employee_data['asset_laptop'] = params.get('asset_laptop')
@@ -1125,11 +1124,11 @@ class EmployeeAPIController(BaseAPIController):
             employee_data['asset_pc'] = params.get('asset_pc')
         if params.get('asset_physical_id') is not None:
             employee_data['asset_physical_id'] = params.get('asset_physical_id')
-        
+
         # Create the employee record
         try:
             employee = request.env['hr.employee'].sudo().create(employee_data)
-            
+
             # Prepare response data
             response_data = {
                 'id': employee.id,
@@ -1144,20 +1143,20 @@ class EmployeeAPIController(BaseAPIController):
                 'job_id': employee.job_id.id if employee.job_id else None,
                 'created_date': employee.create_date.strftime('%Y-%m-%d') if employee.create_date else None,
             }
-            
+
             return api_response(
                 success=True,
                 message='Employee created successfully',
                 data=response_data,
-                status=201
+                status=201,
             )
-            
+
         except ValidationError as e:
             return api_response(
                 success=False,
                 message='Validation Error',
                 errors={'validation': str(e)},
-                status=422
+                status=422,
             )
         except Exception as e:
             _logger.exception("Error creating employee")
@@ -1165,5 +1164,5 @@ class EmployeeAPIController(BaseAPIController):
                 success=False,
                 message='Failed to create employee',
                 errors={'error': str(e)},
-                status=500
+                status=500,
             )
