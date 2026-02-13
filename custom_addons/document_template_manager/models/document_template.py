@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
-
 import base64
 import re
 
-from odoo import api, fields, models, _
+from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
-
 
 # ═══════════════════════════════════════════════════════════════════════
 #  DOCUMENT TEMPLATE
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class DocumentTemplate(models.Model):
     """
@@ -17,59 +15,59 @@ class DocumentTemplate(models.Model):
     {{variable}} placeholders that are resolved at PDF-export time.
     """
 
-    _name = 'document.template'
-    _description = 'Document Template'
-    _inherit = ['mail.thread', 'mail.activity.mixin']
-    _order = 'write_date desc, id desc'
+    _name = "document.template"
+    _description = "Document Template"
+    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _order = "write_date desc, id desc"
 
     # ── Basic info ────────────────────────────────────────────────────
     name = fields.Char(
-        string='Title',
+        string="Title",
         required=True,
         tracking=True,
     )
     category_id = fields.Many2one(
-        'document.category',
-        string='Category',
+        "document.category",
+        string="Category",
         tracking=True,
     )
     tag_ids = fields.Many2many(
-        'document.tag',
-        string='Tags',
+        "document.tag",
+        string="Tags",
     )
     summary = fields.Text(
-        string='Summary',
-        help='Brief description of this template',
+        string="Summary",
+        help="Brief description of this template",
     )
 
     # ── Content ───────────────────────────────────────────────────────
     html_content = fields.Html(
-        string='Content',
+        string="Content",
         sanitize_attributes=False,
         sanitize_form=False,
     )
 
     # ── Variables ─────────────────────────────────────────────────────
     variable_ids = fields.One2many(
-        'document.template.variable',
-        'template_id',
-        string='Variables',
+        "document.template.variable",
+        "template_id",
+        string="Variables",
         copy=True,
     )
     variable_count = fields.Integer(
-        compute='_compute_variable_count',
+        compute="_compute_variable_count",
         store=True,
     )
 
     # ── PDF ───────────────────────────────────────────────────────────
-    pdf_filename = fields.Char(compute='_compute_pdf_filename')
+    pdf_filename = fields.Char(compute="_compute_pdf_filename")
     pdf_file = fields.Binary(
-        string='Last Generated PDF',
+        string="Last Generated PDF",
         attachment=True,
         readonly=True,
     )
     has_pdf = fields.Boolean(
-        compute='_compute_has_pdf',
+        compute="_compute_has_pdf",
         store=True,
     )
 
@@ -79,26 +77,26 @@ class DocumentTemplate(models.Model):
 
     # ── Company ───────────────────────────────────────────────────────
     company_id = fields.Many2one(
-        'res.company',
+        "res.company",
         default=lambda self: self.env.company,
     )
 
     # ── Computes ──────────────────────────────────────────────────────
-    @api.depends('variable_ids')
+    @api.depends("variable_ids")
     def _compute_variable_count(self):
         for rec in self:
             rec.variable_count = len(rec.variable_ids)
 
-    @api.depends('name')
+    @api.depends("name")
     def _compute_pdf_filename(self):
         for rec in self:
             if rec.name:
-                safe = rec.name.replace('/', '-').replace('\\', '-')
-                rec.pdf_filename = f'{safe}.pdf'
+                safe = rec.name.replace("/", "-").replace("\\", "-")
+                rec.pdf_filename = f"{safe}.pdf"
             else:
-                rec.pdf_filename = 'document.pdf'
+                rec.pdf_filename = "document.pdf"
 
-    @api.depends('pdf_file')
+    @api.depends("pdf_file")
     def _compute_has_pdf(self):
         for rec in self:
             rec.has_pdf = bool(rec.pdf_file)
@@ -113,17 +111,17 @@ class DocumentTemplate(models.Model):
         """
         self.ensure_one()
         if not self.html_content:
-            raise ValidationError(_('Cannot export an empty document.'))
+            raise ValidationError(_("Cannot export an empty document."))
 
         if self.variable_ids:
             # Has variables → open the fill-in wizard
             return {
-                'name': _('Export PDF — %s', self.name),
-                'type': 'ir.actions.act_window',
-                'res_model': 'document.export.wizard',
-                'view_mode': 'form',
-                'target': 'new',
-                'context': {'default_template_id': self.id},
+                "name": _("Export PDF — %s", self.name),
+                "type": "ir.actions.act_window",
+                "res_model": "document.export.wizard",
+                "view_mode": "form",
+                "target": "new",
+                "context": {"default_template_id": self.id},
             }
 
         # No variables → generate directly
@@ -134,14 +132,14 @@ class DocumentTemplate(models.Model):
         """Download the last generated PDF."""
         self.ensure_one()
         if not self.has_pdf:
-            raise ValidationError(_('No PDF available. Please export first.'))
+            raise ValidationError(_("No PDF available. Please export first."))
         return {
-            'type': 'ir.actions.act_url',
-            'url': (
-                f'/web/content/document.template/{self.id}'
-                f'/pdf_file/{self.pdf_filename}?download=true'
+            "type": "ir.actions.act_url",
+            "url": (
+                f"/web/content/document.template/{self.id}"
+                f"/pdf_file/{self.pdf_filename}?download=true"
             ),
-            'target': 'self',
+            "target": "self",
         }
 
     def action_duplicate(self):
@@ -149,11 +147,11 @@ class DocumentTemplate(models.Model):
         self.ensure_one()
         new = self.copy()
         return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'document.template',
-            'res_id': new.id,
-            'view_mode': 'form',
-            'target': 'current',
+            "type": "ir.actions.act_window",
+            "res_model": "document.template",
+            "res_id": new.id,
+            "view_mode": "form",
+            "target": "current",
         }
 
     def action_toggle_favorite(self):
@@ -165,38 +163,40 @@ class DocumentTemplate(models.Model):
         missing variable records automatically."""
         self.ensure_one()
         if not self.html_content:
-            raise ValidationError(_('Document is empty — nothing to scan.'))
+            raise ValidationError(_("Document is empty — nothing to scan."))
 
-        found = set(re.findall(r'\{\{\s*(\w+)\s*\}\}', self.html_content))
-        existing = set(self.variable_ids.mapped('name'))
+        found = set(re.findall(r"\{\{\s*(\w+)\s*\}\}", self.html_content))
+        existing = set(self.variable_ids.mapped("name"))
         new_vars = found - existing
 
-        seq = max(self.variable_ids.mapped('sequence') or [0])
+        seq = max(self.variable_ids.mapped("sequence") or [0])
         for var_name in sorted(new_vars):
             seq += 10
-            label = var_name.replace('_', ' ').title()
-            self.env['document.template.variable'].create({
-                'template_id': self.id,
-                'name': var_name,
-                'label': label,
-                'variable_type': 'char',
-                'required': True,
-                'sequence': seq,
-            })
+            label = var_name.replace("_", " ").title()
+            self.env["document.template.variable"].create(
+                {
+                    "template_id": self.id,
+                    "name": var_name,
+                    "label": label,
+                    "variable_type": "char",
+                    "required": True,
+                    "sequence": seq,
+                }
+            )
 
         msg = (
-            _('%d new variable(s) detected and added.', len(new_vars))
+            _("%d new variable(s) detected and added.", len(new_vars))
             if new_vars
-            else _('No new variables found.')
+            else _("No new variables found.")
         )
         return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': _('Variable Detection'),
-                'message': msg,
-                'type': 'info' if new_vars else 'warning',
-                'sticky': False,
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Variable Detection"),
+                "message": msg,
+                "type": "info" if new_vars else "warning",
+                "sticky": False,
             },
         }
 
@@ -204,23 +204,23 @@ class DocumentTemplate(models.Model):
     def _generate_pdf_bytes(self, html_body):
         """Wrap *html_body* in a full-page document and run wkhtmltopdf."""
         company = self.env.company
-        company_logo = company.logo if company.logo else ''
-        
+        company_logo = company.logo if company.logo else ""
+
         # Prepare header HTML with company logo
         header_html = f"""
         <div style="text-align: center; padding: 10px 0; border-bottom: 2px solid #333;">
             {f'<img src="data:image/png;base64,{company_logo.decode()}" style="max-height: 60px; max-width: 200px;" />' if company_logo else f'<h2 style="margin: 0;">{company.name}</h2>'}
         </div>
         """
-        
+
         # Prepare footer HTML with company info and page numbers
         footer_html = f"""
         <div style="text-align: center; font-size: 10px; padding: 5px 0; border-top: 1px solid #ccc; margin-top: 10px;">
-            <div>{company.name} | {company.street or ''} {company.city or ''} | {company.phone or ''}</div>
+            <div>{company.name} | {company.street or ""} {company.city or ""} | {company.phone or ""}</div>
             <div style="margin-top: 3px;">Page <span class="page"></span> of <span class="topage"></span></div>
         </div>
         """
-        
+
         full_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -244,42 +244,45 @@ class DocumentTemplate(models.Model):
 {html_body}
 </body>
 </html>"""
-        return self.env['ir.actions.report']._run_wkhtmltopdf(
+        return self.env["ir.actions.report"]._run_wkhtmltopdf(
             [full_html],
             landscape=False,
             specific_paperformat_args={
-                'header-html': header_html,
-                'footer-html': footer_html,
-                'header-spacing': 5,
-                'footer-spacing': 5,
+                "header-html": header_html,
+                "footer-html": footer_html,
+                "header-spacing": 5,
+                "footer-spacing": 5,
             },
         )
 
     def _save_and_download_pdf(self, pdf_bytes):
         """Persist PDF on the template and return a download action."""
-        self.write({'pdf_file': base64.b64encode(pdf_bytes)})
-        attachment = self.env['ir.attachment'].create({
-            'name': self.pdf_filename,
-            'type': 'binary',
-            'datas': base64.b64encode(pdf_bytes),
-            'mimetype': 'application/pdf',
-        })
+        self.write({"pdf_file": base64.b64encode(pdf_bytes)})
+        attachment = self.env["ir.attachment"].create(
+            {
+                "name": self.pdf_filename,
+                "type": "binary",
+                "datas": base64.b64encode(pdf_bytes),
+                "mimetype": "application/pdf",
+            }
+        )
         return {
-            'type': 'ir.actions.act_url',
-            'url': f'/web/content/{attachment.id}/{self.pdf_filename}?download=true',
-            'target': 'self',
+            "type": "ir.actions.act_url",
+            "url": f"/web/content/{attachment.id}/{self.pdf_filename}?download=true",
+            "target": "self",
         }
 
     def copy(self, default=None):
         default = dict(default or {})
-        default.setdefault('name', _('%s (Copy)', self.name))
-        default.setdefault('pdf_file', False)
+        default.setdefault("name", _("%s (Copy)", self.name))
+        default.setdefault("pdf_file", False)
         return super().copy(default)
 
 
 # ═══════════════════════════════════════════════════════════════════════
 #  TEMPLATE VARIABLE
 # ═══════════════════════════════════════════════════════════════════════
+
 
 class DocumentTemplateVariable(models.Model):
     """A dynamic placeholder inside a document template.
@@ -288,77 +291,82 @@ class DocumentTemplateVariable(models.Model):
     in the HTML body that gets replaced at PDF-export time.
     """
 
-    _name = 'document.template.variable'
-    _description = 'Template Variable'
-    _order = 'sequence, id'
+    _name = "document.template.variable"
+    _description = "Template Variable"
+    _order = "sequence, id"
 
     template_id = fields.Many2one(
-        'document.template',
+        "document.template",
         required=True,
-        ondelete='cascade',
+        ondelete="cascade",
         index=True,
     )
     name = fields.Char(
-        string='Variable Name',
+        string="Variable Name",
         required=True,
         index=True,
-        help='Technical name used in the template as {{variable_name}}',
+        help="Technical name used in the template as {{variable_name}}",
     )
     label = fields.Char(
-        string='Display Label',
+        string="Display Label",
         required=True,
-        help='Friendly label shown when filling in values',
+        help="Friendly label shown when filling in values",
     )
     variable_type = fields.Selection(
         [
-            ('char', 'Text'),
-            ('text', 'Long Text'),
-            ('integer', 'Whole Number'),
-            ('float', 'Decimal Number'),
-            ('date', 'Date'),
-            ('selection', 'Dropdown'),
+            ("char", "Text"),
+            ("text", "Long Text"),
+            ("integer", "Whole Number"),
+            ("float", "Decimal Number"),
+            ("date", "Date"),
+            ("selection", "Dropdown"),
         ],
-        string='Type',
-        default='char',
+        string="Type",
+        default="char",
         required=True,
     )
-    default_value = fields.Char(string='Default Value')
+    default_value = fields.Char(string="Default Value")
     selection_options = fields.Char(
-        string='Dropdown Options',
-        help='Comma-separated list of choices (only for Dropdown type)',
+        string="Dropdown Options",
+        help="Comma-separated list of choices (only for Dropdown type)",
     )
     required = fields.Boolean(default=True)
     sequence = fields.Integer(default=10)
     placeholder_tag = fields.Char(
-        string='Placeholder',
-        compute='_compute_placeholder_tag',
+        string="Placeholder",
+        compute="_compute_placeholder_tag",
     )
 
-    @api.depends('name')
+    @api.depends("name")
     def _compute_placeholder_tag(self):
         for var in self:
-            var.placeholder_tag = '{{%s}}' % var.name if var.name else ''
+            var.placeholder_tag = "{{%s}}" % var.name if var.name else ""
 
-    @api.onchange('label')
+    @api.onchange("label")
     def _onchange_label(self):
         """Auto-generate a technical name from the display label."""
         if self.label and not self.name:
             name = self.label.lower().strip()
-            name = re.sub(r'[^a-z0-9]+', '_', name)
-            self.name = name.strip('_')
+            name = re.sub(r"[^a-z0-9]+", "_", name)
+            self.name = name.strip("_")
 
-    @api.constrains('template_id', 'name')
+    @api.constrains("template_id", "name")
     def _check_unique_name_per_template(self):
         for var in self:
             if var.template_id and var.name:
-                count = self.search_count([
-                    ('template_id', '=', var.template_id.id),
-                    ('name', '=', var.name),
-                    ('id', '!=', var.id),
-                ])
+                count = self.search_count(
+                    [
+                        ("template_id", "=", var.template_id.id),
+                        ("name", "=", var.name),
+                        ("id", "!=", var.id),
+                    ]
+                )
                 if count > 0:
                     raise ValidationError(
-                        _('Variable name "%s" already exists in this template.', var.name)
+                        _(
+                            'Variable name "%s" already exists in this template.',
+                            var.name,
+                        ),
                     )
 
 
@@ -366,43 +374,46 @@ class DocumentTemplateVariable(models.Model):
 #  SUPPORTING MODELS
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class DocumentCategory(models.Model):
-    _name = 'document.category'
-    _description = 'Document Category'
-    _order = 'sequence, name'
+    _name = "document.category"
+    _description = "Document Category"
+    _order = "sequence, name"
 
     name = fields.Char(required=True, translate=True)
     sequence = fields.Integer(default=10)
     color = fields.Integer(default=0)
-    parent_id = fields.Many2one('document.category', ondelete='cascade')
-    child_ids = fields.One2many('document.category', 'parent_id')
-    document_count = fields.Integer(compute='_compute_document_count')
+    parent_id = fields.Many2one("document.category", ondelete="cascade")
+    child_ids = fields.One2many("document.category", "parent_id")
+    document_count = fields.Integer(compute="_compute_document_count")
 
-    @api.depends('name')
+    @api.depends("name")
     def _compute_document_count(self):
         for cat in self:
-            cat.document_count = self.env['document.template'].search_count(
-                [('category_id', '=', cat.id)]
+            cat.document_count = self.env["document.template"].search_count(
+                [("category_id", "=", cat.id)],
             )
 
 
 class DocumentTag(models.Model):
-    _name = 'document.tag'
-    _description = 'Document Tag'
-    _order = 'name'
+    _name = "document.tag"
+    _description = "Document Tag"
+    _order = "name"
 
     name = fields.Char(required=True, translate=True)
     color = fields.Integer(default=0)
 
-    @api.constrains('name')
+    @api.constrains("name")
     def _check_unique_name(self):
         for tag in self:
             if tag.name:
-                count = self.search_count([
-                    ('name', '=', tag.name),
-                    ('id', '!=', tag.id),
-                ])
+                count = self.search_count(
+                    [
+                        ("name", "=", tag.name),
+                        ("id", "!=", tag.id),
+                    ]
+                )
                 if count > 0:
                     raise ValidationError(
-                        _('Tag name "%s" already exists.', tag.name)
+                        _('Tag name "%s" already exists.', tag.name),
                     )

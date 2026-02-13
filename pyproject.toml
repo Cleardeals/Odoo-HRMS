@@ -1,0 +1,45 @@
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+exclude = [
+    ".git",
+    "__pycache__",
+    "*.pyc",
+    ".venv",
+    "venv",
+    "env",
+]
+
+[tool.ruff.lint]
+
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "N",
+    "UP",
+    "B",
+    "C4",
+]
+
+ignore = [
+    "E501",
+    "B008",
+    "N802",
+    "N806",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+selection-order = ["future", "standard-library", "third-party", "odoo", "first-party", "local-folder"]
+
+[tool.ruff.lint.isort.sections]
+"odoo" = ["odoo", "odoo.addons"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
