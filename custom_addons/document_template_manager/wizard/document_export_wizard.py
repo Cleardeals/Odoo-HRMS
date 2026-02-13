@@ -62,7 +62,7 @@ class DocumentExportWizard(models.TransientModel):
                                 "is_required": var.required,
                                 "selection_options": var.selection_options or "",
                             },
-                        )
+                        ),
                     )
                 res["line_ids"] = lines
         return res
@@ -98,7 +98,7 @@ class DocumentExportWizard(models.TransientModel):
         self.template_id.write(
             {
                 "pdf_file": base64.b64encode(pdf_bytes),
-            }
+            },
         )
 
         # Create a downloadable attachment
@@ -109,7 +109,7 @@ class DocumentExportWizard(models.TransientModel):
                 "type": "binary",
                 "datas": base64.b64encode(pdf_bytes),
                 "mimetype": "application/pdf",
-            }
+            },
         )
 
         return {

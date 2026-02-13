@@ -13,15 +13,12 @@
                 <field name="favorite" widget="boolean_favorite" nolabel="1"/>
                 <field name="name"/>
                 <field name="category_id"/>
-                <field name="tag_ids" widget="many2many_tags"
-                       options="{'color_field': 'color'}"/>
+                <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
                 <field name="variable_count" string="Variables"/>
                 <field name="write_date" string="Last Modified"/>
-                <field name="write_uid" string="Modified By"
-                       widget="many2one_avatar_user"/>
+                <field name="write_uid" string="Modified By" widget="many2one_avatar_user"/>
                 <field name="has_pdf" widget="boolean_toggle" string="PDF"/>
-                <field name="company_id" groups="base.group_multi_company"
-                       optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
             </list>
         </field>
     </record>
@@ -36,96 +33,52 @@
         <field name="arch" type="xml">
             <form string="Document Template" class="o_document_editor_form">
                 <header>
-                    <button name="action_export_pdf"
-                            string="Export PDF"
-                            type="object"
-                            class="btn-primary"
-                            icon="fa-file-pdf-o"/>
-                    <button name="action_download_pdf"
-                            string="Download PDF"
-                            type="object"
-                            class="btn-secondary"
-                            icon="fa-download"
-                            invisible="not has_pdf"/>
-                    <button name="action_duplicate"
-                            string="Duplicate"
-                            type="object"
-                            class="btn-secondary"
-                            icon="fa-copy"/>
-                    <button name="action_toggle_favorite"
-                            string="★"
-                            type="object"
-                            class="btn-link text-warning fs-4"
-                            title="Remove from favorites"
-                            invisible="not favorite"/>
-                    <button name="action_toggle_favorite"
-                            string="☆"
-                            type="object"
-                            class="btn-link text-muted fs-4"
-                            title="Add to favorites"
-                            invisible="favorite"/>
+                    <button name="action_export_pdf" string="Export PDF" type="object" class="btn-primary" icon="fa-file-pdf-o"/>
+                    <button name="action_download_pdf" string="Download PDF" type="object" class="btn-secondary" icon="fa-download" invisible="not has_pdf"/>
+                    <button name="action_duplicate" string="Duplicate" type="object" class="btn-secondary" icon="fa-copy"/>
+                    <button name="action_toggle_favorite" string="★" type="object" class="btn-link text-warning fs-4" title="Remove from favorites" invisible="not favorite"/>
+                    <button name="action_toggle_favorite" string="☆" type="object" class="btn-link text-muted fs-4" title="Add to favorites" invisible="favorite"/>
                 </header>
 
                 <sheet>
-                    <widget name="web_ribbon" title="Archived"
-                            bg_color="text-bg-danger"
-                            invisible="active"/>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
 
                     <!-- ── Title ── -->
                     <div class="o_document_title mb-2">
                         <h1>
-                            <field name="name"
-                                   placeholder="Untitled Document"
-                                   class="o_text_overflow"/>
+                            <field name="name" placeholder="Untitled Document" class="o_text_overflow"/>
                         </h1>
                     </div>
 
                     <!-- ── Metadata bar ── -->
                     <div class="o_document_meta d-flex flex-wrap align-items-center gap-3 mb-3">
-                        <div class="d-flex align-items-center gap-1"
-                             style="font-size: 0.85rem;">
+                        <div class="d-flex align-items-center gap-1" style="font-size: 0.85rem;">
                             <i class="fa fa-folder-o text-muted"/>
-                            <field name="category_id"
-                                   placeholder="Category"
-                                   options="{'no_open': True}"
-                                   class="border-0"/>
+                            <field name="category_id" placeholder="Category" options="{'no_open': True}" class="border-0"/>
                         </div>
-                        <div class="d-flex align-items-center gap-1"
-                             style="font-size: 0.85rem;">
+                        <div class="d-flex align-items-center gap-1" style="font-size: 0.85rem;">
                             <i class="fa fa-tags text-muted"/>
-                            <field name="tag_ids"
-                                   widget="many2many_tags"
-                                   placeholder="Tags"
-                                   options="{'color_field': 'color'}"
-                                   class="border-0"/>
+                            <field name="tag_ids" widget="many2many_tags" placeholder="Tags" options="{'color_field': 'color'}" class="border-0"/>
                         </div>
                         <div class="ms-auto">
-                            <span class="badge text-bg-info"
-                                  invisible="variable_count == 0"
-                                  style="font-size: 0.8rem;">
+                            <span class="badge text-bg-info" invisible="variable_count == 0" style="font-size: 0.8rem;">
                                 <i class="fa fa-code"/>
-                                <field name="variable_count" readonly="1"
-                                       class="d-inline"/> variable(s)
+                                <field name="variable_count" readonly="1" class="d-inline"/>
+ variable(s)
                             </span>
                         </div>
                     </div>
 
                     <!-- ── Rich Text Editor (main canvas) ── -->
                     <div class="o_document_content_area">
-                        <field name="html_content"
-                               widget="html"
-                               options="{'style-inline': true, 'collaborative': true}"
-                               placeholder="Start writing your template… Use {{variable_name}} to insert dynamic fields."
-                               class="o_document_html_editor"/>
+                        <field name="html_content" widget="html" options="{'style-inline': true, 'collaborative': true}" placeholder="Start writing your template… Use {{variable_name}} to insert dynamic fields." class="o_document_html_editor"/>
                     </div>
 
                     <!-- ── Notebook ── -->
                     <notebook>
                         <!-- Variables Tab -->
-                        <page string="Variables" name="variables"
-                              icon="fa-code">
-                            <div class="alert alert-light border mb-3"
-                                 style="border-radius: 8px;">
+                        <page string="Variables" name="variables" icon="fa-code">
+                            <div class="alert alert-light border mb-3" style="border-radius: 8px;">
                                 <div class="d-flex align-items-start gap-2">
                                     <i class="fa fa-lightbulb-o fa-lg text-warning mt-1"/>
                                     <div>
@@ -145,29 +98,19 @@
                             </div>
 
                             <div class="mb-3">
-                                <button name="action_detect_variables"
-                                        string="🔍 Detect Variables from Document"
-                                        type="object"
-                                        class="btn btn-secondary btn-sm"/>
+                                <button name="action_detect_variables" string="🔍 Detect Variables from Document" type="object" class="btn btn-secondary btn-sm"/>
                             </div>
 
                             <field name="variable_ids" nolabel="1">
                                 <list editable="bottom">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="label"
-                                           placeholder="e.g. Employee Name"/>
-                                    <field name="name"
-                                           placeholder="e.g. employee_name"/>
+                                    <field name="label" placeholder="e.g. Employee Name"/>
+                                    <field name="name" placeholder="e.g. employee_name"/>
                                     <field name="variable_type"/>
-                                    <field name="default_value"
-                                           optional="show"/>
-                                    <field name="selection_options"
-                                           invisible="variable_type != 'selection'"
-                                           optional="hide"/>
+                                    <field name="default_value" optional="show"/>
+                                    <field name="selection_options" invisible="variable_type != 'selection'" optional="hide"/>
                                     <field name="required"/>
-                                    <field name="placeholder_tag"
-                                           string="Copy this tag"
-                                           readonly="1"/>
+                                    <field name="placeholder_tag" string="Copy this tag" readonly="1"/>
                                 </list>
                             </field>
                         </page>
@@ -176,13 +119,10 @@
                         <page string="Settings" name="settings" icon="fa-cog">
                             <group>
                                 <group>
-                                    <field name="summary"
-                                           placeholder="Brief description of this template…"/>
+                                    <field name="summary" placeholder="Brief description of this template…"/>
                                 </group>
                                 <group>
-                                    <field name="company_id"
-                                           groups="base.group_multi_company"
-                                           options="{'no_create': True}"/>
+                                    <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                                 </group>
                             </group>
                         </page>
@@ -222,49 +162,41 @@
                         <div class="oe_kanban_global_click">
                             <!-- Icon -->
                             <div class="o_kanban_image">
-                                <i class="fa fa-file-text-o fa-3x"
-                                   t-attf-style="color: #{record.category_id.raw_value ? '#875A7B' : '#7C7BAD'};"/>
+                                <i class="fa fa-file-text-o fa-3x" t-attf-style="color: #{record.category_id.raw_value ? '#875A7B' : '#7C7BAD'};"/>
                             </div>
 
                             <!-- Details -->
                             <div class="oe_kanban_details">
                                 <strong class="o_kanban_record_title">
                                     <field name="name"/>
-                                    <i class="fa fa-star text-warning ms-2"
-                                       t-if="record.favorite.raw_value"
-                                       title="Favorite"/>
+                                    <i class="fa fa-star text-warning ms-2" t-if="record.favorite.raw_value" title="Favorite"/>
                                 </strong>
                                 <div class="mt-1" t-if="record.category_id.raw_value">
                                     <field name="category_id"/>
                                 </div>
                                 <div class="mt-1">
-                                    <field name="tag_ids"
-                                           widget="many2many_tags"
-                                           options="{'color_field': 'color'}"/>
+                                    <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
                                 </div>
-                                <div class="text-muted mt-2"
-                                     style="font-size: 0.8rem;">
-                                    Modified <field name="write_date"
-                                                    widget="relative"/>
+                                <div class="text-muted mt-2" style="font-size: 0.8rem;">
+                                    Modified <field name="write_date" widget="relative"/>
                                 </div>
                             </div>
 
                             <!-- Bottom badges -->
                             <div class="o_kanban_record_bottom">
                                 <div class="oe_kanban_bottom_left">
-                                    <span class="badge text-bg-info me-1"
-                                          t-if="record.variable_count.raw_value">
+                                    <span class="badge text-bg-info me-1" t-if="record.variable_count.raw_value">
                                         <i class="fa fa-code"/>
-                                        <t t-out="record.variable_count.value"/> var
+                                        <t t-out="record.variable_count.value"/>
+ var
                                     </span>
-                                    <span class="badge text-bg-success"
-                                          t-if="record.has_pdf.raw_value">
-                                        <i class="fa fa-file-pdf-o"/> PDF
+                                    <span class="badge text-bg-success" t-if="record.has_pdf.raw_value">
+                                        <i class="fa fa-file-pdf-o"/>
+ PDF
                                     </span>
                                 </div>
                                 <div class="oe_kanban_bottom_right">
-                                    <field name="write_uid"
-                                           widget="many2one_avatar_user"/>
+                                    <field name="write_uid" widget="many2one_avatar_user"/>
                                 </div>
                             </div>
                         </div>
@@ -288,27 +220,18 @@
                 <field name="tag_ids"/>
                 <field name="html_content"/>
 
-                <filter string="My Templates" name="my_templates"
-                        domain="[('create_uid', '=', uid)]"/>
-                <filter string="Favorites" name="favorites"
-                        domain="[('favorite', '=', True)]"/>
+                <filter string="My Templates" name="my_templates" domain="[('create_uid', '=', uid)]"/>
+                <filter string="Favorites" name="favorites" domain="[('favorite', '=', True)]"/>
                 <separator/>
-                <filter string="Has Variables" name="has_variables"
-                        domain="[('variable_ids', '!=', False)]"/>
-                <filter string="Has PDF" name="has_pdf"
-                        domain="[('has_pdf', '=', True)]"/>
+                <filter string="Has Variables" name="has_variables" domain="[('variable_ids', '!=', False)]"/>
+                <filter string="Has PDF" name="has_pdf" domain="[('has_pdf', '=', True)]"/>
                 <separator/>
-                <filter string="Archived" name="archived"
-                        domain="[('active', '=', False)]"/>
+                <filter string="Archived" name="archived" domain="[('active', '=', False)]"/>
 
                 <group>
-                    <filter string="Category" name="group_category"
-                            context="{'group_by': 'category_id'}"/>
-                    <filter string="Author" name="group_author"
-                            context="{'group_by': 'create_uid'}"/>
-                    <filter string="Company" name="group_company"
-                            context="{'group_by': 'company_id'}"
-                            groups="base.group_multi_company"/>
+                    <filter string="Category" name="group_category" context="{'group_by': 'category_id'}"/>
+                    <filter string="Author" name="group_author" context="{'group_by': 'create_uid'}"/>
+                    <filter string="Company" name="group_company" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
                 </group>
             </search>
         </field>

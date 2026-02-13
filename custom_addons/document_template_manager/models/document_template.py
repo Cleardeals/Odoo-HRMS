@@ -181,7 +181,7 @@ class DocumentTemplate(models.Model):
                     "variable_type": "char",
                     "required": True,
                     "sequence": seq,
-                }
+                },
             )
 
         msg = (
@@ -264,7 +264,7 @@ class DocumentTemplate(models.Model):
                 "type": "binary",
                 "datas": base64.b64encode(pdf_bytes),
                 "mimetype": "application/pdf",
-            }
+            },
         )
         return {
             "type": "ir.actions.act_url",
@@ -359,7 +359,7 @@ class DocumentTemplateVariable(models.Model):
                         ("template_id", "=", var.template_id.id),
                         ("name", "=", var.name),
                         ("id", "!=", var.id),
-                    ]
+                    ],
                 )
                 if count > 0:
                     raise ValidationError(
@@ -411,7 +411,7 @@ class DocumentTag(models.Model):
                     [
                         ("name", "=", tag.name),
                         ("id", "!=", tag.id),
-                    ]
+                    ],
                 )
                 if count > 0:
                     raise ValidationError(
