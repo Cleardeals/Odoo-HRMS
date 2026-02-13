@@ -1,6 +1,8 @@
-/* Document Editor - Pure Knowledge-style (No Chatter) */
+/* ══════════════════════════════════════════════════════════════════
+   Document Template Editor — Notion / Word-style canvas
+   ══════════════════════════════════════════════════════════════════ */
 
-/* ===== Form Container - Full width, no sidebars ===== */
+/* ── Form container: full-width, no chrome ── */
 .o_document_editor_form .o_form_renderer {
     width: 100% !important;
 }
@@ -11,7 +13,7 @@
     background: #ffffff !important;
 }
 
-/* ===== Form Sheet - Clean document page ===== */
+/* ── Sheet: centered page ── */
 .o_document_editor_form .o_form_sheet {
     max-width: 960px !important;
     margin: 0 auto !important;
@@ -21,7 +23,7 @@
     min-height: 100vh !important;
 }
 
-/* ===== Header - Minimal ===== */
+/* ── Header bar: subtle ── */
 .o_document_editor_form .o_form_statusbar {
     border-bottom: 1px solid #e8e8e8;
     padding: 8px 16px;
@@ -31,7 +33,7 @@
     margin: 0 4px;
 }
 
-/* ===== Document Title - Extra large and bold ===== */
+/* ── Title: large + bold ── */
 .o_document_editor_form .o_document_title {
     margin-bottom: 12px;
     margin-top: 8px;
@@ -70,10 +72,10 @@
     font-weight: 400;
 }
 
-/* ===== Metadata Bar - Ultra minimal ===== */
+/* ── Metadata row: subtle, condensed ── */
 .o_document_editor_form .o_document_meta {
     font-size: 0.85rem;
-    opacity: 0.7;
+    opacity: 0.8;
     margin-bottom: 20px;
     padding-bottom: 16px;
     border-bottom: 1px solid #f0f0f0;
@@ -91,13 +93,12 @@
     padding: 2px 4px !important;
 }
 
-/* ===== Content Area - THE MAIN FOCUS ===== */
+/* ── Content area: THE main canvas ── */
 .o_document_editor_form .o_document_content_area {
     margin-top: 24px;
     min-height: 70vh;
 }
 
-/* HTML Editor - Clean and spacious */
 .o_document_editor_form .o_field_html {
     border: none !important;
     box-shadow: none !important;
@@ -118,7 +119,7 @@
     background: transparent !important;
 }
 
-/* Editor in read mode */
+/* Read-only mode */
 .o_document_editor_form .o_field_html[readonly] .o_readonly {
     min-height: 70vh !important;
     padding: 0 !important;
@@ -127,7 +128,7 @@
     color: #37352f;
 }
 
-/* Clean placeholder */
+/* Placeholder text */
 .o_document_editor_form .o_field_html input::placeholder,
 .o_document_editor_form .o_field_html textarea::placeholder,
 .o_document_editor_form .o_field_html .o_wysiwyg_wrapper::before {
@@ -135,12 +136,30 @@
     font-style: normal;
 }
 
-/* ===== Ribbon for archived ===== */
+/* ── Ribbon ── */
 .o_document_editor_form .o_web_ribbon {
     z-index: 10;
 }
 
-/* ===== Remove button box if any ===== */
+/* ── Hide button box (we don't use stat buttons) ── */
 .o_document_editor_form .oe_button_box {
     display: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Variable placeholder highlighting inside the editor
+   ══════════════════════════════════════════════════════════════════ */
+
+/* If the editor renders {{…}} literally, give it a subtle highlight
+   so the user can spot placeholders easily while editing.           */
+.o_document_editor_form .odoo-editor-editable {
+    /* nothing extra — the default editor styles are fine */
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Export Wizard overrides
+   ══════════════════════════════════════════════════════════════════ */
+
+.o_document_export_wizard .o_list_renderer {
+    border-radius: 8px;
 }

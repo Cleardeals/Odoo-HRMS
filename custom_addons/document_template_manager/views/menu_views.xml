@@ -1,54 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    
-    <!-- Main Menu -->
-    <menuitem id="menu_document_main" 
-              name="Documents" 
+
+    <!-- ═══════════════════════════════════════════════════════════
+         MAIN MENU
+         ═══════════════════════════════════════════════════════════ -->
+
+    <menuitem id="menu_document_main"
+              name="Documents"
               web_icon="document_template_manager,static/description/icon.png"
               sequence="85"
               groups="document_template_manager.group_document_user,document_template_manager.group_document_manager"/>
-    
-    <!-- Document Submenus -->
-    <menuitem id="menu_document_all" 
-              name="All Documents" 
-              parent="menu_document_main" 
-              action="action_document_template" 
-              sequence="10"
-              groups="document_template_manager.group_document_user,document_template_manager.group_document_manager"/>
-    
-    <menuitem id="menu_document_my" 
-              name="My Documents" 
-              parent="menu_document_main" 
-              action="action_document_my_documents" 
-              sequence="20"
-              groups="document_template_manager.group_document_user,document_template_manager.group_document_manager"/>
-    
-    <menuitem id="menu_document_favorites" 
-              name="Favorites" 
-              parent="menu_document_main" 
-              action="action_document_favorites" 
-              sequence="30"
-              groups="document_template_manager.group_document_user,document_template_manager.group_document_manager"/>
-    
-    <!-- Configuration Menu -->
-    <menuitem id="menu_document_config" 
-              name="Configuration" 
-              parent="menu_document_main" 
+
+    <!-- ── Template sub-menus ── -->
+    <menuitem id="menu_document_all"
+              name="All Templates"
+              parent="menu_document_main"
+              action="action_document_template"
+              sequence="10"/>
+
+    <menuitem id="menu_document_my"
+              name="My Templates"
+              parent="menu_document_main"
+              action="action_document_my_templates"
+              sequence="20"/>
+
+    <menuitem id="menu_document_favorites"
+              name="Favorites"
+              parent="menu_document_main"
+              action="action_document_favorites"
+              sequence="30"/>
+
+    <!-- ── Configuration ── -->
+    <menuitem id="menu_document_config"
+              name="Configuration"
+              parent="menu_document_main"
               sequence="100"
               groups="document_template_manager.group_document_manager"/>
-    
-    <menuitem id="menu_document_categories" 
-              name="Categories" 
-              parent="menu_document_config" 
-              action="action_document_category" 
-              sequence="10"
-              groups="document_template_manager.group_document_manager"/>
-    
-    <menuitem id="menu_document_tags" 
-              name="Tags" 
-              parent="menu_document_config" 
-              action="action_document_tag" 
-              sequence="20"
-              groups="document_template_manager.group_document_manager"/>
-    
+
+    <menuitem id="menu_document_categories"
+              name="Categories"
+              parent="menu_document_config"
+              action="action_document_category"
+              sequence="10"/>
+
+    <menuitem id="menu_document_tags"
+              name="Tags"
+              parent="menu_document_config"
+              action="action_document_tag"
+              sequence="20"/>
+
 </odoo>

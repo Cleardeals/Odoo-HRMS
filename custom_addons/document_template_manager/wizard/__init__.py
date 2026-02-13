@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-from . import document_generate_wizard
+from . import document_export_wizard
