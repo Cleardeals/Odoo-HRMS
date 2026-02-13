@@ -4,6 +4,8 @@ Test Cases for PDF Generation
 Tests PDF generation functionality, wkhtmltopdf integration, and PDF file handling.
 """
 
+from unittest.mock import patch
+
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 
@@ -14,8 +16,10 @@ from .common import DocumentTemplateTestCase
 class TestPDFGeneration(DocumentTemplateTestCase):
     """Test PDF generation from templates."""
 
-    def test_01_generate_pdf_without_variables(self):
+    @patch("odoo.addons.base.models.ir_actions_report.IrActionsReport._run_wkhtmltopdf")
+    def test_01_generate_pdf_without_variables(self, mock_wkhtmltopdf):
         """Test PDF generation for template without variables."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template()
 
         result = template.action_export_pdf()
@@ -34,8 +38,10 @@ class TestPDFGeneration(DocumentTemplateTestCase):
         self.assertEqual(result.get("type"), "ir.actions.act_window")
         self.assertEqual(result.get("res_model"), "document.export.wizard")
 
-    def test_03_pdf_file_saved_to_template(self):
+    @patch("odoo.addons.base.models.ir_actions_report.IrActionsReport._run_wkhtmltopdf")
+    def test_03_pdf_file_saved_to_template(self, mock_wkhtmltopdf):
         """Test that PDF file is saved on template."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template()
 
         self.assertFalse(template.pdf_file)
@@ -44,8 +50,10 @@ class TestPDFGeneration(DocumentTemplateTestCase):
 
         self.assertTrue(template.pdf_file)
 
-    def test_04_has_pdf_computed_correctly(self):
+    @patch("odoo.addons.base.models.ir_actions_report.IrActionsReport._run_wkhtmltopdf")
+    def test_04_has_pdf_computed_correctly(self, mock_wkhtmltopdf):
         """Test that has_pdf field is computed correctly."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template()
 
         self.assertFalse(template.has_pdf)
@@ -68,7 +76,7 @@ class TestPDFGeneration(DocumentTemplateTestCase):
 
     def test_07_pdf_filename_empty_name(self):
         """Test PDF filename with empty template name."""
-        template = self.Template.create(
+        template = self.Template.new(
             {
                 "name": "",
                 "html_content": "<p>Test</p>",
@@ -84,8 +92,10 @@ class TestPDFGeneration(DocumentTemplateTestCase):
         with self.assertRaises(ValidationError):
             template.action_export_pdf()
 
-    def test_09_download_pdf_action(self):
+    @patch("odoo.addons.base.models.ir_actions_report.IrActionsReport._run_wkhtmltopdf")
+    def test_09_download_pdf_action(self, mock_wkhtmltopdf):
         """Test download PDF action."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template()
         template.action_export_pdf()
 
@@ -103,11 +113,13 @@ class TestPDFGeneration(DocumentTemplateTestCase):
 
 
 @tagged("post_install", "-at_install", "pdf_content")
+@patch("odoo.addons.base.models.ir_actions_report.IrActionsReport._run_wkhtmltopdf")
 class TestPDFContent(DocumentTemplateTestCase):
     """Test PDF content generation and formatting."""
 
-    def test_01_pdf_contains_html_content(self):
+    def test_01_pdf_contains_html_content(self, mock_wkhtmltopdf):
         """Test that PDF contains the HTML content."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template(
             html_content="<h1>Test Title</h1><p>Test Content</p>",
         )
@@ -117,16 +129,18 @@ class TestPDFContent(DocumentTemplateTestCase):
 
         self._assert_pdf_valid(pdf_bytes)
 
-    def test_02_pdf_with_company_info(self):
+    def test_02_pdf_with_company_info(self, mock_wkhtmltopdf):
         """Test that PDF includes company information."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template()
 
         pdf_bytes = template._generate_pdf_bytes(template.html_content)
 
         self._assert_pdf_valid(pdf_bytes)
 
-    def test_03_pdf_with_tables(self):
+    def test_03_pdf_with_tables(self, mock_wkhtmltopdf):
         """Test PDF generation with HTML tables."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template(
             html_content="""
                 <table>
@@ -140,8 +154,9 @@ class TestPDFContent(DocumentTemplateTestCase):
 
         self._assert_pdf_valid(pdf_bytes)
 
-    def test_04_pdf_with_styles(self):
+    def test_04_pdf_with_styles(self, mock_wkhtmltopdf):
         """Test PDF generation with inline styles."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template(
             html_content="""
                 <div style="color: red; font-size: 20px;">
@@ -156,11 +171,13 @@ class TestPDFContent(DocumentTemplateTestCase):
 
 
 @tagged("post_install", "-at_install", "pdf_attachment")
+@patch("odoo.addons.base.models.ir_actions_report.IrActionsReport._run_wkhtmltopdf")
 class TestPDFAttachment(DocumentTemplateTestCase):
     """Test PDF attachment creation."""
 
-    def test_01_attachment_created_on_export(self):
+    def test_01_attachment_created_on_export(self, mock_wkhtmltopdf):
         """Test that attachment is created when exporting PDF."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template()
 
         initial_count = self.Attachment.search_count([])
@@ -170,8 +187,9 @@ class TestPDFAttachment(DocumentTemplateTestCase):
         final_count = self.Attachment.search_count([])
         self.assertGreater(final_count, initial_count)
 
-    def test_02_attachment_has_correct_mimetype(self):
+    def test_02_attachment_has_correct_mimetype(self, mock_wkhtmltopdf):
         """Test that created attachment has PDF mimetype."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template()
 
         template.action_export_pdf()
@@ -187,8 +205,9 @@ class TestPDFAttachment(DocumentTemplateTestCase):
 
         self.assertEqual(attachment.mimetype, "application/pdf")
 
-    def test_03_attachment_has_correct_name(self):
+    def test_03_attachment_has_correct_name(self, mock_wkhtmltopdf):
         """Test that attachment has correct filename."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template(name="My Document")
 
         template.action_export_pdf()
@@ -204,11 +223,13 @@ class TestPDFAttachment(DocumentTemplateTestCase):
 
 
 @tagged("post_install", "-at_install", "pdf_edge_cases")
+@patch("odoo.addons.base.models.ir_actions_report.IrActionsReport._run_wkhtmltopdf")
 class TestPDFEdgeCases(DocumentTemplateTestCase):
     """Test PDF generation edge cases."""
 
-    def test_01_pdf_with_unicode_characters(self):
+    def test_01_pdf_with_unicode_characters(self, mock_wkhtmltopdf):
         """Test PDF generation with Unicode characters."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template(
             html_content="<p>Unicode: ©®™€£¥ 中文 العربية</p>",
         )
@@ -217,8 +238,9 @@ class TestPDFEdgeCases(DocumentTemplateTestCase):
 
         self._assert_pdf_valid(pdf_bytes)
 
-    def test_02_pdf_with_very_long_content(self):
+    def test_02_pdf_with_very_long_content(self, mock_wkhtmltopdf):
         """Test PDF generation with long content (multiple pages)."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         long_content = "<p>Paragraph content.</p>" * 100
 
         template = self._create_test_template(html_content=long_content)
@@ -227,8 +249,9 @@ class TestPDFEdgeCases(DocumentTemplateTestCase):
 
         self._assert_pdf_valid(pdf_bytes)
 
-    def test_03_pdf_regeneration_overwrites(self):
+    def test_03_pdf_regeneration_overwrites(self, mock_wkhtmltopdf):
         """Test that regenerating PDF overwrites previous file."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template()
 
         template.action_export_pdf()
@@ -241,8 +264,9 @@ class TestPDFEdgeCases(DocumentTemplateTestCase):
         self.assertTrue(first_pdf)
         self.assertTrue(second_pdf)
 
-    def test_04_pdf_with_empty_html_tags(self):
+    def test_04_pdf_with_empty_html_tags(self, mock_wkhtmltopdf):
         """Test PDF with empty HTML tags."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
         template = self._create_test_template(
             html_content="<div></div><p></p><span></span>",
         )

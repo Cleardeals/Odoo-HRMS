@@ -359,6 +359,15 @@ startxref
         )
         self.assertIn(b"%%EOF", pdf_data, "PDF should contain EOF marker")
 
+    def _mock_pdf_bytes(self):
+        """
+        Return mock PDF bytes for testing.
+
+        Returns:
+            bytes: Mock PDF content that passes PDF validation
+        """
+        return b"%PDF-1.4\n%Mock PDF content\n%%EOF"
+
     def _get_variable_values(self):
         """
         Get sample variable values for wizard testing.
