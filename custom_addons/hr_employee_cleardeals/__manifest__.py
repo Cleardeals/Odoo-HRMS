@@ -1,5 +1,5 @@
 {
-    'name': 'ClearDeals HR India Customizations',
+    'name': 'ClearDeals HR Customizations',
     'version': '1.0',
     'category': 'Human Resources',
     'summary': 'ClearDeals-specific employee form with Indian statutory fields',

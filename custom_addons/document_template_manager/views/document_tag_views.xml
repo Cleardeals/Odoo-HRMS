@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    
+
     <!-- Document Tag Tree View -->
     <record id="view_document_tag_tree" model="ir.ui.view">
         <field name="name">document.tag.tree</field>
@@ -12,7 +12,7 @@
             </list>
         </field>
     </record>
-    
+
     <!-- Document Tag Form View -->
     <record id="view_document_tag_form" model="ir.ui.view">
         <field name="name">document.tag.form</field>
@@ -28,7 +28,7 @@
             </form>
         </field>
     </record>
-    
+
     <!-- Document Tag Action -->
     <record id="action_document_tag" model="ir.actions.act_window">
         <field name="name">Tags</field>
@@ -43,5 +43,5 @@
             </p>
         </field>
     </record>
-    
+
 </odoo>

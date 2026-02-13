@@ -1,53 +1,380 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
-        
-        <!-- Default Document Categories -->
+
+        <!-- ═══════════════════════════════════════════════════════
+             DEFAULT CATEGORIES
+             ═══════════════════════════════════════════════════════ -->
+
+        <record id="category_hr_letters" model="document.category">
+            <field name="name">HR Letters</field>
+            <field name="sequence">5</field>
+            <field name="color">2</field>
+        </record>
+
         <record id="category_general" model="document.category">
             <field name="name">General</field>
             <field name="sequence">10</field>
             <field name="color">1</field>
         </record>
-        
+
         <record id="category_policies" model="document.category">
             <field name="name">Policies &amp; Procedures</field>
             <field name="sequence">20</field>
             <field name="color">3</field>
         </record>
-        
+
+        <record id="category_contracts" model="document.category">
+            <field name="name">Contracts</field>
+            <field name="sequence">25</field>
+            <field name="color">4</field>
+        </record>
+
         <record id="category_training" model="document.category">
             <field name="name">Training Materials</field>
             <field name="sequence">30</field>
             <field name="color">5</field>
         </record>
-        
+
         <record id="category_projects" model="document.category">
             <field name="name">Project Documentation</field>
             <field name="sequence">40</field>
             <field name="color">7</field>
         </record>
-        
+
         <record id="category_meetings" model="document.category">
             <field name="name">Meeting Notes</field>
             <field name="sequence">50</field>
             <field name="color">9</field>
         </record>
-        
-        <!-- Default Tags -->
+
+        <!-- ═══════════════════════════════════════════════════════
+             DEFAULT TAGS
+             ═══════════════════════════════════════════════════════ -->
+
         <record id="tag_important" model="document.tag">
             <field name="name">Important</field>
             <field name="color">1</field>
         </record>
-        
+
         <record id="tag_draft" model="document.tag">
             <field name="name">Draft</field>
             <field name="color">4</field>
         </record>
-        
+
         <record id="tag_reviewed" model="document.tag">
             <field name="name">Reviewed</field>
             <field name="color">10</field>
         </record>
-        
+
+        <!-- ═══════════════════════════════════════════════════════
+             SAMPLE TEMPLATE: Offer Letter
+             ═══════════════════════════════════════════════════════ -->
+
+        <record id="template_offer_letter" model="document.template">
+            <field name="name">Offer Letter</field>
+            <field name="category_id" ref="category_hr_letters"/>
+            <field name="tag_ids" eval="[(4, ref('tag_important'))]"/>
+            <field name="summary">Standard offer letter for new hires — includes position, salary and start date variables.</field>
+            <field name="html_content"><![CDATA[
+<div style="font-family: Arial, sans-serif; max-width: 780px; margin: 0 auto;">
+
+    <p style="text-align: right; color: #666;">Date: {{date}}</p>
+
+    <h2 style="color: #333; margin-bottom: 24px;">OFFER OF EMPLOYMENT</h2>
+
+    <p>Dear <strong>{{candidate_name}}</strong>,</p>
+
+    <p style="line-height: 1.8;">
+        We are pleased to offer you the position of <strong>{{job_position}}</strong>
+        in the <strong>{{department}}</strong> department at <strong>{{company_name}}</strong>.
+    </p>
+
+    <h3 style="color: #444; border-bottom: 1px solid #ddd; padding-bottom: 6px;">
+        Terms of Employment
+    </h3>
+
+    <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+        <tr>
+            <td style="padding: 10px 12px; border: 1px solid #e0e0e0; background: #f9f9f9; width: 35%;"><strong>Position</strong></td>
+            <td style="padding: 10px 12px; border: 1px solid #e0e0e0;">{{job_position}}</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px 12px; border: 1px solid #e0e0e0; background: #f9f9f9;"><strong>Department</strong></td>
+            <td style="padding: 10px 12px; border: 1px solid #e0e0e0;">{{department}}</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px 12px; border: 1px solid #e0e0e0; background: #f9f9f9;"><strong>Annual CTC</strong></td>
+            <td style="padding: 10px 12px; border: 1px solid #e0e0e0;">{{salary}}</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px 12px; border: 1px solid #e0e0e0; background: #f9f9f9;"><strong>Start Date</strong></td>
+            <td style="padding: 10px 12px; border: 1px solid #e0e0e0;">{{start_date}}</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px 12px; border: 1px solid #e0e0e0; background: #f9f9f9;"><strong>Reporting To</strong></td>
+            <td style="padding: 10px 12px; border: 1px solid #e0e0e0;">{{manager_name}}</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px 12px; border: 1px solid #e0e0e0; background: #f9f9f9;"><strong>Work Location</strong></td>
+            <td style="padding: 10px 12px; border: 1px solid #e0e0e0;">{{work_location}}</td>
+        </tr>
+    </table>
+
+    <p style="line-height: 1.8;">
+        This offer is contingent upon successful completion of background verification
+        and submission of all required documents. Please confirm your acceptance by
+        signing and returning this letter on or before <strong>{{acceptance_deadline}}</strong>.
+    </p>
+
+    <p style="line-height: 1.8;">
+        We look forward to welcoming you to the team!
+    </p>
+
+    <br/><br/>
+
+    <p>Warm regards,</p>
+    <p>
+        <strong>{{hr_name}}</strong><br/>
+        Human Resources<br/>
+        {{company_name}}
+    </p>
+
+    <br/><br/><br/>
+
+    <table style="width: 100%;">
+        <tr>
+            <td style="width: 50%; padding-top: 40px; border-top: 1px solid #333;">
+                <p><strong>Accepted by (Candidate)</strong></p>
+                <p>Name: _________________________</p>
+                <p>Date: _________________________</p>
+            </td>
+            <td style="width: 50%; padding-top: 40px; border-top: 1px solid #333;">
+                <p><strong>Authorized Signatory</strong></p>
+                <p>Name: _________________________</p>
+                <p>Date: _________________________</p>
+            </td>
+        </tr>
+    </table>
+</div>
+            ]]></field>
+        </record>
+
+        <!-- Variables for Offer Letter -->
+        <record id="var_offer_date" model="document.template.variable">
+            <field name="template_id" ref="template_offer_letter"/>
+            <field name="name">date</field>
+            <field name="label">Letter Date</field>
+            <field name="variable_type">date</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">1</field>
+        </record>
+        <record id="var_offer_candidate" model="document.template.variable">
+            <field name="template_id" ref="template_offer_letter"/>
+            <field name="name">candidate_name</field>
+            <field name="label">Candidate Name</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">2</field>
+        </record>
+        <record id="var_offer_position" model="document.template.variable">
+            <field name="template_id" ref="template_offer_letter"/>
+            <field name="name">job_position</field>
+            <field name="label">Job Position</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">3</field>
+        </record>
+        <record id="var_offer_dept" model="document.template.variable">
+            <field name="template_id" ref="template_offer_letter"/>
+            <field name="name">department</field>
+            <field name="label">Department</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">4</field>
+        </record>
+        <record id="var_offer_company" model="document.template.variable">
+            <field name="template_id" ref="template_offer_letter"/>
+            <field name="name">company_name</field>
+            <field name="label">Company Name</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">5</field>
+        </record>
+        <record id="var_offer_salary" model="document.template.variable">
+            <field name="template_id" ref="template_offer_letter"/>
+            <field name="name">salary</field>
+            <field name="label">Annual CTC</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">6</field>
+        </record>
+        <record id="var_offer_start" model="document.template.variable">
+            <field name="template_id" ref="template_offer_letter"/>
+            <field name="name">start_date</field>
+            <field name="label">Start Date</field>
+            <field name="variable_type">date</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">7</field>
+        </record>
+        <record id="var_offer_manager" model="document.template.variable">
+            <field name="template_id" ref="template_offer_letter"/>
+            <field name="name">manager_name</field>
+            <field name="label">Reporting Manager</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">8</field>
+        </record>
+        <record id="var_offer_location" model="document.template.variable">
+            <field name="template_id" ref="template_offer_letter"/>
+            <field name="name">work_location</field>
+            <field name="label">Work Location</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="False"/>
+            <field name="default_value">Head Office</field>
+            <field name="sequence">9</field>
+        </record>
+        <record id="var_offer_deadline" model="document.template.variable">
+            <field name="template_id" ref="template_offer_letter"/>
+            <field name="name">acceptance_deadline</field>
+            <field name="label">Acceptance Deadline</field>
+            <field name="variable_type">date</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">10</field>
+        </record>
+        <record id="var_offer_hr" model="document.template.variable">
+            <field name="template_id" ref="template_offer_letter"/>
+            <field name="name">hr_name</field>
+            <field name="label">HR Contact Name</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">11</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════
+             SAMPLE TEMPLATE: Experience Letter
+             ═══════════════════════════════════════════════════════ -->
+
+        <record id="template_experience_letter" model="document.template">
+            <field name="name">Experience Letter</field>
+            <field name="category_id" ref="category_hr_letters"/>
+            <field name="summary">Standard experience / service certificate issued to departing employees.</field>
+            <field name="html_content"><![CDATA[
+<div style="font-family: Arial, sans-serif; max-width: 780px; margin: 0 auto;">
+
+    <p style="text-align: right; color: #666;">Date: {{date}}</p>
+
+    <h2 style="color: #333; text-align: center; margin-bottom: 30px;">
+        EXPERIENCE CERTIFICATE
+    </h2>
+
+    <p><strong>To Whom It May Concern,</strong></p>
+
+    <p style="line-height: 1.8; text-align: justify;">
+        This is to certify that <strong>{{employee_name}}</strong> was employed with
+        <strong>{{company_name}}</strong> as <strong>{{job_position}}</strong> in the
+        <strong>{{department}}</strong> department from <strong>{{joining_date}}</strong>
+        to <strong>{{relieving_date}}</strong>.
+    </p>
+
+    <p style="line-height: 1.8; text-align: justify;">
+        During the tenure with us, we found {{employee_name}} to be sincere,
+        hardworking and dedicated. {{employee_name}} has been an asset to the
+        organization and has carried out all assigned responsibilities with
+        diligence and professionalism.
+    </p>
+
+    <p style="line-height: 1.8; text-align: justify;">
+        We wish {{employee_name}} all the best in future endeavours.
+    </p>
+
+    <br/><br/>
+
+    <p>For <strong>{{company_name}}</strong>,</p>
+    <br/><br/>
+    <p>
+        <strong>{{authorized_signatory}}</strong><br/>
+        {{signatory_designation}}<br/>
+        {{company_name}}
+    </p>
+</div>
+            ]]></field>
+        </record>
+
+        <!-- Variables for Experience Letter -->
+        <record id="var_exp_date" model="document.template.variable">
+            <field name="template_id" ref="template_experience_letter"/>
+            <field name="name">date</field>
+            <field name="label">Letter Date</field>
+            <field name="variable_type">date</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">1</field>
+        </record>
+        <record id="var_exp_employee" model="document.template.variable">
+            <field name="template_id" ref="template_experience_letter"/>
+            <field name="name">employee_name</field>
+            <field name="label">Employee Name</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">2</field>
+        </record>
+        <record id="var_exp_company" model="document.template.variable">
+            <field name="template_id" ref="template_experience_letter"/>
+            <field name="name">company_name</field>
+            <field name="label">Company Name</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">3</field>
+        </record>
+        <record id="var_exp_position" model="document.template.variable">
+            <field name="template_id" ref="template_experience_letter"/>
+            <field name="name">job_position</field>
+            <field name="label">Job Position</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">4</field>
+        </record>
+        <record id="var_exp_dept" model="document.template.variable">
+            <field name="template_id" ref="template_experience_letter"/>
+            <field name="name">department</field>
+            <field name="label">Department</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">5</field>
+        </record>
+        <record id="var_exp_joining" model="document.template.variable">
+            <field name="template_id" ref="template_experience_letter"/>
+            <field name="name">joining_date</field>
+            <field name="label">Joining Date</field>
+            <field name="variable_type">date</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">6</field>
+        </record>
+        <record id="var_exp_relieving" model="document.template.variable">
+            <field name="template_id" ref="template_experience_letter"/>
+            <field name="name">relieving_date</field>
+            <field name="label">Relieving Date</field>
+            <field name="variable_type">date</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">7</field>
+        </record>
+        <record id="var_exp_signatory" model="document.template.variable">
+            <field name="template_id" ref="template_experience_letter"/>
+            <field name="name">authorized_signatory</field>
+            <field name="label">Authorized Signatory</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="True"/>
+            <field name="sequence">8</field>
+        </record>
+        <record id="var_exp_designation" model="document.template.variable">
+            <field name="template_id" ref="template_experience_letter"/>
+            <field name="name">signatory_designation</field>
+            <field name="label">Signatory Designation</field>
+            <field name="variable_type">char</field>
+            <field name="required" eval="True"/>
+            <field name="default_value">HR Manager</field>
+            <field name="sequence">9</field>
+        </record>
+
     </data>
 </odoo>

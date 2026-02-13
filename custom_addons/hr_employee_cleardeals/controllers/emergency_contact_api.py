@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Emergency Contact API Controller
 
@@ -10,9 +9,9 @@ from odoo import http
 from odoo.http import request
 
 from .main import (
-    validate_api_key, 
-    handle_api_errors,
     api_response,
+    handle_api_errors,
+    validate_api_key,
 )
 
 _logger = logging.getLogger(__name__)
@@ -24,9 +23,9 @@ class EmergencyContactAPIController(http.Controller):
     
     Base URL: /api/v1/employees/<employee_id>/emergency-contact
     """
-    
-    @http.route('/api/v1/employees/<string:employee_id>/emergency-contact', 
-                type='http', auth='public', methods=['GET'], 
+
+    @http.route('/api/v1/employees/<string:employee_id>/emergency-contact',
+                type='http', auth='public', methods=['GET'],
                 csrf=False, cors='*')
     @validate_api_key
     @handle_api_errors
@@ -89,19 +88,19 @@ class EmergencyContactAPIController(http.Controller):
         # Parse parameters
         include_personal = kwargs.get('include_personal', 'false').lower() == 'true'
         include_medical = kwargs.get('include_medical', 'false').lower() == 'true'
-        
+
         # Find employee by employee_id
         employee = request.env['hr.employee'].sudo().search([
-            ('employee_id', '=', employee_id)
+            ('employee_id', '=', employee_id),
         ], limit=1)
-        
+
         if not employee:
             return api_response(
                 success=False,
                 message=f'Employee with ID {employee_id} not found',
-                status=404
+                status=404,
             )
-        
+
         # Build response data
         response_data = {
             'employee': {
@@ -116,9 +115,9 @@ class EmergencyContactAPIController(http.Controller):
                 'name': employee.emergency_contact,
                 'phone': employee.emergency_phone,
                 'relationship': employee.emergency_contact_relationship if hasattr(employee, 'emergency_contact_relationship') else None,
-            }
+            },
         }
-        
+
         # Include personal contact info if requested
         if include_personal:
             response_data['personal_contact'] = {
@@ -127,15 +126,15 @@ class EmergencyContactAPIController(http.Controller):
                 'work_phone': employee.work_phone,
                 'work_email': employee.work_email,
             }
-        
+
         # Include medical info if requested
         if include_medical:
             response_data['medical_info'] = {
                 'blood_group': employee.blood_group if hasattr(employee, 'blood_group') else None,
             }
-        
+
         return api_response(
             success=True,
             message='Emergency contact information retrieved successfully',
-            data=response_data
+            data=response_data,
         )

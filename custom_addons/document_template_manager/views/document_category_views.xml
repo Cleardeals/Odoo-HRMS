@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    
+
     <!-- Document Category Tree View -->
     <record id="view_document_category_tree" model="ir.ui.view">
         <field name="name">document.category.tree</field>
@@ -15,7 +15,7 @@
             </list>
         </field>
     </record>
-    
+
     <!-- Document Category Form View -->
     <record id="view_document_category_form" model="ir.ui.view">
         <field name="name">document.category.form</field>
@@ -48,7 +48,7 @@
             </form>
         </field>
     </record>
-    
+
     <!-- Document Category Action -->
     <record id="action_document_category" model="ir.actions.act_window">
         <field name="name">Categories</field>
@@ -63,5 +63,5 @@
             </p>
         </field>
     </record>
-    
+
 </odoo>

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Test Suite for ClearDeals HR India Customizations Module
 
@@ -21,16 +20,18 @@ Test Organization:
 - test_bank_information.py: Bank account validation
 """
 
-from . import common
-from . import test_employee_creation
-from . import test_validation_constraints
-from . import test_document_sync
-from . import test_mime_detection
-from . import test_onchange_methods
-from . import test_security
-from . import test_lifecycle_status
-from . import test_document_expiry
-from . import test_ui_workflow
-from . import test_asset_management
-from . import test_address_management
-from . import test_bank_information
+from . import (
+    common,
+    test_address_management,
+    test_asset_management,
+    test_bank_information,
+    test_document_expiry,
+    test_document_sync,
+    test_employee_creation,
+    test_lifecycle_status,
+    test_mime_detection,
+    test_onchange_methods,
+    test_security,
+    test_ui_workflow,
+    test_validation_constraints,
+)
