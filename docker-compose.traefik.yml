@@ -1,0 +1,67 @@
+version: '3.8'
+
+# ==============================================================================
+# Traefik Reverse Proxy - Production Gateway
+# ==============================================================================
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik-proxy
+    restart: unless-stopped
+    command:
+      # --- Global ---
+      - "--api.insecure=false" # Secure dashboard
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=proxy-net"
+
+      # --- Entrypoints ---
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+
+      # --- HTTP -> HTTPS Redirect ---
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+
+      # --- LetsEncrypt (ACME) ---
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      # REPLACE WITH YOUR EMAIL
+      - "--certificatesresolvers.myresolver.acme.email=admin@cleardeals.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+
+      # --- Logging ---
+      - "--log.level=INFO"
+      - "--accesslog=true"
+
+    labels:
+      - "traefik.enable=true"
+      # Dashboard Access (Secure via Basic Auth)
+      - "traefik.http.routers.api.rule=Host(`traefik.cleardeals.xyz`)"
+      - "traefik.http.routers.api.service=api@internal"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=myresolver"
+      # Generate password: echo $(htpasswd -nb admin secure_password)
+      # Replace below with generated hash
+      - "traefik.http.routers.api.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$05$$12345678901234567890123456789012345678901234567890123"
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "traefik-certs:/letsencrypt"
+
+    networks:
+      - proxy-net
+
+networks:
+  proxy-net:
+    name: proxy-net
+    external: true  # Allows other stacks to attach to this network
+
+volumes:
+  traefik-certs:

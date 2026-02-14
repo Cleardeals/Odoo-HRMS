@@ -52,3 +52,6 @@ package.json
 /share/
 /src/
 /venv
+/odoo-db-data
+/letsencrypt
+/odoo-web-data

@@ -11,6 +11,7 @@
    - **Value:** `your-secure-api-key-here` (generate a strong random key)
 
 **Example using command line to generate a secure key:**
+
 ```bash
 python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
@@ -22,6 +23,7 @@ python odoo-bin -c odoo.conf -d your_database -u document_template_manager
 ```
 
 Or from the Odoo UI:
+
 1. Go to **Apps**
 2. Search for "Document Template Manager"
 3. Click **Upgrade**
@@ -39,7 +41,7 @@ curl -X GET http://localhost:8069/api/v1/templates \
 ## Available Endpoints
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
+| -------- | ---------- | ------------- |
 | POST | `/api/v1/templates` | Create a new template |
 | GET | `/api/v1/templates` | List all templates |
 | GET | `/api/v1/templates/<id>` | Get a specific template |
@@ -51,6 +53,7 @@ curl -X GET http://localhost:8069/api/v1/templates \
 ## Quick Test Examples
 
 ### Create a Template
+
 ```bash
 curl -X POST http://localhost:8069/api/v1/templates \
   -H "Content-Type: application/json" \
@@ -63,18 +66,21 @@ curl -X POST http://localhost:8069/api/v1/templates \
 ```
 
 ### List Templates
+
 ```bash
 curl -X GET http://localhost:8069/api/v1/templates \
   -H "X-API-Key: your-api-key"
 ```
 
 ### Get Template by ID
+
 ```bash
 curl -X GET http://localhost:8069/api/v1/templates/1 \
   -H "X-API-Key: your-api-key"
 ```
 
 ### Update Template
+
 ```bash
 curl -X PUT http://localhost:8069/api/v1/templates/1 \
   -H "Content-Type: application/json" \
@@ -86,6 +92,7 @@ curl -X PUT http://localhost:8069/api/v1/templates/1 \
 ```
 
 ### Archive Template
+
 ```bash
 curl -X DELETE http://localhost:8069/api/v1/templates/1 \
   -H "X-API-Key: your-api-key"
@@ -102,10 +109,12 @@ curl -X DELETE http://localhost:8069/api/v1/templates/1 \
 ### 2. Configure Headers
 
 Add these headers to all requests:
+
 - **Key:** `X-API-Key`
 - **Value:** `your-secure-api-key-here`
 
 For POST/PUT/PATCH requests, also add:
+
 - **Key:** `Content-Type`
 - **Value:** `application/json`
 
@@ -133,24 +142,32 @@ For POST/PUT/PATCH requests, also add:
 ## Troubleshooting
 
 ### Issue: "API key required"
+
 **Solution:** Ensure you're sending the `X-API-Key` header with every request.
 
 ### Issue: "Invalid API key"
+
 **Solution:**
+
 1. Check the API key in System Parameters: `document_template_manager.api_key`
 2. Ensure the key matches exactly (no extra spaces)
 
 ### Issue: "API not configured properly"
+
 **Solution:** The system parameter is missing. Follow Step 1 to create it.
 
 ### Issue: 404 Not Found
+
 **Solution:**
+
 1. Ensure the module is installed and upgraded
 2. Check the URL path is correct: `/api/v1/templates`
 3. Restart the Odoo server if needed
 
 ### Issue: CORS errors (from browser)
+
 **Solution:** The API includes CORS headers (`cors='*'`). If still having issues:
+
 1. Use a server-side client instead of browser
 2. Or configure Odoo's CORS settings in the config file
 
