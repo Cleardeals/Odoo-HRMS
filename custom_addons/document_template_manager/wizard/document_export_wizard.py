@@ -51,7 +51,7 @@ class DocumentExportWizard(models.TransientModel):
     def default_get(self, fields_list):
         res = super().default_get(fields_list)
         template_id = res.get("template_id") or self.env.context.get(
-            "default_template_id"
+            "default_template_id",
         )
         if template_id:
             template = self.env["document.template"].browse(template_id)
