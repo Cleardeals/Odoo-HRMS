@@ -1,0 +1,69 @@
+name: Run Odoo Tests
+
+on: 
+  push:
+    branches: ['development', 'main']
+  pull_request:
+    branches: ['main']
+
+jobs:
+  test:
+    name: Test Custom Modules
+    runs-on: ubuntu-latest
+
+    # Database service for Odoo to connect to during testing phase
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+          POSTGRES_DB: odoo_test_db
+        ports:
+          - 5432:5432
+        # Health check ensures DB is ready before Odoo starts
+        options: >-
+          --health-cmd "pg_isready -U odoo"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Build Odoo Docker Image
+        run: docker build -t my-odoo-image .
+      
+      - name: List repository structure
+        run: |
+          echo "Repository structure:"
+          ls -la ${{ github.workspace }}
+          echo "---"
+          echo "Custom addons directory:"
+          ls -la ${{ github.workspace }}/custom_addons/ || echo "custom_addons not found"
+          echo "---"
+          echo "Looking for module manifests:"
+          find ${{ github.workspace }}/custom_addons -name "__manifest__.py" -o -name "__openerp__.py" || echo "No manifests found"
+      
+      - name: Run Odoo Tests
+        run: |
+          docker run --rm \
+            --network host \
+            -v ${{ github.workspace }}/custom_addons:/mnt/extra-addons \
+            -e HOST=localhost \
+            -e PORT=5432 \
+            -e USER=odoo \
+            -e PASSWORD=odoo \
+            my-odoo-image \
+            odoo -d odoo_test_db \
+            --db_host=localhost \
+            --db_port=5432 \
+            --db_user=odoo \
+            --db_password=odoo \
+            --addons-path=/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons \
+            -i document,employee \
+            --test-enable \
+            --test-tags /document,/employee \
+            --stop-after-init \
+            --log-level=test
