@@ -43,6 +43,7 @@ class DocumentTemplate(models.Model):
     # ── Content ───────────────────────────────────────────────────────
     html_content = fields.Html(
         string="Content",
+        sanitize=False,
         sanitize_attributes=False,
         sanitize_form=False,
     )
@@ -119,7 +120,7 @@ class DocumentTemplate(models.Model):
         is generated and downloaded straight away.
         """
         self.ensure_one()
-        if not self.html_content:
+        if not self.html_content or not self.html_content.strip():
             raise ValidationError(_("Cannot export an empty document."))
 
         if self.variable_ids:
@@ -267,13 +268,17 @@ class DocumentTemplate(models.Model):
     def _save_and_download_pdf(self, pdf_bytes):
         """Persist PDF on the template and return a download action."""
         self.write({"pdf_file": base64.b64encode(pdf_bytes)})
-        attachment = self.env["ir.attachment"].create(
-            {
-                "name": self.pdf_filename,
-                "type": "binary",
-                "datas": base64.b64encode(pdf_bytes),
-                "mimetype": "application/pdf",
-            },
+        attachment = (
+            self.env["ir.attachment"]
+            .sudo()
+            .create(
+                {
+                    "name": self.pdf_filename,
+                    "type": "binary",
+                    "datas": base64.b64encode(pdf_bytes),
+                    "mimetype": "application/pdf",
+                },
+            )
         )
         return {
             "type": "ir.actions.act_url",

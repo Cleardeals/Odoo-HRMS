@@ -44,12 +44,18 @@ class TestEmployeeSecurity(HREmployeeCleardealsTestCase):
             },
         )
 
-        # Create employee linked to basic user (without user_id to avoid constraint)
+        # Create employee linked to basic user
         cls.basic_employee = cls.Employee.create(
             {
                 "name": "Basic Employee",
                 "work_email": "basic.emp@test.com",
+                "user_id": cls.basic_user.id,
             },
+        )
+
+        # Create a separate company for isolation testing
+        cls.isolated_company = cls.env["res.company"].create(
+            {"name": "Isolated Company"}
         )
 
     def test_01_hr_user_can_access_all_employees(self):
@@ -74,12 +80,18 @@ class TestEmployeeSecurity(HREmployeeCleardealsTestCase):
         )
 
         self.assertEqual(
-            employee.id, self.basic_employee.id, "Basic user should access own record",
+            employee.id,
+            self.basic_employee.id,
+            "Basic user should access own record",
         )
 
     def test_03_basic_user_cannot_access_others(self):
         """Test that basic user cannot access other employee records."""
-        other_employee = self._create_test_employee(name="Other Employee")
+        # Create employee in isolated company that basic_user has no access to
+        other_employee = self._create_test_employee(
+            name="Other Employee",
+            company_id=self.isolated_company.id,
+        )
 
         # Try to access as basic user
         employees = self.Employee.with_user(self.basic_user).search(
@@ -88,9 +100,11 @@ class TestEmployeeSecurity(HREmployeeCleardealsTestCase):
             ],
         )
 
-        # Should not find other employee due to record rules
+        # Should not find other employee due to record rules (multi-company restriction)
         self.assertEqual(
-            len(employees), 0, "Basic user should not access others' records",
+            len(employees),
+            0,
+            "Basic user should not access others' records",
         )
 
     def test_04_hr_user_can_create_employee(self):

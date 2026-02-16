@@ -111,15 +111,19 @@ class DocumentExportWizard(models.TransientModel):
             },
         )
 
-        # Create a downloadable attachment
+        # Create a downloadable attachment (sudo for system resource)
         filename = self.template_id.pdf_filename or "document.pdf"
-        attachment = self.env["ir.attachment"].create(
-            {
-                "name": filename,
-                "type": "binary",
-                "datas": base64.b64encode(pdf_bytes),
-                "mimetype": "application/pdf",
-            },
+        attachment = (
+            self.env["ir.attachment"]
+            .sudo()
+            .create(
+                {
+                    "name": filename,
+                    "type": "binary",
+                    "datas": base64.b64encode(pdf_bytes),
+                    "mimetype": "application/pdf",
+                },
+            )
         )
 
         return {
