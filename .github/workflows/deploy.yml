@@ -81,6 +81,3 @@ jobs:
             echo "Cleaning up old images..."
             docker system prune -f
 
-            echo "=== Deployment complete! ==="
-            docker compose ps
-

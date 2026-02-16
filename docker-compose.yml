@@ -2,7 +2,7 @@
 # Odoo HRMS - Production Docker Compose
 # ==============================================================================
 # Optimized for e2-medium (2 vCPU, 4GB RAM)
-# Stack: Traefik v2.10 + PostgreSQL 17 + Odoo 19
+# Stack: Traefik v3.0 + PostgreSQL 17 + Odoo 19
 # ==============================================================================
 
 services:
@@ -10,7 +10,7 @@ services:
   # Traefik Reverse Proxy
   # ----------------------------------------------------------------------------
   traefik:
-    image: traefik:v2.10
+    image: traefik:v3.0
     container_name: traefik
     restart: unless-stopped
 
