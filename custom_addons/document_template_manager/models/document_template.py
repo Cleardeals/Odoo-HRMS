@@ -267,13 +267,17 @@ class DocumentTemplate(models.Model):
     def _save_and_download_pdf(self, pdf_bytes):
         """Persist PDF on the template and return a download action."""
         self.write({"pdf_file": base64.b64encode(pdf_bytes)})
-        attachment = self.env["ir.attachment"].create(
-            {
-                "name": self.pdf_filename,
-                "type": "binary",
-                "datas": base64.b64encode(pdf_bytes),
-                "mimetype": "application/pdf",
-            },
+        attachment = (
+            self.env["ir.attachment"]
+            .sudo()
+            .create(
+                {
+                    "name": self.pdf_filename,
+                    "type": "binary",
+                    "datas": base64.b64encode(pdf_bytes),
+                    "mimetype": "application/pdf",
+                },
+            )
         )
         return {
             "type": "ir.actions.act_url",

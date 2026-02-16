@@ -244,7 +244,12 @@ class TestWizardAccess(DocumentTemplateTestCase):
 
     def test_02_user_can_execute_wizard(self):
         """Test that users can generate PDF through wizard."""
-        template = self._create_test_template()
+        # Create template as basic_user so they have write access
+        template = self.Template.with_user(self.basic_user).create({
+            "name": "Test Template for Wizard",
+            "html_content": "<p>Test content {{user.name}}</p>",
+            "active": True,
+        })
 
         wizard = (
             self.ExportWizard.with_user(self.basic_user)
@@ -411,11 +416,16 @@ class TestSecurityEdgeCases(DocumentTemplateTestCase):
 
     def test_03_attachment_creation_respects_permissions(self):
         """Test that PDF attachment creation respects permissions."""
-        template = self._create_test_template()
+        # Create template as test_user so they have write access
+        template = self.Template.with_user(self.test_user).create({
+            "name": "Test Template for Export",
+            "html_content": "<p>Test content for export</p>",
+            "active": True,
+        })
 
         # Generate PDF as user
         try:
-            template.with_user(self.test_user).action_export_pdf()
+            template.action_export_pdf()
         except AccessError:
             self.fail("User should be able to export PDF")
         except (ValidationError, UserError, ValueError, OSError, RuntimeError):
