@@ -12,14 +12,14 @@ jobs:
     name: Deploy to Odoo VM
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    
+
     steps:
       - name: Deploy to VM
         uses: appleboy/ssh-action@v1.0.3
         env:
           ODOO_CONF: ${{ secrets.ODOO_CONF }}
         with:
-          host: ${{ secrets.VM_IP }} 
+          host: ${{ secrets.VM_IP }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
@@ -28,7 +28,7 @@ jobs:
           script: |
             set -e
             cd ~/odoo-project || { mkdir -p ~/odoo-project && cd ~/odoo-project; }
-            
+
             if [ ! -d ".git" ]; then
               echo "Cloning repository..."
               timeout 300 git clone --depth 1 -b main git@github.com:Cleardeals/Odoo-HRMS.git . || exit 1
@@ -37,17 +37,17 @@ jobs:
               timeout 300 git fetch --depth 1 origin main || exit 1
               git reset --hard origin/main
             fi
-            
+
             echo "Creating odoo.conf..."
             echo "$ODOO_CONF" > odoo.conf
-            
+
             echo "Rebuilding Docker image..."
             docker compose build odoo
-            
+
             echo "Restarting containers..."
             docker compose up -d --force-recreate odoo
-            
+
             echo "Cleaning up..."
             docker system prune -f
-            
+
             echo "Deployment complete!"
