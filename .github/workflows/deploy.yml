@@ -24,53 +24,23 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           command_timeout: 30m
-          script_stop: true
-          debug: true
           envs: ODOO_CONF
           script: |
             set -e
-
-            # Source environment to get Docker and Git in PATH
-            [ -f ~/.bashrc ] && source ~/.bashrc
-            [ -f ~/.profile ] && source ~/.profile
-            export PATH="/usr/local/bin:/usr/bin:/bin:/snap/bin:$PATH"
-
-            echo "=== Starting deployment ==="
-            echo "Current user: $(whoami)"
-            echo "Home directory: $HOME"
-
-            # Create and navigate to project directory
-            PROJECT_DIR="$HOME/odoo-project"
-            mkdir -p "$PROJECT_DIR"
-            cd "$PROJECT_DIR"
-            echo "Working directory: $(pwd)"
-
-            # Check if Git is available
-            if ! command -v git &> /dev/null; then
-              echo "ERROR: Git not found in PATH"
-              echo "PATH: $PATH"
-              exit 1
-            fi
+            cd ~/odoo-project || { mkdir -p ~/odoo-project && cd ~/odoo-project; }
 
             # Clone or update repository
             if [ ! -d ".git" ]; then
               echo "Cloning repository..."
-              git clone --depth 1 -b main https://github.com/Cleardeals/Odoo-HRMS.git . || exit 1
+              timeout 300 git clone --depth 1 -b main https://github.com/Cleardeals/Odoo-HRMS.git . || exit 1
             else
               echo "Updating repository..."
-              git fetch --depth 1 origin main || exit 1
+              timeout 300 git fetch --depth 1 origin main || exit 1
               git reset --hard origin/main
             fi
 
             echo "Creating odoo.conf..."
             echo "$ODOO_CONF" > odoo.conf
-
-            # Check if Docker is available
-            if ! command -v docker &> /dev/null; then
-              echo "ERROR: Docker not found in PATH"
-              echo "PATH: $PATH"
-              exit 1
-            fi
 
             echo "Rebuilding Docker image..."
             docker compose build odoo
@@ -78,6 +48,7 @@ jobs:
             echo "Restarting containers..."
             docker compose up -d --force-recreate odoo
 
-            echo "Cleaning up old images..."
+            echo "Cleaning up..."
             docker system prune -f
 
+            echo "Deployment complete!"
