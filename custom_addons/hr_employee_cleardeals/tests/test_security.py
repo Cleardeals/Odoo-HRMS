@@ -54,9 +54,9 @@ class TestEmployeeSecurity(HREmployeeCleardealsTestCase):
         )
 
         # Create a separate company for isolation testing
-        cls.isolated_company = cls.env["res.company"].create({"name": "Isolated Company"})
-
-
+        cls.isolated_company = cls.env["res.company"].create(
+            {"name": "Isolated Company"}
+        )
 
     def test_01_hr_user_can_access_all_employees(self):
         """Test that HR user can access all employee records."""

@@ -75,11 +75,13 @@ class TestVariableDetection(DocumentTemplateTestCase):
         )
 
         # Create one variable manually
-        self.Variable.create({
-            "template_id": template.id,
-            "name": "name",
-            "label": "Name",
-        })
+        self.Variable.create(
+            {
+                "template_id": template.id,
+                "name": "name",
+                "label": "Name",
+            }
+        )
 
         template.action_detect_variables()
 
@@ -107,12 +109,14 @@ class TestVariableDetection(DocumentTemplateTestCase):
         )
 
         # Create existing variable with sequence 50
-        self.Variable.create({
-            "template_id": template.id,
-            "name": "old",
-            "label": "Old",
-            "sequence": 50,
-        })
+        self.Variable.create(
+            {
+                "template_id": template.id,
+                "name": "old",
+                "label": "Old",
+                "sequence": 50,
+            }
+        )
 
         template.action_detect_variables()
 
@@ -236,13 +240,13 @@ class TestVariableDetectionPatterns(DocumentTemplateTestCase):
     def test_05_detect_in_attributes(self):
         """Test detecting variables in HTML attributes."""
         template = self._create_test_template(
-            html_content='<img src="{{image_url}}" alt="{{alt_text}}" />',
+            html_content='<div class="{{css_class}}" data-value="{{data_value}}" title="{{tooltip}}"></div>',
         )
 
         template.action_detect_variables()
 
         var_names = set(template.variable_ids.mapped("name"))
-        self.assertEqual(var_names, {"image_url", "alt_text"})
+        self.assertEqual(var_names, {"css_class", "data_value", "tooltip"})
 
     def test_06_detect_in_nested_html(self):
         """Test detecting variables in deeply nested HTML."""

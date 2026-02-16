@@ -43,6 +43,7 @@ class DocumentTemplate(models.Model):
     # ── Content ───────────────────────────────────────────────────────
     html_content = fields.Html(
         string="Content",
+        sanitize=False,
         sanitize_attributes=False,
         sanitize_form=False,
     )
@@ -119,7 +120,7 @@ class DocumentTemplate(models.Model):
         is generated and downloaded straight away.
         """
         self.ensure_one()
-        if not self.html_content:
+        if not self.html_content or not self.html_content.strip():
             raise ValidationError(_("Cannot export an empty document."))
 
         if self.variable_ids:
