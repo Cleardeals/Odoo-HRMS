@@ -28,7 +28,7 @@ services:
       # --- LetsEncrypt (ACME) ---
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       # REPLACE WITH YOUR EMAIL
-      - "--certificatesresolvers.myresolver.acme.email=admin@cleardeals.com"
+      - "--certificatesresolvers.myresolver.acme.email=tech@cleardeals.in"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
 
       # --- Logging ---

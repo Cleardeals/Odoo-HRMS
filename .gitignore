@@ -55,3 +55,4 @@ package.json
 /odoo-db-data
 /letsencrypt
 /odoo-web-data
+odoo.conf.production
