@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Grant Mail Template Editor rights to HR Managers -->
+    <!-- This allows HR Managers to create/edit email templates for recruitment and other HR communications -->
+    <record id="hr.group_hr_manager" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('mail.group_mail_template_editor'))]"/>
+    </record>
+
     <record id="rule_hr_employee_self_access" model="ir.rule">
         <field name="name">Employee: See Own Profile</field>
         <field name="model_id" ref="hr.model_hr_employee"/>
