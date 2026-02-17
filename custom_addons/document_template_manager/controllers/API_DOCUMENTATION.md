@@ -370,6 +370,7 @@ Update an existing template.
 **Endpoint:** `PUT /api/v1/templates/<template_id>` or `PATCH /api/v1/templates/<template_id>`
 
 **Headers:**
+
 ```http
 Content-Type: application/json
 X-API-Key: your-secret-api-key-here
@@ -424,6 +425,7 @@ Delete (archive or permanently delete) a template.
 **Endpoint:** `DELETE /api/v1/templates/<template_id>`
 
 **Headers:**
+
 ```http
 X-API-Key: your-secret-api-key-here
 ```
