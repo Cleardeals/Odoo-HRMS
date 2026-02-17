@@ -42,7 +42,10 @@ class DocumentExportWizard(models.TransientModel):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            if not vals.get("template_id"):
+            template_id = vals.get("template_id") or self.env.context.get(
+                "default_template_id"
+            )
+            if not template_id:
                 raise ValidationError(_("Template is required for export wizard."))
         return super().create(vals_list)
 
