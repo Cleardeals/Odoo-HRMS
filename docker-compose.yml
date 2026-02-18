@@ -150,8 +150,9 @@ services:
       - "traefik.http.routers.odoo.priority=1"
       - "traefik.http.services.odoo-service.loadbalancer.server.port=8069"
 
-      # Longpolling Router (WebSocket for real-time features)
-      - "traefik.http.routers.odoo-chat.rule=Host(`hr.cleardeals.xyz`) && PathPrefix(`/longpolling`)"
+      # Longpolling/WebSocket Router (real-time features — must hit gevent port 8072)
+      # Odoo 17+ uses /websocket; older versions use /longpolling — route both
+      - "traefik.http.routers.odoo-chat.rule=Host(`hr.cleardeals.xyz`) && (PathPrefix(`/websocket`) || PathPrefix(`/longpolling`))"
       - "traefik.http.routers.odoo-chat.entrypoints=websecure"
       - "traefik.http.routers.odoo-chat.tls.certresolver=myresolver"
       - "traefik.http.routers.odoo-chat.service=odoo-chat-service"
