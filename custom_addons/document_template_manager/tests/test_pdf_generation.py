@@ -274,3 +274,137 @@ class TestPDFEdgeCases(DocumentTemplateTestCase):
         pdf_bytes = template._generate_pdf_bytes(template.html_content)
 
         self._assert_pdf_valid(pdf_bytes)
+
+
+@tagged("post_install", "-at_install", "pdf_header")
+class TestHeaderHtmlDoc(DocumentTemplateTestCase):
+    """Test _build_header_html_doc() behaviour for all print-mode combinations."""
+
+    HEADER_HTML = "<div><strong>ACME Corp</strong></div>"
+
+    def _digital_template(self, **kwargs):
+        """Helper: create a digital-mode template with header_html set."""
+        defaults = {
+            "print_mode": "digital",
+            "show_header": True,
+            "header_html": self.HEADER_HTML,
+        }
+        defaults.update(kwargs)
+        return self._create_test_template(**defaults)
+
+    # ── Cases that must return None ────────────────────────────────────
+
+    def test_01_letterhead_mode_returns_none(self):
+        """_build_header_html_doc returns None for Letterhead mode."""
+        template = self._digital_template(print_mode="letterhead")
+        result = template._build_header_html_doc(20, 20)
+        self.assertIsNone(result)
+
+    def test_02_digital_show_header_false_returns_none(self):
+        """_build_header_html_doc returns None when show_header is False."""
+        template = self._digital_template(show_header=False)
+        result = template._build_header_html_doc(20, 20)
+        self.assertIsNone(result)
+
+    def test_03_digital_empty_header_html_returns_none(self):
+        """_build_header_html_doc returns None when header_html is blank."""
+        template = self._digital_template(header_html=False)
+        result = template._build_header_html_doc(20, 20)
+        self.assertIsNone(result)
+
+    def test_04_digital_whitespace_only_header_returns_none(self):
+        """_build_header_html_doc returns None when header_html is only whitespace."""
+        template = self._digital_template(header_html="   ")
+        result = template._build_header_html_doc(20, 20)
+        self.assertIsNone(result)
+
+    def test_05_digital_empty_paragraphs_only_returns_none(self):
+        """_build_header_html_doc returns None when header consists only of empty <p>."""
+        template = self._digital_template(header_html="<p><br></p>")
+        result = template._build_header_html_doc(20, 20)
+        self.assertIsNone(result)
+
+    # ── Cases that must produce valid HTML ────────────────────────────
+
+    def test_06_digital_with_header_returns_string(self):
+        """_build_header_html_doc returns a string for valid digital header."""
+        template = self._digital_template()
+        result = template._build_header_html_doc(20, 20)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, str)
+
+    def test_07_returned_html_is_valid_document(self):
+        """Returned string starts with <!DOCTYPE html> and contains <body>."""
+        template = self._digital_template()
+        result = template._build_header_html_doc(20, 20)
+        self.assertIn("<!DOCTYPE html>", result)
+        self.assertIn("<html>", result)
+        self.assertIn("<body>", result)
+        self.assertIn("</body>", result)
+
+    def test_08_header_content_present_in_output(self):
+        """The header HTML content appears inside the returned document."""
+        template = self._digital_template()
+        result = template._build_header_html_doc(20, 20)
+        self.assertIn("ACME Corp", result)
+
+    def test_09_separator_hr_present_in_output(self):
+        """Returned HTML contains the separator <hr> after the header content."""
+        template = self._digital_template()
+        result = template._build_header_html_doc(20, 20)
+        self.assertIn("<hr", result)
+        self.assertIn("border-bottom", result)
+
+    def test_10_left_margin_embedded_in_css(self):
+        """The left margin value is embedded inside the CSS block."""
+        template = self._digital_template()
+        result = template._build_header_html_doc(15, 20)
+        # Body padding uses the left/right values
+        self.assertIn("15mm", result)
+
+    def test_11_right_margin_embedded_in_css(self):
+        """The right margin value is embedded inside the CSS block."""
+        template = self._digital_template()
+        result = template._build_header_html_doc(20, 18)
+        self.assertIn("18mm", result)
+
+    def test_12_meta_charset_present(self):
+        """Returned HTML contains UTF-8 charset declaration."""
+        template = self._digital_template()
+        result = template._build_header_html_doc(20, 20)
+        self.assertIn("utf-8", result)
+
+    # ── PDF generation integration ────────────────────────────────────
+
+    @patch("odoo.addons.base.models.ir_actions_report.IrActionsReport._run_wkhtmltopdf")
+    def test_13_generate_pdf_digital_with_header(self, mock_wkhtmltopdf):
+        """_generate_pdf_bytes passes header= kwarg when digital mode + header set."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
+        template = self._digital_template()
+
+        pdf_bytes = template._generate_pdf_bytes(template.html_content)
+
+        self._assert_pdf_valid(pdf_bytes)
+        # Ensure wkhtmltopdf was called (header kwarg is passed internally)
+        mock_wkhtmltopdf.assert_called_once()
+        call_kwargs = mock_wkhtmltopdf.call_args
+        # 'header' should be a non-None keyword argument
+        self.assertIn("header", call_kwargs.kwargs if call_kwargs.kwargs else {})
+        header_val = (call_kwargs.kwargs or {}).get("header")
+        self.assertIsNotNone(header_val)
+
+    @patch("odoo.addons.base.models.ir_actions_report.IrActionsReport._run_wkhtmltopdf")
+    def test_14_generate_pdf_letterhead_no_header_kwarg(self, mock_wkhtmltopdf):
+        """_generate_pdf_bytes passes header=None when mode is Letterhead."""
+        mock_wkhtmltopdf.return_value = self._mock_pdf_bytes()
+        template = self._create_test_template(
+            print_mode="letterhead",
+            header_html=self.HEADER_HTML,
+        )
+
+        template._generate_pdf_bytes(template.html_content)
+
+        mock_wkhtmltopdf.assert_called_once()
+        call_kwargs = mock_wkhtmltopdf.call_args
+        header_val = (call_kwargs.kwargs or {}).get("header")
+        self.assertIsNone(header_val)
