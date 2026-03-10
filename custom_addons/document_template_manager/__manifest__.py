@@ -58,6 +58,8 @@ Ideal for
     'assets': {
         'web.assets_backend': [
             'document_template_manager/static/src/css/document_editor.css',
+            'document_template_manager/static/src/js/page_break_plugin.js',
+            'document_template_manager/static/src/js/document_editor.js',
         ],
     },
     'images': ['static/description/icon.png'],

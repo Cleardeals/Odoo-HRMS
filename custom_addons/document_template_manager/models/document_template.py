@@ -248,24 +248,25 @@ class DocumentTemplate(models.Model):
         left = self.margin_left
         right = self.margin_right
 
+        # Strip trailing empty blocks that Odoo's editor appends automatically.
+        # Without this, the last empty <p><br></p> creates a blank extra page.
+        clean_body = re.sub(
+            r'(\s*<(?:p|div)[^>]*>\s*(?:<br\s*/?>)?\s*</(?:p|div)>)+\s*$',
+            '',
+            html_body,
+            flags=re.IGNORECASE | re.DOTALL,
+        ).strip()
+
         full_html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8"/>
     <style>
-        /*
-         * Root font: mirror Odoo's system-font stack exactly so that text
-         * without an explicit font-family chosen in the editor looks the same
-         * in the PDF as it does on the canvas.
-         *
-         * Odoo (web/scss/primary_variables.scss) defines:
-         *   $o-system-fonts: -apple-system, BlinkMacSystemFont, "Segoe UI",
-         *     Roboto, "Helvetica Neue", Ubuntu, "Noto Sans", Arial, sans-serif
-         *
-         * wkhtmltopdf ignores -apple-system / BlinkMacSystemFont but will
-         * pick up "Segoe UI" on Windows or Roboto / "Noto Sans" on Linux,
-         * which matches what the browser renders.
-         */
+        /* ── Root font: mirror Odoo's system-font stack ─────────────
+           Odoo defines $o-system-fonts as -apple-system, BlinkMacSystemFont,
+           "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, "Noto Sans", Arial.
+           wkhtmltopdf skips Apple/Blink tokens but picks up "Segoe UI" on
+           Windows or Roboto/"Noto Sans" on Linux — matching the browser. */
         body {{
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                          "Helvetica Neue", Ubuntu, "Noto Sans", Arial, sans-serif;
@@ -275,25 +276,45 @@ class DocumentTemplate(models.Model):
             margin-left: {left}mm;
             margin-right: {right}mm;
         }}
-        h1 {{ font-size: 2.5rem; }}
-        h2 {{ font-size: 2rem; }}
-        h3 {{ font-size: 1.75rem; }}
-        h4 {{ font-size: 1.5rem; }}
-        h5 {{ font-size: 1.25rem; }}
-        h6 {{ font-size: 1rem; }}
+        h1 {{ font-size: 2.5rem; font-weight: 700; margin: 0.67em 0; }}
+        h2 {{ font-size: 2rem;   font-weight: 600; margin: 0.75em 0; }}
+        h3 {{ font-size: 1.75rem; font-weight: 600; margin: 0.83em 0; }}
+        h4 {{ font-size: 1.5rem;  font-weight: 600; margin: 0.83em 0; }}
+        h5 {{ font-size: 1.25rem; font-weight: 600; margin: 0.83em 0; }}
+        h6 {{ font-size: 1rem;    font-weight: 600; margin: 0.83em 0; }}
+        p  {{ margin: 0 0 0.5rem 0; }}
         table {{ border-collapse: collapse; width: 100%; }}
-        td, th {{ padding: 8px; }}
+        td, th {{ padding: 8px; border: 1px solid #dee2e6; }}
+        th {{ font-weight: 600; background-color: #f8f9fa; }}
+        a  {{ color: #0d6efd; }}
+        ul, ol {{ padding-left: 1.5rem; margin-bottom: 0.5rem; }}
+        blockquote {{
+            padding: 0.5rem 1rem;
+            border-left: 4px solid #dee2e6;
+            font-style: italic;
+            margin: 1rem 0;
+            color: #6c757d;
+        }}
+        pre, code {{
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 0.875rem;
+        }}
+        pre {{
+            background: #f8f9fa;
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            overflow: auto;
+        }}
 
         /* ── Odoo html_editor font-size classes ──────────────────────
-           The editor toolbar applies preset sizes via CSS classes, not
-           inline styles. wkhtmltopdf doesn't load Odoo's Bootstrap CSS,
-           so we reproduce the exact values from Odoo's report.scss here.
-           (The 'calc()' form used in html_editor.scss fails in
-           wkhtmltopdf, which is why Odoo's report.scss redeclares them.) */
-        .display-1-fs {{ font-size: 6rem; }}
-        .display-2-fs {{ font-size: 5.5rem; }}
-        .display-3-fs {{ font-size: 4.5rem; }}
-        .display-4-fs {{ font-size: 3.5rem; }}
+           The editor toolbar stores sizes as CSS classes, not inline styles.
+           wkhtmltopdf never loads Odoo's Bootstrap SCSS, so redeclare them
+           here. Values are taken verbatim from addons/web/.../report.scss
+           (calc() fails in wkhtmltopdf, so report.scss uses fixed rems). */
+        .display-1-fs, .display-1 {{ font-size: 6rem; }}
+        .display-2-fs, .display-2 {{ font-size: 5.5rem; }}
+        .display-3-fs, .display-3 {{ font-size: 4.5rem; }}
+        .display-4-fs, .display-4 {{ font-size: 3.5rem; }}
         .h1-fs        {{ font-size: 2.5rem; }}
         .h2-fs        {{ font-size: 2rem; }}
         .h3-fs        {{ font-size: 1.75rem; }}
@@ -303,16 +324,180 @@ class DocumentTemplate(models.Model):
         .base-fs      {{ font-size: 1rem; }}
         .small        {{ font-size: 0.875em; }}
         .o_small-fs   {{ font-size: 0.875rem; }}
-        /* Text-style classes (map to the same sizes as headings) */
-        .display-1    {{ font-size: 6rem; }}
-        .display-2    {{ font-size: 5.5rem; }}
-        .display-3    {{ font-size: 4.5rem; }}
-        .display-4    {{ font-size: 3.5rem; }}
-        .lead         {{ font-size: 1.25rem; }}
+        .lead         {{ font-size: 1.25rem; font-weight: 300; }}
+
+        /* ── Bootstrap layout utilities used by the editor ──────────
+           These are the specific utilities the html_editor injects as
+           class attributes on its generated blocks (e.g. banners). */
+        .d-flex           {{ display: flex; }}
+        .d-block          {{ display: block; }}
+        .d-inline-block   {{ display: inline-block; }}
+        .align-items-center  {{ align-items: center; }}
+        .align-items-start   {{ align-items: flex-start; }}
+        .align-items-end     {{ align-items: flex-end; }}
+        .justify-content-center {{ justify-content: center; }}
+        .flex-column      {{ flex-direction: column; }}
+        .flex-fill        {{ flex: 1 1 auto; }}
+        .w-100            {{ width: 100%; }}
+        .fw-bold          {{ font-weight: 700; }}
+        .fw-semibold      {{ font-weight: 600; }}
+        .fst-italic       {{ font-style: italic; }}
+        .fst-normal       {{ font-style: normal; }}
+        .text-center      {{ text-align: center; }}
+        .text-end         {{ text-align: right; }}
+        .lh-1             {{ line-height: 1; }}
+        .font-monospace   {{ font-family: "Consolas", "Courier New", monospace; }}
+        /* spacing */
+        .p-0  {{ padding: 0; }}       .p-1  {{ padding: 0.25rem; }}
+        .p-2  {{ padding: 0.5rem; }}  .p-3  {{ padding: 1rem; }}
+        .p-4  {{ padding: 1.5rem; }}
+        .pb-0 {{ padding-bottom: 0; }}
+        .pt-3 {{ padding-top: 1rem; }}
+        .px-3 {{ padding-left: 1rem; padding-right: 1rem; }}
+        .py-2 {{ padding-top: 0.5rem; padding-bottom: 0.5rem; }}
+        .m-0  {{ margin: 0; }}
+        .mb-0 {{ margin-bottom: 0; }}
+        .mb-1 {{ margin-bottom: 0.25rem; }}
+        .mb-2 {{ margin-bottom: 0.5rem; }}
+        .mb-3 {{ margin-bottom: 1rem; }}
+        .mt-1 {{ margin-top: 0.25rem; }}
+        .mt-2 {{ margin-top: 0.5rem; }}
+        .me-2 {{ margin-right: 0.5rem; }}
+        .ms-2 {{ margin-left: 0.5rem; }}
+        /* text colour utilities (Bootstrap + Odoo) */
+        .text-primary   {{ color: #0d6efd; }}
+        .text-success   {{ color: #198754; }}
+        .text-danger    {{ color: #dc3545; }}
+        .text-warning   {{ color: #ffc107; }}
+        .text-info      {{ color: #0dcaf0; }}
+        .text-muted, .text-secondary {{ color: #6c757d; }}
+        .text-dark      {{ color: #212529; }}
+        .text-light     {{ color: #f8f9fa; }}
+        .text-white     {{ color: #ffffff; }}
+        .text-black     {{ color: #000000; }}
+        /* background utilities */
+        .bg-primary  {{ background-color: #0d6efd; }}
+        .bg-success  {{ background-color: #198754; }}
+        .bg-danger   {{ background-color: #dc3545; }}
+        .bg-warning  {{ background-color: #ffc107; }}
+        .bg-info     {{ background-color: #0dcaf0; }}
+        .bg-light    {{ background-color: #f8f9fa; }}
+        .bg-dark     {{ background-color: #212529; }}
+        .bg-white    {{ background-color: #ffffff; }}
+        .bg-transparent {{ background-color: transparent; }}
+        /* border utilities */
+        .border       {{ border: 1px solid #dee2e6; }}
+        .border-0     {{ border: none; }}
+        .rounded      {{ border-radius: 0.375rem; }}
+        .rounded-3    {{ border-radius: 0.5rem; }}
+
+        /* ── Bootstrap alert / Odoo banner blocks ────────────────────
+           Odoo's html_editor inserts callout blocks as Bootstrap alerts.
+           wkhtmltopdf has no Bootstrap loaded, so define the colours here.
+           Values are Bootstrap 5 defaults: tint-color(base, 80%) for bg,
+           tint-color(base, 60%) for border, shade-color(base, 30%) for text. */
+        .alert {{
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid transparent;
+            border-radius: 0.375rem;
+        }}
+        .alert-info {{
+            background-color: #cff4fc;
+            border-color: #9eeaf9;
+            color: #0a3e4f;
+        }}
+        .alert-success {{
+            background-color: #d1e7dd;
+            border-color: #a3cfbb;
+            color: #0f5132;
+        }}
+        .alert-warning {{
+            background-color: #fff3cd;
+            border-color: #ffe69c;
+            color: #664d03;
+        }}
+        .alert-danger {{
+            background-color: #f8d7da;
+            border-color: #f1aeb5;
+            color: #58151c;
+        }}
+        .alert-secondary {{
+            background-color: #e2e3e5;
+            border-color: #d3d3d4;
+            color: #41464b;
+        }}
+        .alert-light {{
+            background-color: #fefefe;
+            border-color: #fdfdfe;
+            color: #636464;
+        }}
+        /* Odoo banner layout (wraps the alert div) */
+        .o_editor_banner {{
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 1rem;
+        }}
+        /* The emoji/icon cell does not render in wkhtmltopdf — hide it to
+           avoid the □ (missing-glyph) placeholder appearing in the PDF. */
+        .o_editor_banner_icon {{
+            display: none;
+        }}
+        .o_editor_banner_content {{
+            flex: 1;
+            width: 100%;
+            padding: 0 0.75rem;
+        }}
+
+        /* ── Checklist (from addons/web/.../report.scss verbatim) ────*/
+        ul.o_checklist > li {{
+            list-style: none;
+            position: relative;
+            margin-left: 20px;
+        }}
+        ul.o_checklist > li:not(.oe-nested)::before {{
+            content: '';
+            position: absolute;
+            left: -20px;
+            display: block;
+            height: 14px;
+            width: 14px;
+            top: 1px;
+            border: 1px solid;
+        }}
+        ul.o_checklist > li.o_checked::after {{
+            content: "✓";
+            position: absolute;
+            left: -18px;
+            top: -1px;
+        }}
+        li.oe-nested {{
+            display: block;
+        }}
+
+        /* ── Manual page break ───────────────────────────────────────
+           .o_page_break <div> inserted by the Page Break powerbox command.
+           In wkhtmltopdf this forces a new page; the visual decoration is
+           zeroed so no extra whitespace or lines appear in the PDF. */
+        .o_page_break {{
+            page-break-before: always;
+            border: none !important;
+            height: 0 !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 0 !important;
+            line-height: 0 !important;
+        }}
+        .o_page_break_label {{
+            display: none;
+        }}
     </style>
 </head>
 <body>
-{html_body}
+{clean_body}
 </body>
 </html>"""
 

@@ -182,6 +182,36 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   Page Break — visual indicator inside the editor canvas
+   ══════════════════════════════════════════════════════════════════ */
+
+/* The non-editable div inserted by the Page Break powerbox command.
+   Renders as a dashed rule with a centred label so the author can see
+   exactly where each page break falls while editing. */
+.o_document_editor_form .o_page_break {
+    display: block;
+    border-top: 2px dashed #bbb;
+    margin: 24px 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    position: relative;
+    cursor: default;
+    user-select: none;
+}
+
+.o_document_editor_form .o_page_break .o_page_break_label {
+    display: block;
+    text-align: center;
+    font-size: 0.72rem;
+    color: #aaa;
+    font-style: italic;
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+    pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════
    Export Wizard overrides
    ══════════════════════════════════════════════════════════════════ */
 
