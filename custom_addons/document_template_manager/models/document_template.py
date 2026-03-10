@@ -261,11 +261,40 @@ class DocumentTemplate(models.Model):
             margin-left: {left}mm;
             margin-right: {right}mm;
         }}
-        h1 {{ font-size: 24px; }}
-        h2 {{ font-size: 20px; }}
-        h3 {{ font-size: 16px; }}
+        h1 {{ font-size: 2.5rem; }}
+        h2 {{ font-size: 2rem; }}
+        h3 {{ font-size: 1.75rem; }}
+        h4 {{ font-size: 1.5rem; }}
+        h5 {{ font-size: 1.25rem; }}
+        h6 {{ font-size: 1rem; }}
         table {{ border-collapse: collapse; width: 100%; }}
         td, th {{ padding: 8px; }}
+
+        /* ── Odoo html_editor font-size classes ──────────────────────
+           The editor toolbar applies preset sizes via CSS classes, not
+           inline styles. wkhtmltopdf doesn't load Odoo's Bootstrap CSS,
+           so we reproduce the exact values from Odoo's report.scss here.
+           (The 'calc()' form used in html_editor.scss fails in
+           wkhtmltopdf, which is why Odoo's report.scss redeclares them.) */
+        .display-1-fs {{ font-size: 6rem; }}
+        .display-2-fs {{ font-size: 5.5rem; }}
+        .display-3-fs {{ font-size: 4.5rem; }}
+        .display-4-fs {{ font-size: 3.5rem; }}
+        .h1-fs        {{ font-size: 2.5rem; }}
+        .h2-fs        {{ font-size: 2rem; }}
+        .h3-fs        {{ font-size: 1.75rem; }}
+        .h4-fs        {{ font-size: 1.5rem; }}
+        .h5-fs        {{ font-size: 1.25rem; }}
+        .h6-fs        {{ font-size: 1rem; }}
+        .base-fs      {{ font-size: 1rem; }}
+        .small        {{ font-size: 0.875em; }}
+        .o_small-fs   {{ font-size: 0.875rem; }}
+        /* Text-style classes (map to the same sizes as headings) */
+        .display-1    {{ font-size: 6rem; }}
+        .display-2    {{ font-size: 5.5rem; }}
+        .display-3    {{ font-size: 4.5rem; }}
+        .display-4    {{ font-size: 3.5rem; }}
+        .lead         {{ font-size: 1.25rem; }}
     </style>
 </head>
 <body>
