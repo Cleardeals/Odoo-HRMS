@@ -27,7 +27,8 @@ class TestTemplateCreation(DocumentTemplateTestCase):
         self.assertEqual(template.name, "Simple Template")
         self.assertTrue(template.active, "Template should be active by default")
         self.assertFalse(
-            template.favorite, "Template should not be favorite by default",
+            template.favorite,
+            "Template should not be favorite by default",
         )
 
     def test_02_create_template_with_category(self):
@@ -107,7 +108,8 @@ class TestTemplateCreation(DocumentTemplateTestCase):
         )
 
         self.assertEqual(
-            template.summary, "This is a comprehensive offer letter template.",
+            template.summary,
+            "This is a comprehensive offer letter template.",
         )
 
     def test_08_template_inactive_flag(self):

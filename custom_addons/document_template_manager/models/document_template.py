@@ -94,7 +94,7 @@ class DocumentTemplate(models.Model):
         required=True,
         tracking=True,
         help="Letterhead: large margins for pre-printed letterhead paper, no digital header rendered.\n"
-             "Digital: standard margins with the Page Header rendered on every PDF page.",
+        "Digital: standard margins with the Page Header rendered on every PDF page.",
     )
     show_header = fields.Boolean(
         string="Show Header in PDF",
@@ -313,66 +313,66 @@ class DocumentTemplate(models.Model):
         # and user-content ({clean}) never risks being treated as a format
         # specifier.
         css = (
-            "* {{ box-sizing: border-box; }}"
-            "html, body {{"
+            "* { box-sizing: border-box; }"
+            "html, body {"
             "  margin: 0; padding: 0;"
             "  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,"
             "              'Helvetica Neue', Ubuntu, 'Noto Sans', Arial, sans-serif;"
             "  font-size: 0.875rem; color: #333; line-height: 1.2;"
-            "}}"
-            "body {{ padding: 0 {right}mm 0 {left}mm; }}"
-            "p, h1, h2, h3, h4, h5, h6 {{ margin: 0; padding: 0; line-height: 1.2; }}"
+            "}"
+            f"body {{ padding: 0 {right}mm 0 {left}mm; }}"
+            "p, h1, h2, h3, h4, h5, h6 { margin: 0; padding: 0; line-height: 1.2; }"
             # ── Bootstrap / Odoo editor utility classes ────────────────
-            ".d-flex {{ display: flex; }}"
-            ".d-block {{ display: block; }}"
-            ".d-inline-block {{ display: inline-block; }}"
-            ".align-items-center {{ align-items: center; }}"
-            ".align-items-start {{ align-items: flex-start; }}"
-            ".align-items-end {{ align-items: flex-end; }}"
-            ".justify-content-center {{ justify-content: center; }}"
-            ".justify-content-between {{ justify-content: space-between; }}"
-            ".flex-column {{ flex-direction: column; }}"
-            ".flex-fill {{ flex: 1 1 auto; }}"
-            ".w-100 {{ width: 100%; }}"
-            ".fw-bold {{ font-weight: 700; }}"
-            ".fw-semibold {{ font-weight: 600; }}"
-            ".fst-italic {{ font-style: italic; }}"
-            ".text-center {{ text-align: center; }}"
-            ".text-end {{ text-align: right; }}"
-            ".lh-1 {{ line-height: 1; }}"
-            ".small, .o_small-fs {{ font-size: 0.8rem; }}"
-            ".text-muted, .text-secondary {{ color: #6c757d; }}"
-            ".text-primary {{ color: #0d6efd; }}"
-            ".text-success {{ color: #198754; }}"
-            ".text-danger {{ color: #dc3545; }}"
-            ".text-dark {{ color: #212529; }}"
-            ".text-white {{ color: #fff; }}"
-            ".text-black {{ color: #000; }}"
-            ".bg-light {{ background-color: #f8f9fa; }}"
-            ".bg-white {{ background-color: #fff; }}"
-            ".border-bottom {{ border-bottom: 1px solid #dee2e6; }}"
-            ".border {{ border: 1px solid #dee2e6; }}"
-            ".rounded {{ border-radius: 0.375rem; }}"
-            ".p-0 {{ padding: 0; }} .p-1 {{ padding: 0.25rem; }}"
-            ".p-2 {{ padding: 0.5rem; }} .p-3 {{ padding: 1rem; }}"
-            ".pb-0 {{ padding-bottom: 0; }} .pb-1 {{ padding-bottom: 0.25rem; }}"
-            ".pt-1 {{ padding-top: 0.25rem; }} .px-2 {{ padding-left:0.5rem; padding-right:0.5rem; }}"
-            ".m-0 {{ margin: 0; }} .mb-0 {{ margin-bottom: 0; }}"
-            ".mb-1 {{ margin-bottom: 0.25rem; }} .mb-2 {{ margin-bottom: 0.5rem; }}"
-            ".me-1 {{ margin-right: 0.25rem; }} .me-2 {{ margin-right: 0.5rem; }}"
-            ".ms-1 {{ margin-left: 0.25rem; }} .ms-2 {{ margin-left: 0.5rem; }}"
-            ".mt-1 {{ margin-top: 0.25rem; }} .gap-1 {{ gap: 0.25rem; }}"
-            ".gap-2 {{ gap: 0.5rem; }}"
-        ).format(left=left, right=right)
+            ".d-flex { display: flex; }"
+            ".d-block { display: block; }"
+            ".d-inline-block { display: inline-block; }"
+            ".align-items-center { align-items: center; }"
+            ".align-items-start { align-items: flex-start; }"
+            ".align-items-end { align-items: flex-end; }"
+            ".justify-content-center { justify-content: center; }"
+            ".justify-content-between { justify-content: space-between; }"
+            ".flex-column { flex-direction: column; }"
+            ".flex-fill { flex: 1 1 auto; }"
+            ".w-100 { width: 100%; }"
+            ".fw-bold { font-weight: 700; }"
+            ".fw-semibold { font-weight: 600; }"
+            ".fst-italic { font-style: italic; }"
+            ".text-center { text-align: center; }"
+            ".text-end { text-align: right; }"
+            ".lh-1 { line-height: 1; }"
+            ".small, .o_small-fs { font-size: 0.8rem; }"
+            ".text-muted, .text-secondary { color: #6c757d; }"
+            ".text-primary { color: #0d6efd; }"
+            ".text-success { color: #198754; }"
+            ".text-danger { color: #dc3545; }"
+            ".text-dark { color: #212529; }"
+            ".text-white { color: #fff; }"
+            ".text-black { color: #000; }"
+            ".bg-light { background-color: #f8f9fa; }"
+            ".bg-white { background-color: #fff; }"
+            ".border-bottom { border-bottom: 1px solid #dee2e6; }"
+            ".border { border: 1px solid #dee2e6; }"
+            ".rounded { border-radius: 0.375rem; }"
+            ".p-0 { padding: 0; } .p-1 { padding: 0.25rem; }"
+            ".p-2 { padding: 0.5rem; } .p-3 { padding: 1rem; }"
+            ".pb-0 { padding-bottom: 0; } .pb-1 { padding-bottom: 0.25rem; }"
+            ".pt-1 { padding-top: 0.25rem; } .px-2 { padding-left:0.5rem; padding-right:0.5rem; }"
+            ".m-0 { margin: 0; } .mb-0 { margin-bottom: 0; }"
+            ".mb-1 { margin-bottom: 0.25rem; } .mb-2 { margin-bottom: 0.5rem; }"
+            ".me-1 { margin-right: 0.25rem; } .me-2 { margin-right: 0.5rem; }"
+            ".ms-1 { margin-left: 0.25rem; } .ms-2 { margin-left: 0.5rem; }"
+            ".mt-1 { margin-top: 0.25rem; } .gap-1 { gap: 0.25rem; }"
+            ".gap-2 { gap: 0.5rem; }"
+        )
 
         return (
-            '<!DOCTYPE html>\n<html>\n<head>\n'
+            "<!DOCTYPE html>\n<html>\n<head>\n"
             '<meta charset="utf-8"/>\n'
-            '<style>' + css + '</style>\n'
-            '</head>\n<body>'
+            "<style>" + css + "</style>\n"
+            "</head>\n<body>"
             + clean
             + '<hr style="border:none;border-bottom:1px solid #dee2e6;margin:4px 0 0 0;"/>'
-            + '</body>\n</html>'
+            + "</body>\n</html>"
         )
 
     def _generate_pdf_bytes(self, html_body):

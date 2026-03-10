@@ -2,6 +2,7 @@ import base64
 import re
 
 from markupsafe import Markup
+
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
@@ -44,7 +45,7 @@ class DocumentExportWizard(models.TransientModel):
     def create(self, vals_list):
         for vals in vals_list:
             template_id = vals.get("template_id") or self.env.context.get(
-                "default_template_id"
+                "default_template_id",
             )
             if not template_id:
                 raise ValidationError(_("Template is required for export wizard."))
@@ -93,15 +94,24 @@ class DocumentExportWizard(models.TransientModel):
             body = wiz._render_html()
 
             # Prepend the digital header (read-only, non-editable preview)
-            if tmpl.print_mode == "digital" and tmpl.show_header and tmpl.header_html and tmpl.header_html.strip():
-                header_block = Markup(
-                    '<div style="'
-                    'border-bottom:2px solid #dee2e6;'
-                    'margin-bottom:12px;'
-                    'padding-bottom:6px;'
-                    'font-size:0.875rem;'
-                    'line-height:1.2;">'
-                ) + Markup(str(tmpl.header_html)) + Markup("</div>")
+            if (
+                tmpl.print_mode == "digital"
+                and tmpl.show_header
+                and tmpl.header_html
+                and tmpl.header_html.strip()
+            ):
+                header_block = (
+                    Markup(
+                        '<div style="'
+                        "border-bottom:2px solid #dee2e6;"
+                        "margin-bottom:12px;"
+                        "padding-bottom:6px;"
+                        "font-size:0.875rem;"
+                        'line-height:1.2;">',
+                    )
+                    + Markup(str(tmpl.header_html))
+                    + Markup("</div>")
+                )
                 wiz.preview_html = header_block + body
             else:
                 wiz.preview_html = body
