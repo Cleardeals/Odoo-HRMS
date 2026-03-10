@@ -76,6 +76,26 @@ class DocumentTemplate(models.Model):
     active = fields.Boolean(default=True, tracking=True)
     favorite = fields.Boolean(default=False)
 
+    # ── Print / Letterhead Margins (mm) ──────────────────────────────
+    margin_top = fields.Float(
+        string="Top Margin (mm)",
+        default=40.0,
+        help="Space reserved at the top for the letterhead header.",
+    )
+    margin_bottom = fields.Float(
+        string="Bottom Margin (mm)",
+        default=25.0,
+        help="Space reserved at the bottom for the letterhead footer.",
+    )
+    margin_left = fields.Float(
+        string="Left Margin (mm)",
+        default=20.0,
+    )
+    margin_right = fields.Float(
+        string="Right Margin (mm)",
+        default=20.0,
+    )
+
     # ── Company ───────────────────────────────────────────────────────
     company_id = fields.Many2one(
         "res.company",
@@ -212,36 +232,34 @@ class DocumentTemplate(models.Model):
 
     # ── Helpers ───────────────────────────────────────────────────────
     def _generate_pdf_bytes(self, html_body):
-        """Wrap *html_body* in a full-page document and run wkhtmltopdf."""
-        company = self.env.company
-        company_logo = company.logo if company.logo else ""
+        """Wrap *html_body* in a full-page document and run wkhtmltopdf.
 
-        # Prepare header HTML with company logo
-        header_html = f"""
-        <div style="text-align: center; padding: 10px 0; border-bottom: 2px solid #333;">
-            {f'<img src="data:image/png;base64,{company_logo.decode()}" style="max-height: 60px; max-width: 200px;" />' if company_logo else f'<h2 style="margin: 0;">{company.name}</h2>'}
-        </div>
-        """
+        Top/bottom margins are applied via Odoo's recognised
+        ``data-report-margin-top`` / ``data-report-margin-bottom`` keys in
+        ``specific_paperformat_args`` (the only keys that
+        ``_build_wkhtmltopdf_args`` actually reads).
 
-        # Prepare footer HTML with company info and page numbers
-        footer_html = f"""
-        <div style="text-align: center; font-size: 10px; padding: 5px 0; border-top: 1px solid #ccc; margin-top: 10px;">
-            <div>{company.name} | {company.street or ""} {company.city or ""} | {company.phone or ""}</div>
-            <div style="margin-top: 3px;">Page <span class="page"></span> of <span class="topage"></span></div>
-        </div>
+        Left/right cannot be overridden through that mechanism — Odoo always
+        takes them from the paper-format record, which for A4 is 0 mm by
+        default — so we apply them as CSS body margins instead.
         """
+        top = self.margin_top
+        bottom = self.margin_bottom
+        left = self.margin_left
+        right = self.margin_right
 
         full_html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8"/>
     <style>
-        @page {{ margin: 90px 20mm 70px 20mm; }}
         body {{
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 13px;
             color: #333;
             line-height: 1.6;
+            margin-left: {left}mm;
+            margin-right: {right}mm;
         }}
         h1 {{ font-size: 24px; }}
         h2 {{ font-size: 20px; }}
@@ -254,14 +272,16 @@ class DocumentTemplate(models.Model):
 {html_body}
 </body>
 </html>"""
+
+        # ``data-report-margin-top`` and ``data-report-margin-bottom`` are the
+        # only keys that Odoo's _build_wkhtmltopdf_args actually recognises and
+        # maps to --margin-top / --margin-bottom CLI args.
         return self.env["ir.actions.report"]._run_wkhtmltopdf(
             [full_html],
             landscape=False,
             specific_paperformat_args={
-                "header-html": header_html,
-                "footer-html": footer_html,
-                "header-spacing": 5,
-                "footer-spacing": 5,
+                "data-report-margin-top": top,
+                "data-report-margin-bottom": bottom,
             },
         )
 

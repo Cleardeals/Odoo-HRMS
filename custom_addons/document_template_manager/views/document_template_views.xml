@@ -125,6 +125,21 @@
                                     <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                                 </group>
                             </group>
+
+                            <!-- Letterhead / Print Margins -->
+                            <separator string="Letterhead Print Margins"/>
+                            <div class="alert alert-info border mb-3" style="border-radius: 8px;">
+                                <i class="fa fa-info-circle me-1"/>
+                                Set the page margins (in mm) so the printed content lands inside the body area of your pre-printed letterhead paper.
+                                Typical values: <strong>Top 40 mm</strong> (clears the letterhead header),
+                                <strong>Bottom 25 mm</strong> (clears the footer), <strong>Left/Right 20 mm</strong>.
+                            </div>
+                            <group col="4">
+                                <field name="margin_top" string="Top (mm)"/>
+                                <field name="margin_bottom" string="Bottom (mm)"/>
+                                <field name="margin_left" string="Left (mm)"/>
+                                <field name="margin_right" string="Right (mm)"/>
+                            </group>
                         </page>
                     </notebook>
 
