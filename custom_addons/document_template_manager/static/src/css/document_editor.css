@@ -79,6 +79,11 @@
     margin-bottom: 20px;
     padding-bottom: 16px;
     border-bottom: 1px solid #f0f0f0;
+    /* Establish a stacking context above the editor canvas so that
+       any dropdown/autocomplete that opens downward from this row
+       is not clipped or intercepted by the rich-text editor below. */
+    position: relative;
+    z-index: 10;
 }
 
 .o_document_editor_form .o_document_meta .o_field_widget {
@@ -93,10 +98,30 @@
     padding: 2px 4px !important;
 }
 
+/* Ensure the dropdown panel itself floats completely above the canvas. */
+.o_document_editor_form .o_document_meta .o-dropdown--menu,
+.o_document_editor_form .o_document_meta .o_dropdown_menu,
+.o_document_editor_form .o_document_meta .dropdown-menu,
+.o_document_editor_form .o_document_meta .ui-autocomplete {
+    z-index: 9999 !important;
+}
+
+/* Odoo appends autocomplete menus to <body>, so also target them globally
+   when the document-editor form is active.                              */
+.o_document_editor_form ~ .ui-autocomplete,
+.ui-autocomplete.o_document_meta_autocomplete {
+    z-index: 9999 !important;
+}
+
 /* ── Content area: THE main canvas ── */
 .o_document_editor_form .o_document_content_area {
     margin-top: 24px;
     min-height: 70vh;
+    /* Must NOT create a new stacking context — doing so would put the editor
+       above body-appended dropdown/autocomplete overlays from the metadata
+       row above it.  isolation:auto + no z-index keeps it in the normal flow. */
+    isolation: auto;
+    position: static;
 }
 
 .o_document_editor_form .o_field_html {
