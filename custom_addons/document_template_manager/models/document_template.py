@@ -47,6 +47,13 @@ class DocumentTemplate(models.Model):
         sanitize_attributes=False,
         sanitize_form=False,
     )
+    header_html = fields.Html(
+        string="Page Header",
+        sanitize=False,
+        sanitize_attributes=False,
+        sanitize_form=False,
+        help="HTML repeated at the top of every page when Print Mode is Digital.",
+    )
 
     # ── Variables ─────────────────────────────────────────────────────
     variable_ids = fields.One2many(
@@ -76,16 +83,35 @@ class DocumentTemplate(models.Model):
     active = fields.Boolean(default=True, tracking=True)
     favorite = fields.Boolean(default=False)
 
-    # ── Print / Letterhead Margins (mm) ──────────────────────────────
+    # ── Print Mode ────────────────────────────────────────────────────
+    print_mode = fields.Selection(
+        [
+            ("letterhead", "Letterhead"),
+            ("digital", "Digital"),
+        ],
+        string="Print Mode",
+        default="letterhead",
+        required=True,
+        tracking=True,
+        help="Letterhead: large margins for pre-printed letterhead paper, no digital header rendered.\n"
+             "Digital: standard margins with the Page Header rendered on every PDF page.",
+    )
+    show_header = fields.Boolean(
+        string="Show Header in PDF",
+        default=True,
+        help="Include the Page Header on every exported PDF page. Only applies in Digital mode.",
+    )
+
+    # ── Print / Margins (mm) ─────────────────────────────────────────
     margin_top = fields.Float(
         string="Top Margin (mm)",
         default=40.0,
-        help="Space reserved at the top for the letterhead header.",
+        help="Space reserved at the top of each page.",
     )
     margin_bottom = fields.Float(
         string="Bottom Margin (mm)",
         default=25.0,
-        help="Space reserved at the bottom for the letterhead footer.",
+        help="Space reserved at the bottom of each page.",
     )
     margin_left = fields.Float(
         string="Left Margin (mm)",
@@ -121,6 +147,22 @@ class DocumentTemplate(models.Model):
     def _compute_has_pdf(self):
         for rec in self:
             rec.has_pdf = bool(rec.pdf_file)
+
+    @api.onchange("print_mode")
+    def _onchange_print_mode(self):
+        """Auto-populate margins with sensible defaults for each mode."""
+        if self.print_mode == "letterhead":
+            self.margin_top = 40.0
+            self.margin_bottom = 25.0
+            self.margin_left = 20.0
+            self.margin_right = 20.0
+            self.show_header = True
+        else:  # digital
+            self.margin_top = 20.0
+            self.margin_bottom = 20.0
+            self.margin_left = 20.0
+            self.margin_right = 20.0
+            self.show_header = True
 
     # ── Validation ────────────────────────────────────────────────────
     @api.model_create_multi
@@ -231,6 +273,108 @@ class DocumentTemplate(models.Model):
         }
 
     # ── Helpers ───────────────────────────────────────────────────────
+    def _build_header_html_doc(self, left, right):
+        """Build a standalone HTML document for wkhtmltopdf ``--header-html``.
+
+        wkhtmltopdf repeats ``--header-html`` on every page automatically.
+
+        Why this works:
+        - ``_run_wkhtmltopdf`` writes this string to a temp file and passes
+          its path via ``--header-html <path>`` on the CLI.  wkhtmltopdf then
+          renders that file into the top-margin area of every page.
+        - The Odoo A4 paper format ships with ``header_spacing = 35`` mm
+          (space between header bottom and body).  We override that via
+          ``data-report-header-spacing`` in ``specific_paperformat_args``
+          (see ``_generate_pdf_bytes``) so the header actually fits.
+        - ``--disable-local-file-access`` only blocks resources loaded by the
+          HTML *itself* (file:// URLs in img/link tags).  CLI-supplied paths
+          like ``--header-html`` are NOT affected.
+
+        Returns ``None`` when the header should not be rendered.
+        """
+        if self.print_mode != "digital" or not self.show_header:
+            return None
+        if not self.header_html or not self.header_html.strip():
+            return None
+
+        # Strip trailing empty editor paragraphs.
+        clean = re.sub(
+            r"(\s*<(?:p|div)[^>]*>\s*(?:<br\s*/?>)?\s*</(?:p|div)>)+\s*$",
+            "",
+            str(self.header_html),
+            flags=re.IGNORECASE | re.DOTALL,
+        ).strip()
+
+        if not clean:
+            return None
+
+        # Build the full standalone HTML document.
+        # Use str.format() so that the CSS double-brace escaping is explicit
+        # and user-content ({clean}) never risks being treated as a format
+        # specifier.
+        css = (
+            "* {{ box-sizing: border-box; }}"
+            "html, body {{"
+            "  margin: 0; padding: 0;"
+            "  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,"
+            "              'Helvetica Neue', Ubuntu, 'Noto Sans', Arial, sans-serif;"
+            "  font-size: 0.875rem; color: #333; line-height: 1.2;"
+            "}}"
+            "body {{ padding: 0 {right}mm 0 {left}mm; }}"
+            "p, h1, h2, h3, h4, h5, h6 {{ margin: 0; padding: 0; line-height: 1.2; }}"
+            # ── Bootstrap / Odoo editor utility classes ────────────────
+            ".d-flex {{ display: flex; }}"
+            ".d-block {{ display: block; }}"
+            ".d-inline-block {{ display: inline-block; }}"
+            ".align-items-center {{ align-items: center; }}"
+            ".align-items-start {{ align-items: flex-start; }}"
+            ".align-items-end {{ align-items: flex-end; }}"
+            ".justify-content-center {{ justify-content: center; }}"
+            ".justify-content-between {{ justify-content: space-between; }}"
+            ".flex-column {{ flex-direction: column; }}"
+            ".flex-fill {{ flex: 1 1 auto; }}"
+            ".w-100 {{ width: 100%; }}"
+            ".fw-bold {{ font-weight: 700; }}"
+            ".fw-semibold {{ font-weight: 600; }}"
+            ".fst-italic {{ font-style: italic; }}"
+            ".text-center {{ text-align: center; }}"
+            ".text-end {{ text-align: right; }}"
+            ".lh-1 {{ line-height: 1; }}"
+            ".small, .o_small-fs {{ font-size: 0.8rem; }}"
+            ".text-muted, .text-secondary {{ color: #6c757d; }}"
+            ".text-primary {{ color: #0d6efd; }}"
+            ".text-success {{ color: #198754; }}"
+            ".text-danger {{ color: #dc3545; }}"
+            ".text-dark {{ color: #212529; }}"
+            ".text-white {{ color: #fff; }}"
+            ".text-black {{ color: #000; }}"
+            ".bg-light {{ background-color: #f8f9fa; }}"
+            ".bg-white {{ background-color: #fff; }}"
+            ".border-bottom {{ border-bottom: 1px solid #dee2e6; }}"
+            ".border {{ border: 1px solid #dee2e6; }}"
+            ".rounded {{ border-radius: 0.375rem; }}"
+            ".p-0 {{ padding: 0; }} .p-1 {{ padding: 0.25rem; }}"
+            ".p-2 {{ padding: 0.5rem; }} .p-3 {{ padding: 1rem; }}"
+            ".pb-0 {{ padding-bottom: 0; }} .pb-1 {{ padding-bottom: 0.25rem; }}"
+            ".pt-1 {{ padding-top: 0.25rem; }} .px-2 {{ padding-left:0.5rem; padding-right:0.5rem; }}"
+            ".m-0 {{ margin: 0; }} .mb-0 {{ margin-bottom: 0; }}"
+            ".mb-1 {{ margin-bottom: 0.25rem; }} .mb-2 {{ margin-bottom: 0.5rem; }}"
+            ".me-1 {{ margin-right: 0.25rem; }} .me-2 {{ margin-right: 0.5rem; }}"
+            ".ms-1 {{ margin-left: 0.25rem; }} .ms-2 {{ margin-left: 0.5rem; }}"
+            ".mt-1 {{ margin-top: 0.25rem; }} .gap-1 {{ gap: 0.25rem; }}"
+            ".gap-2 {{ gap: 0.5rem; }}"
+        ).format(left=left, right=right)
+
+        return (
+            '<!DOCTYPE html>\n<html>\n<head>\n'
+            '<meta charset="utf-8"/>\n'
+            '<style>' + css + '</style>\n'
+            '</head>\n<body>'
+            + clean
+            + '<hr style="border:none;border-bottom:1px solid #dee2e6;margin:4px 0 0 0;"/>'
+            + '</body>\n</html>'
+        )
+
     def _generate_pdf_bytes(self, html_body):
         """Wrap *html_body* in a full-page document and run wkhtmltopdf.
 
@@ -251,8 +395,8 @@ class DocumentTemplate(models.Model):
         # Strip trailing empty blocks that Odoo's editor appends automatically.
         # Without this, the last empty <p><br></p> creates a blank extra page.
         clean_body = re.sub(
-            r'(\s*<(?:p|div)[^>]*>\s*(?:<br\s*/?>)?\s*</(?:p|div)>)+\s*$',
-            '',
+            r"(\s*<(?:p|div)[^>]*>\s*(?:<br\s*/?>)?\s*</(?:p|div)>)+\s*$",
+            "",
             html_body,
             flags=re.IGNORECASE | re.DOTALL,
         ).strip()
@@ -501,16 +645,28 @@ class DocumentTemplate(models.Model):
 </body>
 </html>"""
 
-        # ``data-report-margin-top`` and ``data-report-margin-bottom`` are the
-        # only keys that Odoo's _build_wkhtmltopdf_args actually recognises and
-        # maps to --margin-top / --margin-bottom CLI args.
+        # Build the header document and assemble wkhtmltopdf arguments.
+        #
+        # ``data-report-margin-top`` / ``data-report-margin-bottom`` are the
+        # only top/bottom keys that _build_wkhtmltopdf_args maps to CLI flags.
+        #
+        # ``data-report-header-spacing`` overrides the paper format's
+        # ``header_spacing`` field.  The Odoo A4 format ships with 35 mm of
+        # header spacing, which far exceeds our margin_top and would push the
+        # header out of the page entirely.  We set it to a small fixed value.
+        header_doc = self._build_header_html_doc(left, right)
+        specific_paperformat_args = {
+            "data-report-margin-top": top,
+            "data-report-margin-bottom": bottom,
+        }
+        if header_doc:
+            # 2 mm gap between the bottom of the header and the body content.
+            specific_paperformat_args["data-report-header-spacing"] = 2
         return self.env["ir.actions.report"]._run_wkhtmltopdf(
             [full_html],
+            header=header_doc,
             landscape=False,
-            specific_paperformat_args={
-                "data-report-margin-top": top,
-                "data-report-margin-bottom": bottom,
-            },
+            specific_paperformat_args=specific_paperformat_args,
         )
 
     def _save_and_download_pdf(self, pdf_bytes):
