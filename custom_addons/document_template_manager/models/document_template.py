@@ -253,9 +253,23 @@ class DocumentTemplate(models.Model):
 <head>
     <meta charset="utf-8"/>
     <style>
+        /*
+         * Root font: mirror Odoo's system-font stack exactly so that text
+         * without an explicit font-family chosen in the editor looks the same
+         * in the PDF as it does on the canvas.
+         *
+         * Odoo (web/scss/primary_variables.scss) defines:
+         *   $o-system-fonts: -apple-system, BlinkMacSystemFont, "Segoe UI",
+         *     Roboto, "Helvetica Neue", Ubuntu, "Noto Sans", Arial, sans-serif
+         *
+         * wkhtmltopdf ignores -apple-system / BlinkMacSystemFont but will
+         * pick up "Segoe UI" on Windows or Roboto / "Noto Sans" on Linux,
+         * which matches what the browser renders.
+         */
         body {{
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 13px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                         "Helvetica Neue", Ubuntu, "Noto Sans", Arial, sans-serif;
+            font-size: 1rem;
             color: #333;
             line-height: 1.6;
             margin-left: {left}mm;
