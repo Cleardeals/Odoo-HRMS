@@ -1,6 +1,6 @@
 # Document Template Manager API Documentation
 
-**Version:** 1.0
+**Version:** 1.1
 **Base URL:** `http://your-odoo-server.com/api/v1`
 **Authentication:** API Key
 
@@ -12,12 +12,22 @@
 2. [Response Format](#response-format)
 3. [Error Handling](#error-handling)
 4. [Endpoints](#endpoints)
-   - [Create Template](#create-template)
-   - [List Templates](#list-templates)
-   - [Get Template](#get-template)
-   - [Update Template](#update-template)
-   - [Delete Template](#delete-template)
-5. [Examples](#examples)
+   - [Template CRUD](#template-crud)
+     - [Create Template](#create-template)
+     - [List Templates](#list-templates)
+     - [Get Template](#get-template)
+     - [Update Template](#update-template)
+     - [Delete Template](#delete-template)
+   - [Template Actions](#template-actions)
+     - [Detect Variables](#detect-variables)
+     - [Duplicate Template](#duplicate-template)
+     - [Toggle Favorite](#toggle-favorite)
+     - [Download PDF](#download-pdf)
+   - [PDF Generation](#pdf-generation)
+     - [Generate PDF](#generate-pdf)
+   - [Variables](#variables)
+5. [Template Object Schema](#template-object-schema)
+6. [Examples](#examples)
 
 ---
 
@@ -110,7 +120,72 @@ All API responses follow a standardized JSON format:
 
 ---
 
+## Template Object Schema
+
+All template endpoints return the following object structure:
+
+```json
+{
+  "id": 1,
+  "name": "Sales Contract Template",
+  "summary": "Template for standard sales contracts",
+  "html_content": "<div>...</div>",
+  "header_html": "<div>Company Header HTML</div>",
+  "print_mode": "letterhead",
+  "show_header": true,
+  "margin_top": 40.0,
+  "margin_bottom": 25.0,
+  "margin_left": 20.0,
+  "margin_right": 20.0,
+  "category_id": {"id": 1, "name": "Contracts"},
+  "tag_ids": [
+    {"id": 1, "name": "Sales", "color": 1}
+  ],
+  "active": true,
+  "favorite": false,
+  "has_pdf": false,
+  "pdf_filename": "Sales Contract Template.pdf",
+  "variable_count": 2,
+  "variables": [
+    {
+      "id": 1,
+      "name": "customer_name",
+      "label": "Customer Name",
+      "variable_type": "char",
+      "default_value": "",
+      "required": true,
+      "sequence": 10,
+      "selection_options": "",
+      "placeholder_tag": "{{customer_name}}"
+    }
+  ],
+  "company_id": {"id": 1, "name": "Your Company"},
+  "create_date": "2026-02-14T12:00:00",
+  "write_date": "2026-02-14T12:00:00"
+}
+```
+
+### Print Mode
+
+| Value | Description |
+|-------|-------------|
+| `letterhead` | Large top/bottom margins for pre-printed letterhead paper. No digital header rendered. **Default.** |
+| `digital` | Standard margins. The `header_html` is rendered on every PDF page when `show_header` is `true`. |
+
+### Default Margins by Print Mode
+
+| Print Mode | Top | Bottom | Left | Right |
+|------------|-----|--------|------|-------|
+| `letterhead` | 40 mm | 25 mm | 20 mm | 20 mm |
+| `digital` | 20 mm | 20 mm | 20 mm | 20 mm |
+
+---
+
 ## Endpoints
+
+## Template CRUD
+
+---
 
 ## Create Template
 
@@ -129,20 +204,27 @@ X-API-Key: your-secret-api-key-here
 ```json
 {
   "name": "Sales Contract Template",
-  "html_content": "<div style='font-family: Arial;'><h1>Sales Contract</h1><p>Customer: ${customer_name}</p></div>",
+  "html_content": "<div><h1>Sales Contract</h1><p>Customer: {{customer_name}}</p></div>",
   "summary": "Template for standard sales contracts",
   "category_id": 1,
   "tag_ids": [1, 2, 3],
   "active": true,
   "favorite": false,
+  "print_mode": "digital",
+  "show_header": true,
+  "header_html": "<div class='d-flex justify-content-between'><span>Acme Corp</span><span>{{contract_date}}</span></div>",
+  "margin_top": 20.0,
+  "margin_bottom": 20.0,
+  "margin_left": 20.0,
+  "margin_right": 20.0,
   "variables": [
     {
       "name": "customer_name",
       "label": "Customer Name",
-      "variable_type": "text",
+      "variable_type": "char",
       "default_value": "",
       "required": true,
-      "help_text": "Full name of the customer"
+      "sequence": 10
     },
     {
       "name": "contract_date",
@@ -150,7 +232,7 @@ X-API-Key: your-secret-api-key-here
       "variable_type": "date",
       "default_value": "",
       "required": true,
-      "help_text": "Date of contract signing"
+      "sequence": 20
     }
   ]
 }
@@ -158,29 +240,37 @@ X-API-Key: your-secret-api-key-here
 
 **Request Body Parameters:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| name | string | Yes | Template name |
-| html_content | string | Yes | HTML content with variables |
-| summary | string | No | Brief description |
-| category_id | integer | No | Category ID |
-| tag_ids | array | No | Array of tag IDs |
-| active | boolean | No | Active status (default: true) |
-| favorite | boolean | No | Favorite status (default: false) |
-| variables | array | No | Array of variable objects |
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| name | string | **Yes** | - | Template name |
+| html_content | string | **Yes** | - | HTML body with `{{variable}}` placeholders |
+| summary | string | No | `""` | Brief description |
+| category_id | integer | No | - | Category ID |
+| tag_ids | array | No | `[]` | Array of tag IDs |
+| active | boolean | No | `true` | Active status |
+| favorite | boolean | No | `false` | Favorite status |
+| print_mode | string | No | `"letterhead"` | `"letterhead"` or `"digital"` |
+| show_header | boolean | No | `true` | Show `header_html` in PDF (digital mode only) |
+| header_html | string | No | `""` | HTML rendered at the top of every PDF page (digital mode) |
+| margin_top | float | No | mode-dependent | Top margin in mm |
+| margin_bottom | float | No | mode-dependent | Bottom margin in mm |
+| margin_left | float | No | `20.0` | Left margin in mm |
+| margin_right | float | No | `20.0` | Right margin in mm |
+| variables | array | No | `[]` | Array of variable objects (see below) |
 
 **Variable Object:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| name | string | Yes | Variable identifier (e.g., "customer_name") |
-| label | string | Yes | Display label |
-| variable_type | string | No | Type: text, date, number, boolean (default: text) |
-| default_value | string | No | Default value |
-| required | boolean | No | Is required (default: false) |
-| help_text | string | No | Helper text |
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| name | string | **Yes** | - | Variable identifier used in `{{placeholder}}` |
+| label | string | **Yes** | - | Display label shown in the export wizard |
+| variable_type | string | No | `"char"` | `char`, `text`, `integer`, `float`, `date`, `selection` |
+| default_value | string | No | `""` | Pre-filled default value |
+| required | boolean | No | `true` | Whether a value is mandatory at export time |
+| sequence | integer | No | `10` | Sort order in the wizard |
+| selection_options | string | No | `""` | Comma-separated choices (for `selection` type only) |
 
-**Response:**
+**Response:** `201 Created` — returns the full [Template Object](#template-object-schema).
 
 ```json
 {
@@ -188,40 +278,7 @@ X-API-Key: your-secret-api-key-here
   "message": "Template created successfully",
   "timestamp": "2026-02-14T12:00:00Z",
   "data": {
-    "template": {
-      "id": 1,
-      "name": "Sales Contract Template",
-      "summary": "Template for standard sales contracts",
-      "html_content": "<div>...</div>",
-      "category_id": {
-        "id": 1,
-        "name": "Contracts"
-      },
-      "tag_ids": [
-        {"id": 1, "name": "Sales", "color": 1},
-        {"id": 2, "name": "Legal", "color": 2}
-      ],
-      "active": true,
-      "favorite": false,
-      "variable_count": 2,
-      "variables": [
-        {
-          "id": 1,
-          "name": "customer_name",
-          "label": "Customer Name",
-          "variable_type": "text",
-          "default_value": "",
-          "required": true,
-          "help_text": "Full name of the customer"
-        }
-      ],
-      "company_id": {
-        "id": 1,
-        "name": "Your Company"
-      },
-      "create_date": "2026-02-14T12:00:00",
-      "write_date": "2026-02-14T12:00:00"
-    }
+    "template": { "..." }
   }
 }
 ```
@@ -270,6 +327,10 @@ GET /api/v1/templates?name=contract&active=true&page=1&per_page=10
         "id": 1,
         "name": "Sales Contract Template",
         "summary": "Template for sales contracts",
+        "print_mode": "digital",
+        "show_header": true,
+        "has_pdf": false,
+        "pdf_filename": "Sales Contract Template.pdf",
         "category_id": {"id": 1, "name": "Contracts"},
         "tag_ids": [{"id": 1, "name": "Sales", "color": 1}],
         "active": true,
@@ -337,20 +398,31 @@ GET /api/v1/templates/1?include_variables=true
       "name": "Sales Contract Template",
       "summary": "Template for sales contracts",
       "html_content": "<div>...</div>",
+      "header_html": "<div class='d-flex justify-content-between'>...</div>",
+      "print_mode": "digital",
+      "show_header": true,
+      "margin_top": 20.0,
+      "margin_bottom": 20.0,
+      "margin_left": 20.0,
+      "margin_right": 20.0,
       "category_id": {"id": 1, "name": "Contracts"},
       "tag_ids": [{"id": 1, "name": "Sales", "color": 1}],
       "active": true,
       "favorite": false,
+      "has_pdf": false,
+      "pdf_filename": "Sales Contract Template.pdf",
       "variable_count": 2,
       "variables": [
         {
           "id": 1,
           "name": "customer_name",
           "label": "Customer Name",
-          "variable_type": "text",
+          "variable_type": "char",
           "default_value": "",
           "required": true,
-          "help_text": "Full name of the customer"
+          "sequence": 10,
+          "selection_options": "",
+          "placeholder_tag": "{{customer_name}}"
         }
       ],
       "company_id": {"id": 1, "name": "Your Company"},
@@ -365,7 +437,7 @@ GET /api/v1/templates/1?include_variables=true
 
 ## Update Template
 
-Update an existing template.
+Update an existing template. All body fields are optional — include only what you want to change.
 
 **Endpoint:** `PUT /api/v1/templates/<template_id>` or `PATCH /api/v1/templates/<template_id>`
 
@@ -382,23 +454,38 @@ X-API-Key: your-secret-api-key-here
 |-----------|------|----------|-------------|
 | template_id | integer | Yes | Template ID |
 
-**Request Body:**
+**Updatable Fields:**
 
-All fields are optional. Include only the fields you want to update.
+| Field | Type | Description |
+|-------|------|-------------|
+| name | string | Template name |
+| html_content | string | HTML body |
+| header_html | string | Digital page header HTML |
+| summary | string | Brief description |
+| category_id | integer / null | Category ID (`null` to clear) |
+| tag_ids | array | Full replacement list of tag IDs |
+| active | boolean | Active status |
+| favorite | boolean | Favorite status |
+| print_mode | string | `"letterhead"` or `"digital"` |
+| show_header | boolean | Show header in PDF |
+| margin_top | float | Top margin in mm |
+| margin_bottom | float | Bottom margin in mm |
+| margin_left | float | Left margin in mm |
+| margin_right | float | Right margin in mm |
+
+**Example Request Body:**
 
 ```json
 {
-  "name": "Updated Sales Contract Template",
-  "html_content": "<div>Updated content...</div>",
-  "summary": "Updated description",
-  "category_id": 2,
-  "tag_ids": [1, 3, 5],
-  "active": true,
+  "print_mode": "digital",
+  "show_header": true,
+  "header_html": "<div class='d-flex justify-content-between'><strong>Acme Corp</strong><span>Confidential</span></div>",
+  "margin_top": 20.0,
   "favorite": true
 }
 ```
 
-**Response:**
+**Response:** `200 OK` — returns the full updated [Template Object](#template-object-schema).
 
 ```json
 {
@@ -406,12 +493,7 @@ All fields are optional. Include only the fields you want to update.
   "message": "Template updated successfully",
   "timestamp": "2026-02-14T12:00:00Z",
   "data": {
-    "template": {
-      "id": 1,
-      "name": "Updated Sales Contract Template",
-      "summary": "Updated description",
-      // ... full template data
-    }
+    "template": { "..." }
   }
 }
 ```
@@ -460,18 +542,309 @@ DELETE /api/v1/templates/1?hard_delete=false
 
 ---
 
+## Template Actions
+
+---
+
+## Detect Variables
+
+Scan a template's HTML body for `{{variable}}` placeholders and automatically create any variable records that do not yet exist.
+
+**Endpoint:** `POST /api/v1/templates/<template_id>/detect-variables`
+
+**Headers:**
+
+```http
+X-API-Key: your-secret-api-key-here
+```
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| template_id | integer | Yes | Template ID |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "3 new variable(s) detected and added.",
+  "timestamp": "2026-03-11T10:00:00Z",
+  "data": {
+    "new_variable_count": 3,
+    "new_variables": ["contract_date", "customer_name", "salary"],
+    "template": { "..." }
+  }
+}
+```
+
+When no new variables are found the response message is `"No new variables found."` and `new_variable_count` is `0`.
+
+**Error Responses:**
+
+| Code | Reason |
+|------|--------|
+| 400 | Template HTML content is empty |
+| 404 | Template not found |
+
+---
+
+## Duplicate Template
+
+Create an identical copy of a template, including all of its variables.
+
+**Endpoint:** `POST /api/v1/templates/<template_id>/duplicate`
+
+**Headers:**
+
+```http
+X-API-Key: your-secret-api-key-here
+```
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| template_id | integer | Yes | Source template ID |
+
+**Response:** `201 Created` — returns the new [Template Object](#template-object-schema).
+
+```json
+{
+  "success": true,
+  "message": "Template duplicated successfully",
+  "timestamp": "2026-03-11T10:00:00Z",
+  "data": {
+    "template": { "..." }
+  }
+}
+```
+
+**Error Responses:**
+
+| Code | Reason |
+|------|--------|
+| 404 | Template not found |
+
+---
+
+## Toggle Favorite
+
+Flip the `favorite` flag on a template (on → off, off → on).
+
+**Endpoint:** `POST /api/v1/templates/<template_id>/toggle-favorite`
+
+**Headers:**
+
+```http
+X-API-Key: your-secret-api-key-here
+```
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| template_id | integer | Yes | Template ID |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Template marked as favorite",
+  "timestamp": "2026-03-11T10:00:00Z",
+  "data": {
+    "template_id": 42,
+    "favorite": true
+  }
+}
+```
+
+**Error Responses:**
+
+| Code | Reason |
+|------|--------|
+| 404 | Template not found |
+
+---
+
+## Download PDF
+
+Return the **last PDF** that was generated for this template (via the [Generate PDF](#generate-pdf) endpoint or the Odoo UI export wizard).
+
+**Endpoint:** `GET /api/v1/templates/<template_id>/download-pdf`
+
+**Headers:**
+
+```http
+X-API-Key: your-secret-api-key-here
+```
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| template_id | integer | Yes | Template ID |
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| return_type | string | No | `"base64"` | `"base64"` or `"url"` |
+
+**Response (base64):**
+
+```json
+{
+  "success": true,
+  "message": "PDF retrieved successfully",
+  "data": {
+    "filename": "Sales Contract Template.pdf",
+    "pdf_base64": "JVBERi0xLjQKJ...",
+    "mimetype": "application/pdf",
+    "size_bytes": 102400
+  }
+}
+```
+
+**Response (url):**
+
+```json
+{
+  "success": true,
+  "message": "PDF retrieved successfully",
+  "data": {
+    "filename": "Sales Contract Template.pdf",
+    "download_url": "/web/content/document.template/1/pdf_file/Sales Contract Template.pdf?download=true",
+    "mimetype": "application/pdf"
+  }
+}
+```
+
+**Error Responses:**
+
+| Code | Reason |
+|------|--------|
+| 404 | Template not found, or no PDF has been generated yet |
+
+---
+
+## PDF Generation
+
+---
+
+## Generate PDF
+
+Render all `{{variable}}` placeholders with the provided values and produce a PDF.
+
+**Endpoint:** `POST /api/v1/templates/<template_id>/generate-pdf`
+
+**Headers:**
+
+```http
+Content-Type: application/json
+X-API-Key: your-secret-api-key-here
+```
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| template_id | integer | Yes | Template ID |
+
+**Request Body:**
+
+```json
+{
+  "variables": {
+    "customer_name": "John Doe",
+    "contract_date": "2026-03-11",
+    "salary": "50000"
+  },
+  "filename": "Contract_JohnDoe.pdf",
+  "return_type": "base64"
+}
+```
+
+**Request Body Parameters:**
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| variables | object | No | `{}` | Key-value map of variable name → string value |
+| filename | string | No | template name + `.pdf` | Output filename |
+| return_type | string | No | `"base64"` | `"base64"` to receive the PDF inline, `"url"` for a one-time download link |
+
+**Response (base64):** `201 Created`
+
+```json
+{
+  "success": true,
+  "message": "PDF generated successfully",
+  "data": {
+    "filename": "Contract_JohnDoe.pdf",
+    "pdf_base64": "JVBERi0xLjQKJ...",
+    "mimetype": "application/pdf",
+    "size_bytes": 102400
+  }
+}
+```
+
+**Response (url):** `201 Created`
+
+```json
+{
+  "success": true,
+  "message": "PDF generated successfully",
+  "data": {
+    "filename": "Contract_JohnDoe.pdf",
+    "download_url": "/web/content/123/Contract_JohnDoe.pdf?download=true",
+    "attachment_id": 123,
+    "mimetype": "application/pdf",
+    "size_bytes": 102400
+  }
+}
+```
+
+**Error Responses:**
+
+| Code | Reason |
+|------|--------|
+| 400 | Required variables missing or invalid request body |
+| 404 | Template not found |
+| 500 | PDF generation failed |
+
+---
+
+## Variables
+
+Full CRUD for template variables is available under the `/variables` sub-resource. See [VARIABLES_API.md](./VARIABLES_API.md) for detailed documentation.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/templates/<id>/variables` | List all variables for a template |
+| GET | `/api/v1/templates/<id>/variables/<var_id>` | Get a single variable |
+| POST | `/api/v1/templates/<id>/variables` | Create a variable |
+| PUT/PATCH | `/api/v1/templates/<id>/variables/<var_id>` | Update a variable |
+| DELETE | `/api/v1/templates/<id>/variables/<var_id>` | Delete a variable |
+
+---
+
 ## Examples
 
-### Example 1: Create a Simple Template
+### Example 1: Create a Digital Template with Header
 
 ```bash
 curl -X POST http://localhost:8069/api/v1/templates \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-secret-api-key-here" \
   -d '{
-    "name": "Welcome Letter",
-    "html_content": "<div><h1>Welcome ${employee_name}!</h1><p>We are excited to have you join our team.</p></div>",
-    "summary": "Welcome letter for new employees"
+    "name": "Employment Contract",
+    "html_content": "<h1>Contract for {{employee_name}}</h1><p>Start date: {{start_date}}</p>",
+    "print_mode": "digital",
+    "show_header": true,
+    "header_html": "<div class=\"d-flex justify-content-between\"><strong>Acme Corp</strong><span>HR Department</span></div>",
+    "summary": "Standard employment contract"
   }'
 ```
 
@@ -489,166 +862,119 @@ curl -X GET http://localhost:8069/api/v1/templates/1 \
   -H "X-API-Key: your-secret-api-key-here"
 ```
 
-### Example 4: Update a Template
+### Example 4: Switch to Letterhead Mode
 
 ```bash
-curl -X PUT http://localhost:8069/api/v1/templates/1 \
+curl -X PATCH http://localhost:8069/api/v1/templates/1 \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-secret-api-key-here" \
   -d '{
-    "name": "Updated Welcome Letter",
-    "favorite": true
+    "print_mode": "letterhead",
+    "margin_top": 40.0,
+    "margin_bottom": 25.0
   }'
 ```
 
-### Example 5: Archive a Template
+### Example 5: Detect Variables Automatically
+
+```bash
+curl -X POST http://localhost:8069/api/v1/templates/1/detect-variables \
+  -H "X-API-Key: your-secret-api-key-here"
+```
+
+### Example 6: Generate a PDF
+
+```bash
+curl -X POST http://localhost:8069/api/v1/templates/1/generate-pdf \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-secret-api-key-here" \
+  -d '{
+    "variables": {
+      "employee_name": "Jane Smith",
+      "start_date": "2026-04-01"
+    },
+    "filename": "Contract_JaneSmith.pdf",
+    "return_type": "url"
+  }'
+```
+
+### Example 7: Download the Last Generated PDF (base64)
+
+```bash
+curl -X GET "http://localhost:8069/api/v1/templates/1/download-pdf" \
+  -H "X-API-Key: your-secret-api-key-here"
+```
+
+### Example 8: Duplicate a Template
+
+```bash
+curl -X POST http://localhost:8069/api/v1/templates/1/duplicate \
+  -H "X-API-Key: your-secret-api-key-here"
+```
+
+### Example 9: Toggle Favorite
+
+```bash
+curl -X POST http://localhost:8069/api/v1/templates/1/toggle-favorite \
+  -H "X-API-Key: your-secret-api-key-here"
+```
+
+### Example 10: Archive a Template
 
 ```bash
 curl -X DELETE "http://localhost:8069/api/v1/templates/1?hard_delete=false" \
   -H "X-API-Key: your-secret-api-key-here"
 ```
 
-### Example 6: Create Template with Variables
-
-```bash
-curl -X POST http://localhost:8069/api/v1/templates \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: your-secret-api-key-here" \
-  -d '{
-    "name": "Employee Contract",
-    "html_content": "<div><h1>Employment Contract</h1><p>Employee: ${employee_name}</p><p>Position: ${position}</p><p>Start Date: ${start_date}</p><p>Salary: ${salary}</p></div>",
-    "summary": "Standard employment contract template",
-    "variables": [
-      {
-        "name": "employee_name",
-        "label": "Employee Name",
-        "variable_type": "text",
-        "required": true,
-        "help_text": "Full legal name of the employee"
-      },
-      {
-        "name": "position",
-        "label": "Job Position",
-        "variable_type": "text",
-        "required": true,
-        "help_text": "Official job title"
-      },
-      {
-        "name": "start_date",
-        "label": "Start Date",
-        "variable_type": "date",
-        "required": true,
-        "help_text": "First day of employment"
-      },
-      {
-        "name": "salary",
-        "label": "Annual Salary",
-        "variable_type": "number",
-        "required": true,
-        "help_text": "Annual compensation amount"
-      }
-    ]
-  }'
-```
-
-### Example 7: Using Python Requests
+### Example 11: Python Integration
 
 ```python
+import os
+import base64
 import requests
-import json
 
-# Configuration
 BASE_URL = "http://localhost:8069/api/v1"
-API_KEY = "your-secret-api-key-here"
-
-headers = {
+HEADERS = {
     "Content-Type": "application/json",
-    "X-API-Key": API_KEY
+    "X-API-Key": os.getenv("ODOO_API_KEY"),
 }
 
-# Create a template
-template_data = {
-    "name": "Invoice Template",
-    "html_content": "<div><h1>Invoice</h1><p>Amount: ${amount}</p></div>",
-    "summary": "Standard invoice template",
-    "active": True,
-    "favorite": False
-}
-
-response = requests.post(
+# --- Create a digital template ---
+template_resp = requests.post(
     f"{BASE_URL}/templates",
-    headers=headers,
-    json=template_data
+    headers=HEADERS,
+    json={
+        "name": "Offer Letter",
+        "html_content": "<h1>Dear {{candidate_name}},</h1><p>Salary: {{salary}}</p>",
+        "print_mode": "digital",
+        "show_header": True,
+        "header_html": "<div><strong>Acme Corp</strong></div>",
+    },
 )
+tpl = template_resp.json()["data"]["template"]
+print(f"Created template ID: {tpl['id']}")
 
-if response.status_code == 201:
-    result = response.json()
-    print(f"Template created: {result['data']['template']['id']}")
-    template_id = result['data']['template']['id']
+# --- Auto-detect variables ---
+detect_resp = requests.post(
+    f"{BASE_URL}/templates/{tpl['id']}/detect-variables",
+    headers=HEADERS,
+)
+print(detect_resp.json()["message"])  # e.g. "2 new variable(s) detected and added."
 
-    # Get the template
-    get_response = requests.get(
-        f"{BASE_URL}/templates/{template_id}",
-        headers=headers
-    )
-    print(json.dumps(get_response.json(), indent=2))
-else:
-    print(f"Error: {response.json()}")
-```
-
-### Example 8: Using JavaScript (Node.js)
-
-```javascript
-const axios = require('axios');
-
-const BASE_URL = 'http://localhost:8069/api/v1';
-const API_KEY = 'your-secret-api-key-here';
-
-const headers = {
-  'Content-Type': 'application/json',
-  'X-API-Key': API_KEY
-};
-
-// Create a template
-async function createTemplate() {
-  try {
-    const response = await axios.post(
-      `${BASE_URL}/templates`,
-      {
-        name: 'Proposal Template',
-        html_content: '<div><h1>Business Proposal</h1><p>Client: ${client_name}</p></div>',
-        summary: 'Standard business proposal template',
-        active: true
-      },
-      { headers }
-    );
-
-    console.log('Template created:', response.data);
-    return response.data.data.template.id;
-  } catch (error) {
-    console.error('Error:', error.response.data);
-  }
-}
-
-// List templates
-async function listTemplates() {
-  try {
-    const response = await axios.get(
-      `${BASE_URL}/templates?active=true&page=1&per_page=10`,
-      { headers }
-    );
-
-    console.log('Templates:', response.data);
-  } catch (error) {
-    console.error('Error:', error.response.data);
-  }
-}
-
-// Run examples
-(async () => {
-  const templateId = await createTemplate();
-  await listTemplates();
-})();
+# --- Generate a PDF ---
+pdf_resp = requests.post(
+    f"{BASE_URL}/templates/{tpl['id']}/generate-pdf",
+    headers=HEADERS,
+    json={
+        "variables": {"candidate_name": "Alice", "salary": "60,000"},
+        "filename": "OfferLetter_Alice.pdf",
+        "return_type": "base64",
+    },
+)
+pdf_b64 = pdf_resp.json()["data"]["pdf_base64"]
+with open("OfferLetter_Alice.pdf", "wb") as f:
+    f.write(base64.b64decode(pdf_b64))
+print("PDF saved.")
 ```
 
 ---
@@ -659,10 +985,11 @@ async function listTemplates() {
 2. **Handle errors gracefully** - Implement proper error handling for different status codes
 3. **Use pagination** - For large datasets, use pagination to avoid performance issues
 4. **Secure your API key** - Store API keys in environment variables, never in code
-5. **Use meaningful variable names** - Make template variables descriptive and consistent
-6. **Test in development first** - Always test API calls in a development environment
-7. **Log API usage** - Keep track of API calls for debugging and monitoring
-8. **Rate limiting** - Implement rate limiting on your side to avoid overwhelming the server
+5. **Use `{{variable}}` syntax** - Template placeholders must use double curly braces, not `${}`
+6. **Run detect-variables after editing HTML** - Call the detect-variables action endpoint whenever you update `html_content` to keep variable records in sync
+7. **Choose print_mode intentionally** - Use `digital` for branded PDFs with a header; use `letterhead` for printing on pre-printed paper
+8. **Test in development first** - Always test API calls in a development environment
+9. **Log API usage** - Check Odoo server logs regularly for errors or suspicious activity
 
 ---
 
@@ -670,5 +997,5 @@ async function listTemplates() {
 
 For technical support or feature requests, please contact the Internal Development Team.
 
-**Module Version:** 19.0.1.0.0
-**Last Updated:** February 14, 2026
+**Module Version:** 19.0.1.1.0
+**Last Updated:** March 11, 2026

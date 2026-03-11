@@ -1,6 +1,8 @@
 import base64
 import re
 
+from markupsafe import Markup
+
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
@@ -43,7 +45,7 @@ class DocumentExportWizard(models.TransientModel):
     def create(self, vals_list):
         for vals in vals_list:
             template_id = vals.get("template_id") or self.env.context.get(
-                "default_template_id"
+                "default_template_id",
             )
             if not template_id:
                 raise ValidationError(_("Template is required for export wizard."))
@@ -84,10 +86,35 @@ class DocumentExportWizard(models.TransientModel):
     @api.depends("line_ids.value_char")
     def _compute_preview_html(self):
         for wiz in self:
-            if wiz.template_id and wiz.template_id.html_content:
-                wiz.preview_html = wiz._render_html()
-            else:
+            tmpl = wiz.template_id
+            if not tmpl or not tmpl.html_content:
                 wiz.preview_html = '<p style="color:#999;">No content to preview.</p>'
+                continue
+
+            body = wiz._render_html()
+
+            # Prepend the digital header (read-only, non-editable preview)
+            if (
+                tmpl.print_mode == "digital"
+                and tmpl.show_header
+                and tmpl.header_html
+                and tmpl.header_html.strip()
+            ):
+                header_block = (
+                    Markup(
+                        '<div style="'
+                        "border-bottom:2px solid #dee2e6;"
+                        "margin-bottom:12px;"
+                        "padding-bottom:6px;"
+                        "font-size:0.875rem;"
+                        'line-height:1.2;">',
+                    )
+                    + Markup(str(tmpl.header_html))
+                    + Markup("</div>")
+                )
+                wiz.preview_html = header_block + body
+            else:
+                wiz.preview_html = body
 
     # ── Generate ──────────────────────────────────────────────────────
     def action_generate_pdf(self):
@@ -142,12 +169,12 @@ class DocumentExportWizard(models.TransientModel):
     # ── Helpers ───────────────────────────────────────────────────────
     def _render_html(self):
         """Replace all ``{{variable}}`` placeholders with user values."""
-        html = self.template_id.html_content or ""
+        html = str(self.template_id.html_content or "")
         for line in self.line_ids:
             if line.name:
                 pattern = r"\{\{\s*" + re.escape(line.name) + r"\s*\}\}"
                 html = re.sub(pattern, (line.value_char or ""), html)
-        return html
+        return Markup(html)
 
 
 class DocumentExportWizardLine(models.TransientModel):

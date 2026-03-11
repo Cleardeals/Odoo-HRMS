@@ -21,6 +21,13 @@ def serialize_template(template, include_variables=True):
         "name": template.name,
         "summary": template.summary or "",
         "html_content": template.html_content or "",
+        "header_html": template.header_html or "",
+        "print_mode": template.print_mode,
+        "show_header": template.show_header,
+        "margin_top": template.margin_top,
+        "margin_bottom": template.margin_bottom,
+        "margin_left": template.margin_left,
+        "margin_right": template.margin_right,
         "category_id": {
             "id": template.category_id.id,
             "name": template.category_id.name,
@@ -33,6 +40,8 @@ def serialize_template(template, include_variables=True):
         ],
         "active": template.active,
         "favorite": template.favorite,
+        "has_pdf": template.has_pdf,
+        "pdf_filename": template.pdf_filename or "",
         "variable_count": template.variable_count,
         "company_id": {
             "id": template.company_id.id,

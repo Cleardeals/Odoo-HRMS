@@ -43,10 +43,9 @@
                         </field>
                     </page>
 
-                    <!-- Tab 2 – Live Preview -->
+                    <!-- Tab 2 – Preview -->
                     <page string="Preview" name="preview" icon="fa-eye">
-                        <field name="preview_html" widget="html" readonly="1"
-                               options="{'style-inline': true}"/>
+                        <field name="preview_html" widget="html" readonly="1"/>
                     </page>
                 </notebook>
 

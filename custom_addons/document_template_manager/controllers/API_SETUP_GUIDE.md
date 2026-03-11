@@ -40,6 +40,8 @@ curl -X GET http://localhost:8069/api/v1/templates \
 
 ## Available Endpoints
 
+### Template CRUD
+
 | Method | Endpoint | Description |
 | -------- | ---------- | ------------- |
 | POST | `/api/v1/templates` | Create a new template |
@@ -47,6 +49,31 @@ curl -X GET http://localhost:8069/api/v1/templates \
 | GET | `/api/v1/templates/<id>` | Get a specific template |
 | PUT/PATCH | `/api/v1/templates/<id>` | Update a template |
 | DELETE | `/api/v1/templates/<id>` | Delete/Archive a template |
+
+### Template Actions
+
+| Method | Endpoint | Description |
+| -------- | ---------- | ------------- |
+| POST | `/api/v1/templates/<id>/detect-variables` | Scan HTML and auto-create variable records |
+| POST | `/api/v1/templates/<id>/duplicate` | Duplicate a template (including variables) |
+| POST | `/api/v1/templates/<id>/toggle-favorite` | Toggle the favorite flag |
+| GET | `/api/v1/templates/<id>/download-pdf` | Retrieve the last generated PDF |
+
+### PDF Generation
+
+| Method | Endpoint | Description |
+| -------- | ---------- | ------------- |
+| POST | `/api/v1/templates/<id>/generate-pdf` | Generate a PDF with variable substitution |
+
+### Variables
+
+| Method | Endpoint | Description |
+| -------- | ---------- | ------------- |
+| GET | `/api/v1/templates/<id>/variables` | List variables for a template |
+| GET | `/api/v1/templates/<id>/variables/<var_id>` | Get a single variable |
+| POST | `/api/v1/templates/<id>/variables` | Create a variable |
+| PUT/PATCH | `/api/v1/templates/<id>/variables/<var_id>` | Update a variable |
+| DELETE | `/api/v1/templates/<id>/variables/<var_id>` | Delete a variable |
 
 ---
 
@@ -60,9 +87,38 @@ curl -X POST http://localhost:8069/api/v1/templates \
   -H "X-API-Key: your-api-key" \
   -d '{
     "name": "Test Template",
-    "html_content": "<h1>Hello World</h1>",
-    "summary": "A simple test template"
+    "html_content": "<h1>Hello {{name}}!</h1>",
+    "summary": "A simple test template",
+    "print_mode": "digital",
+    "show_header": true,
+    "header_html": "<div><strong>Acme Corp</strong></div>"
   }'
+```
+
+### Auto-Detect Variables
+
+```bash
+curl -X POST http://localhost:8069/api/v1/templates/1/detect-variables \
+  -H "X-API-Key: your-api-key"
+```
+
+### Generate a PDF
+
+```bash
+curl -X POST http://localhost:8069/api/v1/templates/1/generate-pdf \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{
+    "variables": {"name": "Alice"},
+    "return_type": "base64"
+  }'
+```
+
+### Duplicate a Template
+
+```bash
+curl -X POST http://localhost:8069/api/v1/templates/1/duplicate \
+  -H "X-API-Key: your-api-key"
 ```
 
 ### List Templates
@@ -82,13 +138,29 @@ curl -X GET http://localhost:8069/api/v1/templates/1 \
 ### Update Template
 
 ```bash
-curl -X PUT http://localhost:8069/api/v1/templates/1 \
+curl -X PATCH http://localhost:8069/api/v1/templates/1 \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-api-key" \
   -d '{
-    "name": "Updated Template Name",
+    "print_mode": "digital",
+    "show_header": true,
+    "margin_top": 20.0,
     "favorite": true
   }'
+```
+
+### Toggle Favorite
+
+```bash
+curl -X POST http://localhost:8069/api/v1/templates/1/toggle-favorite \
+  -H "X-API-Key: your-api-key"
+```
+
+### Download Last PDF
+
+```bash
+curl -X GET "http://localhost:8069/api/v1/templates/1/download-pdf?return_type=url" \
+  -H "X-API-Key: your-api-key"
 ```
 
 ### Archive Template
@@ -118,19 +190,30 @@ For POST/PUT/PATCH requests, also add:
 - **Key:** `Content-Type`
 - **Value:** `application/json`
 
-### 3. Sample Request Body (POST)
+### 3. Sample Request Body (POST — Digital Mode)
 
 ```json
 {
   "name": "Employee Contract",
-  "html_content": "<div><h1>Employment Contract</h1><p>Employee: ${employee_name}</p></div>",
+  "html_content": "<h1>Contract for {{employee_name}}</h1><p>Start: {{start_date}}</p>",
   "summary": "Standard employment contract template",
+  "print_mode": "digital",
+  "show_header": true,
+  "header_html": "<div class=\"d-flex justify-content-between\"><strong>Acme Corp</strong><span>HR Department</span></div>",
+  "margin_top": 20.0,
+  "margin_bottom": 20.0,
   "active": true,
   "variables": [
     {
       "name": "employee_name",
       "label": "Employee Name",
-      "variable_type": "text",
+      "variable_type": "char",
+      "required": true
+    },
+    {
+      "name": "start_date",
+      "label": "Start Date",
+      "variable_type": "date",
       "required": true
     }
   ]
@@ -230,7 +313,7 @@ class DocumentTemplateAPI:
 
     def update_template(self, template_id, **updates):
         """Update a template"""
-        response = requests.put(
+        response = requests.patch(
             f"{self.base_url}/api/v1/templates/{template_id}",
             json=updates,
             headers=self.headers
@@ -238,10 +321,55 @@ class DocumentTemplateAPI:
         return response.json()
 
     def delete_template(self, template_id, hard_delete=False):
-        """Delete/Archive a template"""
+        """Archive or permanently delete a template"""
         response = requests.delete(
             f"{self.base_url}/api/v1/templates/{template_id}",
             params={"hard_delete": hard_delete},
+            headers=self.headers
+        )
+        return response.json()
+
+    def detect_variables(self, template_id):
+        """Auto-detect {{variable}} placeholders in template HTML"""
+        response = requests.post(
+            f"{self.base_url}/api/v1/templates/{template_id}/detect-variables",
+            headers=self.headers
+        )
+        return response.json()
+
+    def duplicate_template(self, template_id):
+        """Create a copy of a template"""
+        response = requests.post(
+            f"{self.base_url}/api/v1/templates/{template_id}/duplicate",
+            headers=self.headers
+        )
+        return response.json()
+
+    def toggle_favorite(self, template_id):
+        """Toggle the favorite flag"""
+        response = requests.post(
+            f"{self.base_url}/api/v1/templates/{template_id}/toggle-favorite",
+            headers=self.headers
+        )
+        return response.json()
+
+    def generate_pdf(self, template_id, variables, filename=None, return_type="base64"):
+        """Generate a PDF with variable substitution"""
+        payload = {"variables": variables, "return_type": return_type}
+        if filename:
+            payload["filename"] = filename
+        response = requests.post(
+            f"{self.base_url}/api/v1/templates/{template_id}/generate-pdf",
+            json=payload,
+            headers=self.headers
+        )
+        return response.json()
+
+    def download_pdf(self, template_id, return_type="base64"):
+        """Retrieve the last generated PDF"""
+        response = requests.get(
+            f"{self.base_url}/api/v1/templates/{template_id}/download-pdf",
+            params={"return_type": return_type},
             headers=self.headers
         )
         return response.json()
@@ -252,13 +380,28 @@ api = DocumentTemplateAPI(
     api_key=os.getenv("ODOO_API_KEY")
 )
 
-# Create template
+# Create a digital template
 result = api.create_template(
-    name="Welcome Letter",
-    html_content="<h1>Welcome ${name}!</h1>",
-    summary="Welcome letter for new employees"
+    name="Offer Letter",
+    html_content="<h1>Dear {{candidate_name}},</h1><p>Salary: {{salary}}</p>",
+    print_mode="digital",
+    show_header=True,
+    header_html="<div><strong>Acme Corp</strong></div>",
+    summary="Standard offer letter"
 )
-print(result)
+template_id = result["data"]["template"]["id"]
+print(f"Created ID: {template_id}")
+
+# Auto-detect variables
+print(api.detect_variables(template_id)["message"])
+
+# Generate a PDF
+pdf_result = api.generate_pdf(
+    template_id,
+    variables={"candidate_name": "Alice", "salary": "60,000"},
+    filename="OfferLetter_Alice.pdf"
+)
+print("PDF size:", pdf_result["data"]["size_bytes"])
 
 # List templates
 templates = api.list_templates(active=True, page=1, per_page=10)
@@ -276,5 +419,5 @@ print(templates)
 
 ---
 
-**Last Updated:** February 14, 2026
-**Module Version:** 19.0.1.0.0
+**Last Updated:** March 11, 2026
+**Module Version:** 19.0.1.1.0

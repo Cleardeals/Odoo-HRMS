@@ -115,6 +115,22 @@
                             </field>
                         </page>
 
+                        <!-- Header Tab -->
+                        <page string="Header" name="header_footer" icon="fa-align-justify"
+                              invisible="print_mode == 'letterhead'">
+                            <div class="alert alert-info border mb-3" style="border-radius: 8px;">
+                                <i class="fa fa-info-circle me-1"/>
+                                This header repeats on <strong>every page</strong> of the exported PDF.
+                                Use the <strong>Top (mm)</strong> margin in the <strong>Settings</strong> tab
+                                to reserve enough space for it.
+                            </div>
+
+                            <field name="header_html" widget="html"
+                                   options="{'style-inline': true}"
+                                   placeholder="Page header — appears at the top of every page…"
+                                   class="o_document_html_editor"/>
+                        </page>
+
                         <!-- Settings Tab -->
                         <page string="Settings" name="settings" icon="fa-cog">
                             <group>
@@ -125,6 +141,46 @@
                                     <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                                 </group>
                             </group>
+
+                            <!-- Print Mode -->
+                            <separator string="Print Mode"/>
+                            <group>
+                                <field name="print_mode" widget="radio"
+                                       options="{'horizontal': true}"
+                                       help="Letterhead: large margins for pre-printed letterhead paper (no digital header).&#10;Digital: standard margins with the Page Header rendered on every exported page."/>
+                            </group>
+
+                            <!-- Show Header toggle (Digital only) -->
+                            <group invisible="print_mode != 'digital'">
+                                <field name="show_header" widget="boolean_toggle"
+                                       string="Include Header in exported PDF"/>
+                            </group>
+                            <div class="alert alert-warning border mb-2" style="border-radius: 8px;"
+                                 invisible="print_mode != 'digital' or not show_header">
+                                <i class="fa fa-info-circle me-1"/>
+                                The <strong>Top margin</strong> must be tall enough to fit your header.
+                                A typical header is 10–20 mm; set <strong>Top ≥ that height + 2 mm</strong>.
+                            </div>
+
+                            <!-- Margins -->
+                            <separator string="Page Margins"/>
+                            <div class="alert alert-info border mb-3" style="border-radius: 8px;" invisible="print_mode != 'letterhead'">
+                                <i class="fa fa-info-circle me-1"/>
+                                <strong>Letterhead mode</strong> — set margins so printed content lands inside the
+                                body area of your pre-printed paper.
+                                Typical values: <strong>Top 40 mm</strong>, <strong>Bottom 25 mm</strong>, <strong>Left/Right 20 mm</strong>.
+                            </div>
+                            <div class="alert alert-info border mb-3" style="border-radius: 8px;" invisible="print_mode != 'digital'">
+                                <i class="fa fa-info-circle me-1"/>
+                                <strong>Digital mode</strong> — set <strong>Top</strong> large enough to fit
+                                the Page Header you defined. Standard value: <strong>20 mm</strong>.
+                            </div>
+                            <group col="4">
+                                <field name="margin_top" string="Top (mm)"/>
+                                <field name="margin_bottom" string="Bottom (mm)"/>
+                                <field name="margin_left" string="Left (mm)"/>
+                                <field name="margin_right" string="Right (mm)"/>
+                            </group>
                         </page>
                     </notebook>
 
@@ -134,6 +190,8 @@
                     <field name="pdf_file" invisible="1"/>
                     <field name="active" invisible="1"/>
                     <field name="favorite" invisible="1"/>
+                    <field name="print_mode" invisible="1"/>
+                    <field name="show_header" invisible="1"/>
                 </sheet>
             </form>
         </field>

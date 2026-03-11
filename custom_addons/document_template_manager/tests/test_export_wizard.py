@@ -5,6 +5,8 @@ Tests the document export wizard, variable filling, PDF generation through wizar
 and all wizard functionality.
 """
 
+from markupsafe import Markup
+
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
 
@@ -140,6 +142,81 @@ class TestWizardPreview(DocumentTemplateTestCase):
         wizard = self._create_export_wizard(template)
 
         self.assertIn("No content to preview", wizard.preview_html)
+
+    def test_05_preview_includes_header_in_digital_mode(self):
+        """Preview prepends header block when print_mode is digital and header is set."""
+        template = self._create_test_template(
+            print_mode="digital",
+            show_header=True,
+            header_html="<div><strong>My Company</strong></div>",
+        )
+        wizard = self._create_export_wizard(template)
+
+        # Header content should appear before body content
+        self.assertIn("My Company", wizard.preview_html)
+
+    def test_06_preview_excludes_header_in_letterhead_mode(self):
+        """Preview does NOT prepend header block for Letterhead mode."""
+        template = self._create_test_template(
+            print_mode="letterhead",
+            header_html="<div><strong>Should Not Appear</strong></div>",
+        )
+        wizard = self._create_export_wizard(template)
+
+        self.assertNotIn("Should Not Appear", wizard.preview_html)
+
+    def test_07_preview_excludes_header_when_show_header_false(self):
+        """Preview does NOT prepend header block when show_header is False."""
+        template = self._create_test_template(
+            print_mode="digital",
+            show_header=False,
+            header_html="<div><strong>Hidden Header</strong></div>",
+        )
+        wizard = self._create_export_wizard(template)
+
+        self.assertNotIn("Hidden Header", wizard.preview_html)
+
+    def test_08_preview_excludes_header_when_header_html_empty(self):
+        """Preview does NOT prepend header block when header_html is blank."""
+        template = self._create_test_template(
+            print_mode="digital",
+            show_header=True,
+            header_html=False,
+        )
+        wizard = self._create_export_wizard(template)
+
+        # Should still produce some preview (body content)
+        self.assertTrue(wizard.preview_html)
+
+    def test_09_preview_html_is_safe_markup(self):
+        """preview_html must be a Markup instance so Odoo renders it as HTML."""
+        template = self._create_test_template(
+            print_mode="digital",
+            show_header=True,
+            header_html="<p>Header</p>",
+        )
+        wizard = self._create_export_wizard(template)
+
+        self.assertIsInstance(wizard.preview_html, Markup)
+
+    def test_10_render_html_returns_markup(self):
+        """_render_html() must return a Markup instance."""
+        template = self._create_test_template(
+            html_content="<h1>{{title}}</h1>",
+        )
+        self.Variable.create(
+            {
+                "template_id": template.id,
+                "name": "title",
+                "label": "Title",
+            },
+        )
+        wizard = self._create_export_wizard(template)
+        wizard.line_ids[0].write({"value_char": "My Title"})
+
+        result = wizard._render_html()
+
+        self.assertIsInstance(result, Markup)
 
 
 @tagged("post_install", "-at_install", "wizard_validation")

@@ -27,7 +27,8 @@ class TestTemplateCreation(DocumentTemplateTestCase):
         self.assertEqual(template.name, "Simple Template")
         self.assertTrue(template.active, "Template should be active by default")
         self.assertFalse(
-            template.favorite, "Template should not be favorite by default",
+            template.favorite,
+            "Template should not be favorite by default",
         )
 
     def test_02_create_template_with_category(self):
@@ -107,7 +108,8 @@ class TestTemplateCreation(DocumentTemplateTestCase):
         )
 
         self.assertEqual(
-            template.summary, "This is a comprehensive offer letter template.",
+            template.summary,
+            "This is a comprehensive offer letter template.",
         )
 
     def test_08_template_inactive_flag(self):
@@ -326,3 +328,150 @@ class TestTemplateCopy(DocumentTemplateTestCase):
         copy = original.copy(default={"name": "Custom Copy Name"})
 
         self.assertEqual(copy.name, "Custom Copy Name")
+
+
+@tagged("post_install", "-at_install", "template_print_mode")
+class TestTemplatePrintMode(DocumentTemplateTestCase):
+    """Test print_mode, show_header, header_html, and margin field behaviour."""
+
+    # ── Default values ────────────────────────────────────────────────
+
+    def test_01_print_mode_defaults_to_letterhead(self):
+        """New templates default to Letterhead print mode."""
+        template = self._create_test_template()
+        self.assertEqual(template.print_mode, "letterhead")
+
+    def test_02_show_header_defaults_to_true(self):
+        """show_header defaults to True."""
+        template = self._create_test_template()
+        self.assertTrue(template.show_header)
+
+    def test_03_margin_defaults_letterhead(self):
+        """Letterhead-mode margin defaults are set correctly."""
+        template = self._create_test_template()
+        self.assertAlmostEqual(template.margin_top, 40.0)
+        self.assertAlmostEqual(template.margin_bottom, 25.0)
+        self.assertAlmostEqual(template.margin_left, 20.0)
+        self.assertAlmostEqual(template.margin_right, 20.0)
+
+    # ── Creating with explicit values ─────────────────────────────────
+
+    def test_04_create_with_digital_mode(self):
+        """Template can be created with digital print mode."""
+        template = self._create_test_template(print_mode="digital")
+        self.assertEqual(template.print_mode, "digital")
+
+    def test_05_create_with_header_html(self):
+        """Template stores header_html correctly."""
+        header = "<div><strong>Company Name</strong></div>"
+        template = self._create_test_template(header_html=header)
+        self.assertIn("Company Name", template.header_html)
+
+    def test_06_create_digital_with_show_header_false(self):
+        """show_header can be explicitly set to False."""
+        template = self._create_test_template(
+            print_mode="digital",
+            show_header=False,
+        )
+        self.assertFalse(template.show_header)
+
+    def test_07_create_with_custom_margins(self):
+        """Custom margin values are persisted."""
+        template = self._create_test_template(
+            margin_top=30.0,
+            margin_bottom=15.0,
+            margin_left=25.0,
+            margin_right=25.0,
+        )
+        self.assertAlmostEqual(template.margin_top, 30.0)
+        self.assertAlmostEqual(template.margin_bottom, 15.0)
+        self.assertAlmostEqual(template.margin_left, 25.0)
+        self.assertAlmostEqual(template.margin_right, 25.0)
+
+    # ── Onchange behaviour ────────────────────────────────────────────
+
+    def test_08_onchange_print_mode_letterhead_sets_margins(self):
+        """Switching to Letterhead resets margins to letterhead defaults."""
+        template = self.Template.new(
+            {
+                "name": "Onchange Test",
+                "html_content": "<p>Body</p>",
+                "print_mode": "digital",
+            },
+        )
+        template.print_mode = "letterhead"
+        template._onchange_print_mode()
+
+        self.assertAlmostEqual(template.margin_top, 40.0)
+        self.assertAlmostEqual(template.margin_bottom, 25.0)
+        self.assertAlmostEqual(template.margin_left, 20.0)
+        self.assertAlmostEqual(template.margin_right, 20.0)
+
+    def test_09_onchange_print_mode_digital_sets_margins(self):
+        """Switching to Digital resets margins to digital defaults."""
+        template = self.Template.new(
+            {
+                "name": "Onchange Test",
+                "html_content": "<p>Body</p>",
+                "print_mode": "letterhead",
+            },
+        )
+        template.print_mode = "digital"
+        template._onchange_print_mode()
+
+        self.assertAlmostEqual(template.margin_top, 20.0)
+        self.assertAlmostEqual(template.margin_bottom, 20.0)
+
+    def test_10_onchange_print_mode_sets_show_header_true(self):
+        """Switching print mode always resets show_header to True."""
+        template = self.Template.new(
+            {
+                "name": "Onchange Test",
+                "html_content": "<p>Body</p>",
+                "print_mode": "letterhead",
+                "show_header": False,
+            },
+        )
+        template.print_mode = "digital"
+        template._onchange_print_mode()
+
+        self.assertTrue(template.show_header)
+
+    # ── Write / update ────────────────────────────────────────────────
+
+    def test_11_update_print_mode(self):
+        """print_mode can be updated after creation."""
+        template = self._create_test_template(print_mode="letterhead")
+        template.write({"print_mode": "digital"})
+        self.assertEqual(template.print_mode, "digital")
+
+    def test_12_update_show_header(self):
+        """show_header can be toggled after creation."""
+        template = self._create_test_template(print_mode="digital", show_header=True)
+        template.write({"show_header": False})
+        self.assertFalse(template.show_header)
+
+    def test_13_update_header_html(self):
+        """header_html can be updated and is stored without sanitization."""
+        template = self._create_test_template(print_mode="digital")
+        new_header = "<div class='d-flex'><strong>Updated Header</strong></div>"
+        template.write({"header_html": new_header})
+        self.assertIn("Updated Header", template.header_html)
+
+    # ── Copy preserves print settings ─────────────────────────────────
+
+    def test_14_copy_preserves_print_mode(self):
+        """Copying a template preserves print_mode."""
+        original = self._create_test_template(print_mode="digital")
+        copy = original.copy()
+        self.assertEqual(copy.print_mode, "digital")
+
+    def test_15_copy_preserves_header_html(self):
+        """Copying a template preserves header_html content."""
+        header = "<p>My Company Header</p>"
+        original = self._create_test_template(
+            print_mode="digital",
+            header_html=header,
+        )
+        copy = original.copy()
+        self.assertIn("My Company Header", copy.header_html)
