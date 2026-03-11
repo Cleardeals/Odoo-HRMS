@@ -64,6 +64,13 @@ class TemplateCRUDAPIController(BaseAPIController):
                 "tag_ids": [1, 2, 3],  # Optional - List of tag IDs
                 "active": true,  # Optional - Default: true
                 "favorite": false,  # Optional - Default: false
+                "print_mode": "letterhead",  # Optional - "letterhead" (default) or "digital"
+                "show_header": true,  # Optional - Show header in PDF (digital mode only)
+                "header_html": "<div>...</div>",  # Optional - Header HTML for digital mode
+                "margin_top": 40.0,  # Optional - Top margin in mm
+                "margin_bottom": 25.0,  # Optional - Bottom margin in mm
+                "margin_left": 20.0,  # Optional - Left margin in mm
+                "margin_right": 20.0,  # Optional - Right margin in mm
                 "variables": [  # Optional - List of variables
                     {
                         "name": "customer_name",
@@ -130,6 +137,16 @@ class TemplateCRUDAPIController(BaseAPIController):
                 ],
             )
 
+        # Validate print_mode if provided
+        valid_print_modes = ("letterhead", "digital")
+        if data.get("print_mode") and data["print_mode"] not in valid_print_modes:
+            return api_response(
+                success=False,
+                message=f"Invalid print_mode. Must be one of: {', '.join(valid_print_modes)}",
+                status=400,
+                errors=[{"field": "print_mode", "message": "Invalid value"}],
+            )
+
         # Prepare template values
         template_vals = {
             "name": data["name"],
@@ -137,7 +154,26 @@ class TemplateCRUDAPIController(BaseAPIController):
             "summary": data.get("summary", ""),
             "active": data.get("active", True),
             "favorite": data.get("favorite", False),
+            "print_mode": data.get("print_mode", "letterhead"),
+            "show_header": data.get("show_header", True),
         }
+
+        # Optional header HTML
+        if "header_html" in data:
+            template_vals["header_html"] = data["header_html"]
+
+        # Optional margin overrides
+        for margin_field in ("margin_top", "margin_bottom", "margin_left", "margin_right"):
+            if margin_field in data:
+                try:
+                    template_vals[margin_field] = float(data[margin_field])
+                except (TypeError, ValueError):
+                    return api_response(
+                        success=False,
+                        message=f"Invalid value for {margin_field}. Must be a number.",
+                        status=400,
+                        errors=[{"field": margin_field, "message": "Expected a numeric value (mm)"}],
+                    )
 
         # Handle category
         if data.get("category_id"):
@@ -428,7 +464,14 @@ class TemplateCRUDAPIController(BaseAPIController):
                 "category_id": 2,  # Optional
                 "tag_ids": [1, 2],  # Optional
                 "active": false,  # Optional
-                "favorite": true  # Optional
+                "favorite": true,  # Optional
+                "print_mode": "digital",  # Optional - "letterhead" or "digital"
+                "show_header": true,  # Optional
+                "header_html": "<div>...</div>",  # Optional - Header HTML for digital mode
+                "margin_top": 20.0,  # Optional - Top margin in mm
+                "margin_bottom": 20.0,  # Optional - Bottom margin in mm
+                "margin_left": 20.0,  # Optional - Left margin in mm
+                "margin_right": 20.0  # Optional - Right margin in mm
             }
 
         Response Format:
@@ -465,14 +508,41 @@ class TemplateCRUDAPIController(BaseAPIController):
         allowed_fields = [
             "name",
             "html_content",
+            "header_html",
             "summary",
             "active",
             "favorite",
+            "print_mode",
+            "show_header",
         ]
 
         for field in allowed_fields:
             if field in data:
                 update_vals[field] = data[field]
+
+        # Validate print_mode if provided
+        if "print_mode" in update_vals:
+            valid_print_modes = ("letterhead", "digital")
+            if update_vals["print_mode"] not in valid_print_modes:
+                return api_response(
+                    success=False,
+                    message=f"Invalid print_mode. Must be one of: {', '.join(valid_print_modes)}",
+                    status=400,
+                    errors=[{"field": "print_mode", "message": "Invalid value"}],
+                )
+
+        # Handle margin fields (numeric validation)
+        for margin_field in ("margin_top", "margin_bottom", "margin_left", "margin_right"):
+            if margin_field in data:
+                try:
+                    update_vals[margin_field] = float(data[margin_field])
+                except (TypeError, ValueError):
+                    return api_response(
+                        success=False,
+                        message=f"Invalid value for {margin_field}. Must be a number.",
+                        status=400,
+                        errors=[{"field": margin_field, "message": "Expected a numeric value (mm)"}],
+                    )
 
         # Handle category
         if "category_id" in data:
