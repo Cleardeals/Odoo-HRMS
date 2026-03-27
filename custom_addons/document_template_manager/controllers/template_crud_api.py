@@ -163,7 +163,12 @@ class TemplateCRUDAPIController(BaseAPIController):
             template_vals["header_html"] = data["header_html"]
 
         # Optional margin overrides
-        for margin_field in ("margin_top", "margin_bottom", "margin_left", "margin_right"):
+        for margin_field in (
+            "margin_top",
+            "margin_bottom",
+            "margin_left",
+            "margin_right",
+        ):
             if margin_field in data:
                 try:
                     template_vals[margin_field] = float(data[margin_field])
@@ -172,7 +177,12 @@ class TemplateCRUDAPIController(BaseAPIController):
                         success=False,
                         message=f"Invalid value for {margin_field}. Must be a number.",
                         status=400,
-                        errors=[{"field": margin_field, "message": "Expected a numeric value (mm)"}],
+                        errors=[
+                            {
+                                "field": margin_field,
+                                "message": "Expected a numeric value (mm)",
+                            }
+                        ],
                     )
 
         # Handle category
@@ -532,7 +542,12 @@ class TemplateCRUDAPIController(BaseAPIController):
                 )
 
         # Handle margin fields (numeric validation)
-        for margin_field in ("margin_top", "margin_bottom", "margin_left", "margin_right"):
+        for margin_field in (
+            "margin_top",
+            "margin_bottom",
+            "margin_left",
+            "margin_right",
+        ):
             if margin_field in data:
                 try:
                     update_vals[margin_field] = float(data[margin_field])
@@ -541,7 +556,12 @@ class TemplateCRUDAPIController(BaseAPIController):
                         success=False,
                         message=f"Invalid value for {margin_field}. Must be a number.",
                         status=400,
-                        errors=[{"field": margin_field, "message": "Expected a numeric value (mm)"}],
+                        errors=[
+                            {
+                                "field": margin_field,
+                                "message": "Expected a numeric value (mm)",
+                            }
+                        ],
                     )
 
         # Handle category
