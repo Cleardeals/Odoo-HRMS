@@ -3,12 +3,30 @@ from email.utils import formataddr, parseaddr
 
 from odoo import _, models
 from odoo.exceptions import UserError
+from odoo.tools.mail import email_normalize, email_split_and_format
 
 _logger = logging.getLogger(__name__)
 
 
 class ApplicantGetRefuseReason(models.TransientModel):
     _inherit = "applicant.get.refuse.reason"
+
+    def _get_applicant_recipient_email(self, applicant):
+        """Return a sanitized recipient address list for an applicant."""
+        candidates = [applicant.email_from, applicant.partner_id.email]
+        for raw_email in candidates:
+            if not raw_email:
+                continue
+
+            normalized = email_normalize(raw_email, strict=False)
+            if normalized:
+                return normalized
+
+            recipient_emails = email_split_and_format(raw_email)
+            if recipient_emails:
+                return ", ".join(recipient_emails)
+
+        return False
 
     def _get_sender_from_server(self, server):
         if server.from_filter:
@@ -100,58 +118,69 @@ class ApplicantGetRefuseReason(models.TransientModel):
         if not self.send_mail:
             return super().action_refuse_reason_apply()
 
-        if any(
-            not (applicant.email_from or applicant.partner_id.email)
-            for applicant in self.applicant_ids
-        ):
+        invalid_recipients = self.applicant_ids.filtered(
+            lambda applicant: not self._get_applicant_recipient_email(applicant)
+        )
+        if invalid_recipients:
             raise UserError(
                 _(
-                    "At least one applicant doesn't have a email; you can't use send email option.",
-                ),
+                    "You can't use Send Email because these applicants have missing or invalid email addresses: %s",
+                    ", ".join(invalid_recipients.mapped("display_name")),
+                )
             )
 
         server_id, server_sender = self._get_refusal_mail_server_sender()
         sender_email = self._get_refusal_sender_email()
+        mail_values = self.with_context(
+            refusal_sender_email=server_sender or sender_email,
+            refusal_mail_server_id=server_id,
+        )._prepare_refusal_mail_values()
 
         self.write({"send_mail": False})
         action = super().action_refuse_reason_apply()
-        self.with_context(
-            refusal_sender_email=server_sender or sender_email,
-            refusal_mail_server_id=server_id,
-        )._prepare_send_refusal_mails()
+        self._send_refusal_mails(mail_values)
         return action
 
-    def _prepare_send_refusal_mails(self):
+    def _prepare_refusal_mail_values(self):
+        self.ensure_one()
         mail_values = []
         for applicant in self.applicant_ids:
             mail_values.append(self._prepare_mail_values(applicant))
+        return mail_values
 
-        if mail_values:
-            mails = self.env["mail.mail"].sudo().create(mail_values)
-            mails.send(auto_commit=False, raise_exception=False)
-            failed_mails = mails.filtered(lambda mail: mail.state == "exception")
-            if failed_mails:
-                reasons = [
-                    reason for reason in failed_mails.mapped("failure_reason") if reason
-                ]
-                _logger.warning(
-                    "Refusal email send failed for %s/%s mail(s), applicant_ids=%s, mail_ids=%s, reasons=%s",
-                    len(failed_mails),
-                    len(mails),
-                    self.applicant_ids.ids,
-                    failed_mails.ids,
-                    " | ".join(reasons) if reasons else "n/a",
-                )
-            else:
-                _logger.info(
-                    "Refusal emails sent immediately for applicant_ids=%s, mail_ids=%s",
-                    self.applicant_ids.ids,
-                    mails.ids,
-                )
+    def _send_refusal_mails(self, mail_values):
+        if not mail_values:
+            return
+
+        mails = self.env["mail.mail"].sudo().create(mail_values)
+        mails.send(auto_commit=False, raise_exception=False)
+        failed_mails = mails.filtered(lambda mail: mail.state == "exception")
+        if failed_mails:
+            reasons = [
+                reason for reason in failed_mails.mapped("failure_reason") if reason
+            ]
+            _logger.warning(
+                "Refusal email send failed for %s/%s mail(s), applicant_ids=%s, mail_ids=%s, reasons=%s",
+                len(failed_mails),
+                len(mails),
+                self.applicant_ids.ids,
+                failed_mails.ids,
+                " | ".join(reasons) if reasons else "n/a",
+            )
+        else:
+            _logger.info(
+                "Refusal emails sent immediately for applicant_ids=%s, mail_ids=%s",
+                self.applicant_ids.ids,
+                mails.ids,
+            )
+
+    def _prepare_send_refusal_mails(self):
+        self._send_refusal_mails(self._prepare_refusal_mail_values())
 
     def _prepare_mail_values(self, applicant):
         mail_values = super()._prepare_mail_values(applicant)
         mail_values["scheduled_date"] = False
+        mail_values["email_to"] = self._get_applicant_recipient_email(applicant)
 
         server_id = self.env.context.get("refusal_mail_server_id")
         if server_id:
