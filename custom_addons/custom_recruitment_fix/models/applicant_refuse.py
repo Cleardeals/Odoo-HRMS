@@ -37,11 +37,11 @@ class ApplicantGetRefuseReason(models.TransientModel):
                 _, parsed_email = parseaddr(part)
                 sender_email = parsed_email or part
                 return server.id, formataddr(
-                    (self.env.company.name or "", sender_email)
+                    (self.env.company.name or "", sender_email),
                 )
         if server.smtp_user and "@" in server.smtp_user:
             return server.id, formataddr(
-                (self.env.company.name or "", server.smtp_user)
+                (self.env.company.name or "", server.smtp_user),
             )
         return False, False
 
@@ -119,14 +119,14 @@ class ApplicantGetRefuseReason(models.TransientModel):
             return super().action_refuse_reason_apply()
 
         invalid_recipients = self.applicant_ids.filtered(
-            lambda applicant: not self._get_applicant_recipient_email(applicant)
+            lambda applicant: not self._get_applicant_recipient_email(applicant),
         )
         if invalid_recipients:
             raise UserError(
                 _(
                     "You can't use Send Email because these applicants have missing or invalid email addresses: %s",
                     ", ".join(invalid_recipients.mapped("display_name")),
-                )
+                ),
             )
 
         server_id, server_sender = self._get_refusal_mail_server_sender()
