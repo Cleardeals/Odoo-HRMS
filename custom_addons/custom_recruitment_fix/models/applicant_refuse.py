@@ -1,11 +1,31 @@
+import logging
 from email.utils import formataddr, parseaddr
 
 from odoo import _, models
 from odoo.exceptions import UserError
 
+_logger = logging.getLogger(__name__)
+
 
 class ApplicantGetRefuseReason(models.TransientModel):
     _inherit = "applicant.get.refuse.reason"
+
+    def _get_sender_from_server(self, server):
+        if server.from_filter:
+            for raw_part in server.from_filter.split(","):
+                part = raw_part.strip()
+                if not part or "@" not in part:
+                    continue
+                _, parsed_email = parseaddr(part)
+                sender_email = parsed_email or part
+                return server.id, formataddr(
+                    (self.env.company.name or "", sender_email)
+                )
+        if server.smtp_user and "@" in server.smtp_user:
+            return server.id, formataddr(
+                (self.env.company.name or "", server.smtp_user)
+            )
+        return False, False
 
     def _get_refusal_mail_server_sender(self):
         """Pick sender from active outgoing server settings.
@@ -13,26 +33,26 @@ class ApplicantGetRefuseReason(models.TransientModel):
         Prefer an explicit address from from_filter, then smtp_user.
         """
         self.ensure_one()
+
+        template_server = (
+            self.template_id.mail_server_id.sudo()
+            if self.template_id and self.template_id.mail_server_id
+            else False
+        )
+        if template_server and template_server.active:
+            server_id, sender = self._get_sender_from_server(template_server)
+            if sender:
+                return server_id, sender
+
         servers = (
             self.env["ir.mail_server"]
             .sudo()
             .search([("active", "=", True)], order="sequence, id")
         )
         for server in servers:
-            if server.from_filter:
-                for raw_part in server.from_filter.split(","):
-                    part = raw_part.strip()
-                    if not part or "@" not in part:
-                        continue
-                    _, parsed_email = parseaddr(part)
-                    sender_email = parsed_email or part
-                    return server.id, formataddr(
-                        (self.env.company.name or "", sender_email)
-                    )
-            if server.smtp_user and "@" in server.smtp_user:
-                return server.id, formataddr(
-                    (self.env.company.name or "", server.smtp_user)
-                )
+            server_id, sender = self._get_sender_from_server(server)
+            if sender:
+                return server_id, sender
         return False, False
 
     def _get_refusal_sender_email(self):
@@ -86,8 +106,8 @@ class ApplicantGetRefuseReason(models.TransientModel):
         ):
             raise UserError(
                 _(
-                    "At least one applicant doesn't have a email; you can't use send email option."
-                )
+                    "At least one applicant doesn't have a email; you can't use send email option.",
+                ),
             )
 
         server_id, server_sender = self._get_refusal_mail_server_sender()
@@ -109,6 +129,25 @@ class ApplicantGetRefuseReason(models.TransientModel):
         if mail_values:
             mails = self.env["mail.mail"].sudo().create(mail_values)
             mails.send(auto_commit=False, raise_exception=False)
+            failed_mails = mails.filtered(lambda mail: mail.state == "exception")
+            if failed_mails:
+                reasons = [
+                    reason for reason in failed_mails.mapped("failure_reason") if reason
+                ]
+                _logger.warning(
+                    "Refusal email send failed for %s/%s mail(s), applicant_ids=%s, mail_ids=%s, reasons=%s",
+                    len(failed_mails),
+                    len(mails),
+                    self.applicant_ids.ids,
+                    failed_mails.ids,
+                    " | ".join(reasons) if reasons else "n/a",
+                )
+            else:
+                _logger.info(
+                    "Refusal emails sent immediately for applicant_ids=%s, mail_ids=%s",
+                    self.applicant_ids.ids,
+                    mails.ids,
+                )
 
     def _prepare_mail_values(self, applicant):
         mail_values = super()._prepare_mail_values(applicant)
