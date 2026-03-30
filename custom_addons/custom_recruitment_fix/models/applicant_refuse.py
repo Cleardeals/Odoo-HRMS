@@ -199,10 +199,14 @@ class ApplicantGetRefuseReason(models.TransientModel):
 
         # Some databases have an empty translation for template body/subject.
         if is_empty and lang:
-            rendered_value = self.template_id.with_context(lang=False)._render_field(
-                field_name,
-                applicant.ids,
-            ).get(applicant.id)
+            rendered_value = (
+                self.template_id.with_context(lang=False)
+                ._render_field(
+                    field_name,
+                    applicant.ids,
+                )
+                .get(applicant.id)
+            )
 
         return rendered_value
 
@@ -212,18 +216,26 @@ class ApplicantGetRefuseReason(models.TransientModel):
         if not self.template_id or is_html_empty(body_html or ""):
             return body_html
 
-        layout_xmlid = self.template_id.email_layout_xmlid or "mail.mail_notification_light"
+        layout_xmlid = (
+            self.template_id.email_layout_xmlid or "mail.mail_notification_light"
+        )
         lang_code = lang or self.env.lang
         template_lang = self.template_id.with_context(lang=lang_code)
         applicant_lang = applicant.with_context(lang=lang_code)
-        model_lang = self.env["ir.model"]._get("hr.applicant").with_context(
-            lang=lang_code,
+        model_lang = (
+            self.env["ir.model"]
+            ._get("hr.applicant")
+            .with_context(
+                lang=lang_code,
+            )
         )
 
         company = self.env.company
         if hasattr(applicant, "_mail_get_companies"):
             company = (
-                applicant._mail_get_companies(default=self.env.company).get(applicant.id)
+                applicant._mail_get_companies(default=self.env.company).get(
+                    applicant.id
+                )
                 or self.env.company
             )
 
