@@ -129,17 +129,15 @@ class ApplicantGetRefuseReason(models.TransientModel):
                 ),
             )
 
-        server_id = self._get_refusal_mail_server_sender()[0]
+        server_id, server_sender = self._get_refusal_mail_server_sender()
         sender_email = self._get_refusal_sender_email()
+        mail_values = self.with_context(
+            refusal_sender_email=server_sender or sender_email,
+            refusal_mail_server_id=server_id,
+        )._prepare_refusal_mail_values()
 
         self.write({"send_mail": False})
         action = super().action_refuse_reason_apply()
-
-        # Build mails after refusal write to render template with final state.
-        mail_values = self.with_context(
-            refusal_default_sender_email=sender_email,
-            refusal_default_mail_server_id=server_id,
-        )._prepare_refusal_mail_values()
         self._send_refusal_mails(mail_values)
         return action
 
@@ -156,9 +154,7 @@ class ApplicantGetRefuseReason(models.TransientModel):
 
         mails = self.env["mail.mail"].sudo().create(mail_values)
         mails.send(auto_commit=False, raise_exception=False)
-        # mail.mail can be auto-deleted right after send; use existing records only.
-        existing_mails = mails.exists()
-        failed_mails = existing_mails.filtered(lambda mail: mail.state == "exception")
+        failed_mails = mails.filtered(lambda mail: mail.state == "exception")
         if failed_mails:
             reasons = [
                 reason for reason in failed_mails.mapped("failure_reason") if reason
@@ -186,52 +182,15 @@ class ApplicantGetRefuseReason(models.TransientModel):
         mail_values["scheduled_date"] = False
         mail_values["email_to"] = self._get_applicant_recipient_email(applicant)
 
-        if self.template_id and mail_values.get("body_html"):
-            layout_xmlid = self.template_id.email_layout_xmlid or "mail.mail_notification_light"
-            lang = self._render_lang(applicant.ids)[applicant.id]
-            template_lang = self.template_id.with_context(lang=lang)
-            applicant_lang = applicant.with_context(lang=lang)
-            model_lang = self.env["ir.model"]._get("hr.applicant").with_context(
-                lang=lang,
-            )
-            company = applicant._mail_get_companies(default=self.env.company)[
-                applicant.id
-            ]
-            encapsulated_body = template_lang._render_encapsulate(
-                layout_xmlid,
-                mail_values["body_html"],
-                add_context={
-                    "company": company,
-                    "model_description": model_lang.display_name,
-                },
-                context_record=applicant_lang,
-            )
-            mail_values["body_html"] = encapsulated_body
-            mail_values["body"] = encapsulated_body
+        server_id = self.env.context.get("refusal_mail_server_id")
+        if server_id:
+            mail_values["mail_server_id"] = server_id
 
-        if self.template_id and self.template_id.mail_server_id:
-            mail_values["mail_server_id"] = self.template_id.mail_server_id.id
-        elif not mail_values.get("mail_server_id"):
-            server_id = self.env.context.get("refusal_default_mail_server_id")
-            if server_id:
-                mail_values["mail_server_id"] = server_id
-
-        if self.template_id and self.template_id.reply_to:
-            lang = self._render_lang(applicant.ids)[applicant.id]
-            rendered_reply_to = self.template_id._render_field(
-                "reply_to", applicant.ids, set_lang=lang,
-            )[applicant.id]
-            if rendered_reply_to:
-                mail_values["reply_to"] = rendered_reply_to
-        elif self.reply_to:
-            mail_values["reply_to"] = self.reply_to
-
-        if not mail_values.get("email_from"):
-            sender_email = self.env.context.get("refusal_default_sender_email")
-            if sender_email:
-                mail_values["email_from"] = sender_email
-            else:
-                fallback_sender = self._get_refusal_sender_email()
-                if fallback_sender:
-                    mail_values["email_from"] = fallback_sender
+        sender_email = self.env.context.get("refusal_sender_email")
+        if sender_email:
+            mail_values["email_from"] = sender_email
+        elif not mail_values.get("email_from"):
+            fallback_sender = self._get_refusal_sender_email()
+            if fallback_sender:
+                mail_values["email_from"] = fallback_sender
         return mail_values
