@@ -3,6 +3,7 @@ from email.utils import formataddr, parseaddr
 
 from odoo import _, models
 from odoo.exceptions import UserError
+from odoo.tools import is_html_empty
 from odoo.tools.mail import email_normalize, email_split_and_format
 
 _logger = logging.getLogger(__name__)
@@ -131,13 +132,14 @@ class ApplicantGetRefuseReason(models.TransientModel):
 
         server_id, server_sender = self._get_refusal_mail_server_sender()
         sender_email = self._get_refusal_sender_email()
+        self.write({"send_mail": False})
+        action = super().action_refuse_reason_apply()
+
+        # Render after refusal write to keep template context in sync with final applicant state.
         mail_values = self.with_context(
             refusal_sender_email=server_sender or sender_email,
             refusal_mail_server_id=server_id,
         )._prepare_refusal_mail_values()
-
-        self.write({"send_mail": False})
-        action = super().action_refuse_reason_apply()
         self._send_refusal_mails(mail_values)
         return action
 
@@ -154,7 +156,9 @@ class ApplicantGetRefuseReason(models.TransientModel):
 
         mails = self.env["mail.mail"].sudo().create(mail_values)
         mails.send(auto_commit=False, raise_exception=False)
-        failed_mails = mails.filtered(lambda mail: mail.state == "exception")
+        # Sent mails can be auto-deleted; keep only existing records before reading fields.
+        existing_mails = mails.exists()
+        failed_mails = existing_mails.filtered(lambda mail: mail.state == "exception")
         if failed_mails:
             reasons = [
                 reason for reason in failed_mails.mapped("failure_reason") if reason
@@ -174,11 +178,121 @@ class ApplicantGetRefuseReason(models.TransientModel):
                 mails.ids,
             )
 
+    def _render_refusal_template_field(self, field_name, applicant, lang=False):
+        """Render template field for a single applicant with fallback to base language."""
+        self.ensure_one()
+        if not self.template_id:
+            return False
+
+        render_kwargs = {"set_lang": lang} if lang else {}
+        rendered_value = self.template_id._render_field(
+            field_name,
+            applicant.ids,
+            **render_kwargs,
+        ).get(applicant.id)
+
+        is_empty = (
+            is_html_empty(rendered_value or "")
+            if field_name == "body_html"
+            else not (rendered_value or "").strip()
+        )
+
+        # Some databases have an empty translation for template body/subject.
+        if is_empty and lang:
+            rendered_value = self.template_id.with_context(lang=False)._render_field(
+                field_name,
+                applicant.ids,
+            ).get(applicant.id)
+
+        return rendered_value
+
+    def _encapsulate_refusal_body_with_layout(self, applicant, body_html, lang=False):
+        """Wrap refusal body in template/default mail layout for consistent branding."""
+        self.ensure_one()
+        if not self.template_id or is_html_empty(body_html or ""):
+            return body_html
+
+        layout_xmlid = self.template_id.email_layout_xmlid or "mail.mail_notification_light"
+        lang_code = lang or self.env.lang
+        template_lang = self.template_id.with_context(lang=lang_code)
+        applicant_lang = applicant.with_context(lang=lang_code)
+        model_lang = self.env["ir.model"]._get("hr.applicant").with_context(
+            lang=lang_code,
+        )
+
+        company = self.env.company
+        if hasattr(applicant, "_mail_get_companies"):
+            company = (
+                applicant._mail_get_companies(default=self.env.company).get(applicant.id)
+                or self.env.company
+            )
+
+        try:
+            return template_lang._render_encapsulate(
+                layout_xmlid,
+                body_html,
+                add_context={
+                    "company": company,
+                    "model_description": model_lang.display_name,
+                },
+                context_record=applicant_lang,
+            )
+        except Exception:
+            _logger.exception(
+                "Failed to encapsulate refusal email body for applicant_id=%s using layout=%s",
+                applicant.id,
+                layout_xmlid,
+            )
+            return body_html
+
     def _prepare_send_refusal_mails(self):
         self._send_refusal_mails(self._prepare_refusal_mail_values())
 
     def _prepare_mail_values(self, applicant):
         mail_values = super()._prepare_mail_values(applicant)
+        lang = self._render_lang(applicant.ids).get(applicant.id)
+
+        # Avoid sending a blank refusal email when wizard body/subject resolves empty.
+        if self.template_id and is_html_empty(mail_values.get("body_html") or ""):
+            fallback_body = self._render_refusal_template_field(
+                "body_html",
+                applicant,
+                lang=lang,
+            )
+            if fallback_body and not is_html_empty(fallback_body):
+                mail_values["body_html"] = fallback_body
+
+        if self.template_id and not (mail_values.get("subject") or "").strip():
+            fallback_subject = self._render_refusal_template_field(
+                "subject",
+                applicant,
+                lang=lang,
+            )
+            if (fallback_subject or "").strip():
+                mail_values["subject"] = fallback_subject
+
+        if self.template_id:
+            reply_to = self._render_refusal_template_field(
+                "reply_to",
+                applicant,
+                lang=lang,
+            )
+            if (reply_to or "").strip():
+                mail_values["reply_to"] = reply_to
+
+            mail_values["body_html"] = self._encapsulate_refusal_body_with_layout(
+                applicant,
+                mail_values.get("body_html"),
+                lang=lang,
+            )
+
+        if is_html_empty(mail_values.get("body_html") or ""):
+            _logger.warning(
+                "Refusal email body resolved empty for applicant_id=%s, template_id=%s",
+                applicant.id,
+                self.template_id.id if self.template_id else False,
+            )
+
         mail_values["scheduled_date"] = False
         mail_values["email_to"] = self._get_applicant_recipient_email(applicant)
 
