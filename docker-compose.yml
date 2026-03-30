@@ -163,7 +163,7 @@ services:
       - "traefik.http.routers.odoo.middlewares=security-headers@docker"
       - "traefik.http.routers.odoo-chat.middlewares=security-headers@docker"
 
-      - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.security-headers.headers.customFrameOptionsValue=SAMEORIGIN"
       - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
       - "traefik.http.middlewares.security-headers.headers.browserXssFilter=true"
       - "traefik.http.middlewares.security-headers.headers.stsSeconds=31536000"
