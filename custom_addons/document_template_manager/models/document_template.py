@@ -312,6 +312,11 @@ class DocumentTemplate(models.Model):
         # Use str.format() so that the CSS double-brace escaping is explicit
         # and user-content ({clean}) never risks being treated as a format
         # specifier.
+        base_url = (
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("web.base.url", default="")
+        )
         css = (
             "* { box-sizing: border-box; }"
             "html, body {"
@@ -368,6 +373,7 @@ class DocumentTemplate(models.Model):
         return (
             "<!DOCTYPE html>\n<html>\n<head>\n"
             '<meta charset="utf-8"/>\n'
+            f'<base href="{base_url}"/>\n'
             "<style>" + css + "</style>\n"
             "</head>\n<body>"
             + clean
@@ -392,6 +398,16 @@ class DocumentTemplate(models.Model):
         left = self.margin_left
         right = self.margin_right
 
+        # Resolve the server base URL so wkhtmltopdf can fetch relative image
+        # URLs (e.g. /web/image/...) that the Odoo editor inserts.  Without a
+        # <base> tag the HTML is loaded from a temp file on disk and wkhtmltopdf
+        # has no hostname to resolve relative paths against.
+        base_url = (
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("web.base.url", default="")
+        )
+
         # Strip trailing empty blocks that Odoo's editor appends automatically.
         # Without this, the last empty <p><br></p> creates a blank extra page.
         clean_body = re.sub(
@@ -405,6 +421,7 @@ class DocumentTemplate(models.Model):
 <html>
 <head>
     <meta charset="utf-8"/>
+    <base href="{base_url}"/>
     <style>
         /* ── Root font: mirror Odoo's system-font stack ─────────────
            Odoo defines $o-system-fonts as -apple-system, BlinkMacSystemFont,
