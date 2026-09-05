@@ -1,0 +1,1816 @@
+odoo_model,table_hint,field_name,ttype,relation,required,store,module
+document.category,"{""en_US"": ""Document Category""}",child_ids,one2many,document.category,f,t,document_template_manager
+document.category,"{""en_US"": ""Document Category""}",color,integer,,f,t,document_template_manager
+document.category,"{""en_US"": ""Document Category""}",create_date,datetime,,f,t,document_template_manager
+document.category,"{""en_US"": ""Document Category""}",create_uid,many2one,res.users,f,t,document_template_manager
+document.category,"{""en_US"": ""Document Category""}",display_name,char,,f,f,document_template_manager
+document.category,"{""en_US"": ""Document Category""}",document_count,integer,,f,f,document_template_manager
+document.category,"{""en_US"": ""Document Category""}",id,integer,,f,t,document_template_manager
+document.category,"{""en_US"": ""Document Category""}",name,char,,t,t,document_template_manager
+document.category,"{""en_US"": ""Document Category""}",parent_id,many2one,document.category,f,t,document_template_manager
+document.category,"{""en_US"": ""Document Category""}",sequence,integer,,f,t,document_template_manager
+document.category,"{""en_US"": ""Document Category""}",write_date,datetime,,f,t,document_template_manager
+document.category,"{""en_US"": ""Document Category""}",write_uid,many2one,res.users,f,t,document_template_manager
+document.tag,"{""en_US"": ""Document Tag""}",color,integer,,f,t,document_template_manager
+document.tag,"{""en_US"": ""Document Tag""}",create_date,datetime,,f,t,document_template_manager
+document.tag,"{""en_US"": ""Document Tag""}",create_uid,many2one,res.users,f,t,document_template_manager
+document.tag,"{""en_US"": ""Document Tag""}",display_name,char,,f,f,document_template_manager
+document.tag,"{""en_US"": ""Document Tag""}",id,integer,,f,t,document_template_manager
+document.tag,"{""en_US"": ""Document Tag""}",name,char,,t,t,document_template_manager
+document.tag,"{""en_US"": ""Document Tag""}",write_date,datetime,,f,t,document_template_manager
+document.tag,"{""en_US"": ""Document Tag""}",write_uid,many2one,res.users,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",active,boolean,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",activity_calendar_event_id,many2one,calendar.event,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",activity_date_deadline,date,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",activity_exception_decoration,selection,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",activity_exception_icon,char,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",activity_ids,one2many,mail.activity,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",activity_state,selection,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",activity_summary,char,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",activity_type_icon,char,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",activity_type_id,many2one,mail.activity.type,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",activity_user_id,many2one,res.users,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",category_id,many2one,document.category,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",company_id,many2one,res.company,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",create_date,datetime,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",create_uid,many2one,res.users,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",display_name,char,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",favorite,boolean,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",has_message,boolean,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",has_pdf,boolean,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",header_html,html,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",html_content,html,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",id,integer,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",margin_bottom,float,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",margin_left,float,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",margin_right,float,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",margin_top,float,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",message_attachment_count,integer,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",message_follower_ids,one2many,mail.followers,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",message_has_error,boolean,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",message_has_error_counter,integer,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",message_has_sms_error,boolean,,f,f,
+document.template,"{""en_US"": ""Document Template""}",message_ids,one2many,mail.message,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",message_is_follower,boolean,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",message_needaction,boolean,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",message_needaction_counter,integer,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",message_partner_ids,many2many,res.partner,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",my_activity_date_deadline,date,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",name,char,,t,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",pdf_file,binary,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",pdf_filename,char,,f,f,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",print_mode,selection,,t,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",rating_ids,one2many,rating.rating,f,t,
+document.template,"{""en_US"": ""Document Template""}",show_header,boolean,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",summary,text,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",tag_ids,many2many,document.tag,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",variable_count,integer,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",variable_ids,one2many,document.template.variable,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",website_message_ids,one2many,mail.message,f,t,
+document.template,"{""en_US"": ""Document Template""}",write_date,datetime,,f,t,document_template_manager
+document.template,"{""en_US"": ""Document Template""}",write_uid,many2one,res.users,f,t,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",create_date,datetime,,f,t,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",create_uid,many2one,res.users,f,t,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",default_value,char,,f,t,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",display_name,char,,f,f,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",id,integer,,f,t,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",label,char,,t,t,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",name,char,,t,t,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",placeholder_tag,char,,f,f,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",required,boolean,,f,t,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",selection_options,char,,f,t,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",sequence,integer,,f,t,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",template_id,many2one,document.template,t,t,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",variable_type,selection,,t,t,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",write_date,datetime,,f,t,document_template_manager
+document.template.variable,"{""en_US"": ""Template Variable""}",write_uid,many2one,res.users,f,t,document_template_manager
+document.type,"{""en_US"": ""Document Type""}",create_date,datetime,,f,t,oh_employee_documents_expiry
+document.type,"{""en_US"": ""Document Type""}",create_uid,many2one,res.users,f,t,oh_employee_documents_expiry
+document.type,"{""en_US"": ""Document Type""}",display_name,char,,f,f,oh_employee_documents_expiry
+document.type,"{""en_US"": ""Document Type""}",id,integer,,f,t,oh_employee_documents_expiry
+document.type,"{""en_US"": ""Document Type""}",name,char,,t,t,oh_employee_documents_expiry
+document.type,"{""en_US"": ""Document Type""}",write_date,datetime,,f,t,oh_employee_documents_expiry
+document.type,"{""en_US"": ""Document Type""}",write_uid,many2one,res.users,f,t,oh_employee_documents_expiry
+hr.applicant,"{""en_US"": ""Applicant""}",active,boolean,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",activity_calendar_event_id,many2one,calendar.event,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",activity_date_deadline,date,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",activity_exception_decoration,selection,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",activity_exception_icon,char,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",activity_ids,one2many,mail.activity,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",activity_state,selection,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",activity_summary,char,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",activity_type_icon,char,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",activity_type_id,many2one,mail.activity.type,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",activity_user_id,many2one,res.users,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",applicant_notes,html,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",applicant_properties,properties,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",applicant_skill_ids,one2many,hr.applicant.skill,f,t,hr_recruitment_skills
+hr.applicant,"{""en_US"": ""Applicant""}",application_count,integer,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",application_status,selection,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",attachment_ids,one2many,ir.attachment,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",attachment_number,integer,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",availability,date,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",campaign_id,many2one,utm.campaign,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",categ_ids,many2many,hr.applicant.category,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",color,integer,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",company_id,many2one,res.company,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",create_date,datetime,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",create_uid,many2one,res.users,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",current_applicant_skill_ids,one2many,hr.applicant.skill,f,f,hr_recruitment_skills
+hr.applicant,"{""en_US"": ""Applicant""}",date_closed,datetime,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",date_last_stage_update,datetime,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",date_open,datetime,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",day_close,float,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",day_open,float,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",delay_close,float,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",department_id,many2one,hr.department,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",display_name,char,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",display_name,char,,f,f,hr_recruitment_survey
+hr.applicant,"{""en_US"": ""Applicant""}",display_name,char,,f,f,hr_recruitment_sms
+hr.applicant,"{""en_US"": ""Applicant""}",display_name,char,,f,f,hr_recruitment_skills
+hr.applicant,"{""en_US"": ""Applicant""}",duration_tracking,json,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",email_cc,char,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",email_from,char,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",email_normalized,char,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",emp_is_active,boolean,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",employee_id,many2one,hr.employee,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",employee_name,char,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",has_message,boolean,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",id,integer,,f,t,hr_recruitment_skills
+hr.applicant,"{""en_US"": ""Applicant""}",id,integer,,f,t,hr_recruitment_survey
+hr.applicant,"{""en_US"": ""Applicant""}",id,integer,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",id,integer,,f,t,hr_recruitment_sms
+hr.applicant,"{""en_US"": ""Applicant""}",interviewer_ids,many2many,res.users,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",is_applicant_in_pool,boolean,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",is_blacklisted,boolean,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",is_pool_applicant,boolean,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",is_rotting,boolean,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",job_id,many2one,hr.job,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",kanban_state,selection,,t,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",last_stage_id,many2one,hr.recruitment.stage,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",legend_blocked,char,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",legend_done,char,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",legend_normal,char,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",legend_waiting,char,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",linkedin_profile,char,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",matching_score,integer,,f,f,hr_recruitment_skills
+hr.applicant,"{""en_US"": ""Applicant""}",matching_skill_ids,many2many,hr.skill,f,f,hr_recruitment_skills
+hr.applicant,"{""en_US"": ""Applicant""}",medium_id,many2one,utm.medium,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",meeting_display_date,date,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",meeting_display_text,char,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",meeting_ids,one2many,calendar.event,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",message_attachment_count,integer,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",message_bounce,integer,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",message_follower_ids,one2many,mail.followers,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",message_has_error,boolean,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",message_has_error_counter,integer,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",message_has_sms_error,boolean,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",message_ids,one2many,mail.message,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",message_is_follower,boolean,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",message_main_attachment_id,many2one,ir.attachment,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",message_needaction,boolean,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",message_needaction_counter,integer,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",message_partner_ids,many2many,res.partner,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",missing_skill_ids,many2many,hr.skill,f,f,hr_recruitment_skills
+hr.applicant,"{""en_US"": ""Applicant""}",my_activity_date_deadline,date,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",partner_id,many2one,res.partner,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",partner_name,char,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",partner_phone,char,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",partner_phone_sanitized,char,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",phone_blacklisted,boolean,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",phone_mobile_search,char,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",phone_sanitized,char,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",phone_sanitized_blacklisted,boolean,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",pool_applicant_id,many2one,hr.applicant,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",priority,selection,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",probability,float,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",rating_ids,one2many,rating.rating,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",refuse_date,datetime,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",refuse_reason_id,many2one,hr.applicant.refuse.reason,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",response_ids,one2many,survey.user_input,f,t,hr_recruitment_survey
+hr.applicant,"{""en_US"": ""Applicant""}",rotting_days,integer,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",salary_expected,float,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",salary_expected_extra,char,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",salary_proposed,float,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",salary_proposed_extra,char,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",sequence,integer,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",skill_ids,many2many,hr.skill,f,t,hr_recruitment_skills
+hr.applicant,"{""en_US"": ""Applicant""}",source_id,many2one,utm.source,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",stage_id,many2one,hr.recruitment.stage,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",survey_id,many2one,survey.survey,f,f,hr_recruitment_survey
+hr.applicant,"{""en_US"": ""Applicant""}",talent_pool_count,integer,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",talent_pool_ids,many2many,hr.talent.pool,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",type_id,many2one,hr.recruitment.degree,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",user_email,char,,f,f,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",user_id,many2one,res.users,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",website_message_ids,one2many,mail.message,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",write_date,datetime,,f,t,hr_recruitment
+hr.applicant,"{""en_US"": ""Applicant""}",write_uid,many2one,res.users,f,t,hr_recruitment
+hr.applicant.refuse.reason,"{""en_US"": ""Refuse Reason of Applicant""}",active,boolean,,f,t,hr_recruitment
+hr.applicant.refuse.reason,"{""en_US"": ""Refuse Reason of Applicant""}",create_date,datetime,,f,t,hr_recruitment
+hr.applicant.refuse.reason,"{""en_US"": ""Refuse Reason of Applicant""}",create_uid,many2one,res.users,f,t,hr_recruitment
+hr.applicant.refuse.reason,"{""en_US"": ""Refuse Reason of Applicant""}",display_name,char,,f,f,hr_recruitment
+hr.applicant.refuse.reason,"{""en_US"": ""Refuse Reason of Applicant""}",id,integer,,f,t,hr_recruitment
+hr.applicant.refuse.reason,"{""en_US"": ""Refuse Reason of Applicant""}",name,char,,t,t,hr_recruitment
+hr.applicant.refuse.reason,"{""en_US"": ""Refuse Reason of Applicant""}",sequence,integer,,f,t,hr_recruitment
+hr.applicant.refuse.reason,"{""en_US"": ""Refuse Reason of Applicant""}",template_id,many2one,mail.template,f,t,hr_recruitment
+hr.applicant.refuse.reason,"{""en_US"": ""Refuse Reason of Applicant""}",write_date,datetime,,f,t,hr_recruitment
+hr.applicant.refuse.reason,"{""en_US"": ""Refuse Reason of Applicant""}",write_uid,many2one,res.users,f,t,hr_recruitment
+hr.department,"{""en_US"": ""Department""}",absence_of_today,integer,,f,f,hr_holidays
+hr.department,"{""en_US"": ""Department""}",active,boolean,,f,t,hr
+hr.department,"{""en_US"": ""Department""}",activity_calendar_event_id,many2one,calendar.event,f,f,hr
+hr.department,"{""en_US"": ""Department""}",activity_date_deadline,date,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",activity_exception_decoration,selection,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",activity_exception_icon,char,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",activity_ids,one2many,mail.activity,f,t,hr
+hr.department,"{""en_US"": ""Department""}",activity_state,selection,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",activity_summary,char,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",activity_type_icon,char,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",activity_type_id,many2one,mail.activity.type,f,f,hr
+hr.department,"{""en_US"": ""Department""}",activity_user_id,many2one,res.users,f,f,hr
+hr.department,"{""en_US"": ""Department""}",allocation_to_approve_count,integer,,f,f,hr_holidays
+hr.department,"{""en_US"": ""Department""}",child_ids,one2many,hr.department,f,t,hr
+hr.department,"{""en_US"": ""Department""}",color,integer,,f,t,hr
+hr.department,"{""en_US"": ""Department""}",company_id,many2one,res.company,f,t,hr
+hr.department,"{""en_US"": ""Department""}",complete_name,char,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",create_date,datetime,,f,t,hr
+hr.department,"{""en_US"": ""Department""}",create_uid,many2one,res.users,f,t,hr
+hr.department,"{""en_US"": ""Department""}",display_name,char,,f,f,hr_recruitment
+hr.department,"{""en_US"": ""Department""}",display_name,char,,f,f,hr_holidays
+hr.department,"{""en_US"": ""Department""}",display_name,char,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",display_name,char,,f,f,hr_expense
+hr.department,"{""en_US"": ""Department""}",expected_employee,integer,,f,f,hr_recruitment
+hr.department,"{""en_US"": ""Department""}",expenses_to_approve_count,integer,,f,f,hr_expense
+hr.department,"{""en_US"": ""Department""}",has_message,boolean,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",has_read_access,boolean,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",id,integer,,f,t,hr
+hr.department,"{""en_US"": ""Department""}",id,integer,,f,t,hr_expense
+hr.department,"{""en_US"": ""Department""}",id,integer,,f,t,hr_recruitment
+hr.department,"{""en_US"": ""Department""}",id,integer,,f,t,hr_holidays
+hr.department,"{""en_US"": ""Department""}",jobs_ids,one2many,hr.job,f,t,hr
+hr.department,"{""en_US"": ""Department""}",leave_to_approve_count,integer,,f,f,hr_holidays
+hr.department,"{""en_US"": ""Department""}",manager_id,many2one,hr.employee,f,t,hr
+hr.department,"{""en_US"": ""Department""}",master_department_id,many2one,hr.department,f,t,hr
+hr.department,"{""en_US"": ""Department""}",member_ids,one2many,hr.employee,f,t,hr
+hr.department,"{""en_US"": ""Department""}",message_attachment_count,integer,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",message_follower_ids,one2many,mail.followers,f,t,hr
+hr.department,"{""en_US"": ""Department""}",message_has_error,boolean,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",message_has_error_counter,integer,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",message_has_sms_error,boolean,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",message_ids,one2many,mail.message,f,t,hr
+hr.department,"{""en_US"": ""Department""}",message_is_follower,boolean,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",message_needaction,boolean,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",message_needaction_counter,integer,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",message_partner_ids,many2many,res.partner,f,f,hr
+hr.department,"{""en_US"": ""Department""}",my_activity_date_deadline,date,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",name,char,,t,t,hr
+hr.department,"{""en_US"": ""Department""}",new_applicant_count,integer,,f,f,hr_recruitment
+hr.department,"{""en_US"": ""Department""}",new_hired_employee,integer,,f,f,hr_recruitment
+hr.department,"{""en_US"": ""Department""}",note,text,,f,t,hr
+hr.department,"{""en_US"": ""Department""}",parent_id,many2one,hr.department,f,t,hr
+hr.department,"{""en_US"": ""Department""}",parent_path,char,,f,t,hr
+hr.department,"{""en_US"": ""Department""}",plan_ids,one2many,mail.activity.plan,f,t,hr
+hr.department,"{""en_US"": ""Department""}",plans_count,integer,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",rating_ids,one2many,rating.rating,f,t,hr
+hr.department,"{""en_US"": ""Department""}",total_employee,integer,,f,f,hr
+hr.department,"{""en_US"": ""Department""}",website_message_ids,one2many,mail.message,f,t,hr
+hr.department,"{""en_US"": ""Department""}",write_date,datetime,,f,t,hr
+hr.department,"{""en_US"": ""Department""}",write_uid,many2one,res.users,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",account_type,selection,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",active,boolean,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",active_employee,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",activity_calendar_event_id,many2one,calendar.event,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",activity_date_deadline,date,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",activity_exception_decoration,selection,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",activity_exception_icon,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",activity_ids,one2many,mail.activity,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",activity_state,selection,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",activity_summary,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",activity_type_icon,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",activity_type_id,many2one,mail.activity.type,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",activity_user_id,many2one,res.users,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",additional_note,text,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",address_id,many2one,res.partner,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",address_proof_document,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",address_proof_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",address_proof_type,selection,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",allocation_count,float,,f,f,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",allocation_display,char,,f,f,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",allocation_remaining_display,char,,f,f,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",allocations_count,integer,,f,f,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",allowed_country_state_ids,many2many,res.country.state,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",analytic_account_id,many2one,account.analytic.account,f,f,hr_payroll_account_community
+hr.employee,"{""en_US"": ""Employee""}",announcement_count,integer,,f,f,hr_reward_warning
+hr.employee,"{""en_US"": ""Employee""}",applicant_ids,one2many,hr.applicant,f,t,hr_recruitment
+hr.employee,"{""en_US"": ""Employee""}",appointment_letter,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",appointment_letter_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",appraisal_doc,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",appraisal_doc_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",asset_laptop,boolean,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",asset_pc,boolean,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",asset_phone,boolean,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",asset_physical_id,boolean,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",asset_sim,boolean,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",attendance_ids,one2many,hr.attendance,f,t,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",attendance_manager_id,many2one,res.users,f,t,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",attendance_state,selection,,f,f,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",avatar_1024,binary,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",avatar_128,binary,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",avatar_1920,binary,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",avatar_256,binary,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",avatar_512,binary,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",badge_ids,one2many,gamification.badge.user,f,f,hr_gamification
+hr.employee,"{""en_US"": ""Employee""}",bank_acc_number,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",bank_account_ids,many2many,res.partner.bank,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",bank_document,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",bank_document_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",bank_document_type,selection,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",bank_name,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",barcode,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",birthday,date,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",birthday,date,,f,t,hrms_dashboard
+hr.employee,"{""en_US"": ""Employee""}",birthday_public_display,boolean,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",birthday_public_display_string,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",blood_group,selection,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",bond_document,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",bond_document_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",category_ids,many2many,hr.employee.category,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",certificate,selection,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",certification_ids,one2many,hr.employee.skill,f,f,hr_skills
+hr.employee,"{""en_US"": ""Employee""}",child_all_count,integer,,f,f,hr_org_chart
+hr.employee,"{""en_US"": ""Employee""}",child_count,integer,,f,f,hr_org_chart
+hr.employee,"{""en_US"": ""Employee""}",child_ids,one2many,hr.employee,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",children,integer,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",cibil_score,integer,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",coach_id,many2one,hr.employee,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",color,integer,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",company_country_code,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",company_country_id,many2one,res.country,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",company_id,many2one,res.company,t,t,hr
+hr.employee,"{""en_US"": ""Employee""}",contract_date_end,date,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",contract_date_start,date,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",contract_document,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",contract_document_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",contract_template_id,many2one,hr.version,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",contract_type_id,many2one,hr.contract.type,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",contract_wage,monetary,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",country_code,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",country_id,many2one,res.country,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",country_of_birth,many2one,res.country,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",create_date,datetime,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",create_uid,many2one,res.users,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",currency_id,many2one,res.currency,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",current_address,text,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",current_date_version,date,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",current_employee_skill_ids,one2many,hr.employee.skill,f,f,hr_skills
+hr.employee,"{""en_US"": ""Employee""}",current_leave_id,many2one,hr.leave.type,f,f,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",current_leave_state,selection,,f,f,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",current_version_id,many2one,hr.version,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",da,monetary,,f,f,hr_payroll_community
+hr.employee,"{""en_US"": ""Employee""}",date_end,date,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",date_of_joining,date,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",date_start,date,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",date_version,date,,t,f,hr
+hr.employee,"{""en_US"": ""Employee""}",department_color,integer,,f,f,hr_org_chart
+hr.employee,"{""en_US"": ""Employee""}",department_id,many2one,hr.department,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",departure_date,date,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",departure_description,html,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",departure_reason_id,many2one,hr.departure.reason,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",direct_badge_ids,one2many,gamification.badge.user,f,t,hr_gamification
+hr.employee,"{""en_US"": ""Employee""}",display_certification_page,boolean,,f,f,hr_skills
+hr.employee,"{""en_US"": ""Employee""}",display_extra_hours,boolean,,f,f,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_homeworking_calendar
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_resignation
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,ohrms_loan
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,project_timesheet_holidays
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hrms_dashboard
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_timesheet
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_payroll_community
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_employee_updation
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_expense
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_gamification
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,l10n_in_hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_homeworking
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_hourly_cost
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_org_chart
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_recruitment
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_reward_warning
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_holidays_homeworking
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_skills
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,hr_holidays_attendance
+hr.employee,"{""en_US"": ""Employee""}",display_name,char,,f,f,oh_employee_documents_expiry
+hr.employee,"{""en_US"": ""Employee""}",distance_home_work,integer,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",distance_home_work_unit,selection,,t,f,hr
+hr.employee,"{""en_US"": ""Employee""}",document_count,integer,,f,f,oh_employee_documents_expiry
+hr.employee,"{""en_US"": ""Employee""}",driving_license,binary,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",education_background,text,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",email,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",emergency_contact,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",emergency_contact_relationship,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",emergency_phone,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",employee_id,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",employee_id,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",employee_properties,properties,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",employee_skill_ids,one2many,hr.employee.skill,f,t,hr_skills
+hr.employee,"{""en_US"": ""Employee""}",employee_status,selection,,t,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",employee_type,selection,,t,f,hr
+hr.employee,"{""en_US"": ""Employee""}",exceptional_location_id,many2one,hr.work.location,f,f,hr_homeworking
+hr.employee,"{""en_US"": ""Employee""}",expense_manager_id,many2one,res.users,f,t,hr_expense
+hr.employee,"{""en_US"": ""Employee""}",experience_letter,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",experience_letter_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",family_info_ids,one2many,hr.employee.family,f,t,hr_employee_updation
+hr.employee,"{""en_US"": ""Employee""}",filter_for_expense,boolean,,f,f,hr_expense
+hr.employee,"{""en_US"": ""Employee""}",fired,boolean,,f,t,hr_resignation
+hr.employee,"{""en_US"": ""Employee""}",friday_location_id,many2one,hr.work.location,f,t,hr_homeworking
+hr.employee,"{""en_US"": ""Employee""}",goal_ids,one2many,gamification.goal,f,f,hr_gamification
+hr.employee,"{""en_US"": ""Employee""}",has_badges,boolean,,f,f,hr_gamification
+hr.employee,"{""en_US"": ""Employee""}",has_message,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",has_multiple_bank_accounts,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",has_timesheet,boolean,,f,f,hr_timesheet
+hr.employee,"{""en_US"": ""Employee""}",has_work_permit,binary,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",hourly_cost,monetary,,f,t,hr_hourly_cost
+hr.employee,"{""en_US"": ""Employee""}",hours_last_month,float,,f,f,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",hours_last_month_display,char,,f,f,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",hours_last_month_overtime,float,,f,f,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",hours_previously_today,float,,f,f,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",hours_today,float,,f,f,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",hr_icon_display,selection,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",hr_icon_display,selection,,f,f,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",hr_icon_display,selection,,f,f,hr_homeworking
+hr.employee,"{""en_US"": ""Employee""}",hr_presence_state,selection,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",hr_responsible_id,many2one,res.users,t,f,hr
+hr.employee,"{""en_US"": ""Employee""}",hra,monetary,,f,f,hr_payroll_community
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_expense
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_employee_updation
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hrms_dashboard
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_homeworking
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_org_chart
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_holidays_attendance
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_recruitment
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_holidays_homeworking
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,oh_employee_documents_expiry
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,project_timesheet_holidays
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,ohrms_loan
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_resignation
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,l10n_in_hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_skills
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_homeworking_calendar
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_hourly_cost
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_payroll_community
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_gamification
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_reward_warning
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_timesheet
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",id,integer,,f,t,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",id_card,binary,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",id_expiry_date,date,,f,t,hr_employee_updation
+hr.employee,"{""en_US"": ""Employee""}",identification_attachment_ids,many2many,ir.attachment,f,t,hr_employee_updation
+hr.employee,"{""en_US"": ""Employee""}",identification_id,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",ifsc_code,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",im_status,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",image_1024,binary,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",image_128,binary,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",image_1920,binary,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",image_256,binary,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",image_512,binary,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",increment_letter,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",increment_letter_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",is_absent,boolean,,f,f,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",is_current,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",is_custom_job_title,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",is_flexible,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",is_fully_flexible,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",is_future,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",is_in_contract,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",is_past,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",is_subordinate,boolean,,f,f,hr_org_chart
+hr.employee,"{""en_US"": ""Employee""}",is_trusted_bank_account,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",is_user_active,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",job_id,many2one,hr.job,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",job_title,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",joining_date,date,,f,t,hr_employee_updation
+hr.employee,"{""en_US"": ""Employee""}",journal_id,many2one,account.journal,f,f,hr_payroll_account_community
+hr.employee,"{""en_US"": ""Employee""}",km_home_work,integer,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",lang,selection,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",last_activity,date,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",last_activity_time,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",last_attendance_id,many2one,hr.attendance,f,t,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",last_attendance_worked_hours,float,,f,f,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",last_check_in,datetime,,f,t,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",last_check_out,datetime,,f,t,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",last_modified_date,datetime,,t,f,hr
+hr.employee,"{""en_US"": ""Employee""}",last_modified_uid,many2one,res.users,t,f,hr
+hr.employee,"{""en_US"": ""Employee""}",leave_date_from,date,,f,f,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",leave_date_to,date,,f,f,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",leave_manager_id,many2one,res.users,f,t,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",legal_name,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",loan_count,integer,,f,f,ohrms_loan
+hr.employee,"{""en_US"": ""Employee""}",marital,selection,,t,f,hr
+hr.employee,"{""en_US"": ""Employee""}",meal_allowance,monetary,,f,f,hr_payroll_community
+hr.employee,"{""en_US"": ""Employee""}",medical_allowance,monetary,,f,f,hr_payroll_community
+hr.employee,"{""en_US"": ""Employee""}",member_of_department,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",message_attachment_count,integer,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",message_follower_ids,one2many,mail.followers,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",message_has_error,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",message_has_error_counter,integer,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",message_has_sms_error,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",message_ids,one2many,mail.message,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",message_is_follower,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",message_main_attachment_id,many2one,ir.attachment,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",message_needaction,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",message_needaction_counter,integer,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",message_partner_ids,many2many,res.partner,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",mobile_phone,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",monday_location_id,many2one,hr.work.location,f,t,hr_homeworking
+hr.employee,"{""en_US"": ""Employee""}",my_activity_date_deadline,date,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",name,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",name_as_per_bank,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",nda_document,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",nda_document_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",newly_hired,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",notice_days,integer,,f,f,hr_employee_updation
+hr.employee,"{""en_US"": ""Employee""}",notice_period_doc,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",notice_period_doc_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",offer_letter,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",offer_letter_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",other_allowance,monetary,,f,f,hr_payroll_community
+hr.employee,"{""en_US"": ""Employee""}",overtime_ids,one2many,hr.attendance.overtime.line,f,t,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",pan_card_doc,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",pan_card_doc_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",pan_number,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",parent_id,many2one,hr.employee,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",passport_attachment_ids,many2many,ir.attachment,f,t,hr_employee_updation
+hr.employee,"{""en_US"": ""Employee""}",passport_doc,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",passport_doc_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",passport_expiration_date,date,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",passport_expiry_date,date,,f,t,hr_employee_updation
+hr.employee,"{""en_US"": ""Employee""}",passport_id,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",passport_photo,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",passport_photo_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",payslip_count,integer,,f,f,hr_payroll_community
+hr.employee,"{""en_US"": ""Employee""}",permit_no,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",personal_mobile,char,,f,t,hr_employee_updation
+hr.employee,"{""en_US"": ""Employee""}",phone,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",pin,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",place_of_birth,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",primary_bank_account_id,many2one,res.partner.bank,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",private_car_plate,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",private_city,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",private_country_id,many2one,res.country,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",private_email,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",private_phone,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",private_state_id,many2one,res.country.state,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",private_street,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",private_street2,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",private_zip,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",rating_ids,one2many,rating.rating,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",related_partners_count,integer,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",relieving_letter,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",relieving_letter_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",resign_date,date,,f,t,hr_resignation
+hr.employee,"{""en_US"": ""Employee""}",resigned,boolean,,f,t,hr_resignation
+hr.employee,"{""en_US"": ""Employee""}",resource_calendar_id,many2one,resource.calendar,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",resource_id,many2one,resource.resource,t,t,hr
+hr.employee,"{""en_US"": ""Employee""}",resume_doc,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",resume_doc_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",resume_line_ids,one2many,hr.resume.line,f,t,hr_skills
+hr.employee,"{""en_US"": ""Employee""}",ruleset_id,many2one,hr.attendance.overtime.ruleset,f,f,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",salary_distribution,json,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",salary_slip_1,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",salary_slip_1_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",salary_slip_2,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",salary_slip_2_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",salary_slip_3,binary,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",salary_slip_3_filename,char,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",same_as_permanent,boolean,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",saturday_location_id,many2one,hr.work.location,f,t,hr_homeworking
+hr.employee,"{""en_US"": ""Employee""}",schedule_pay,selection,,f,f,hr_payroll_community
+hr.employee,"{""en_US"": ""Employee""}",sex,selection,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",share,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",show_hr_icon_display,boolean,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",show_leaves,boolean,,f,f,hr_holidays
+hr.employee,"{""en_US"": ""Employee""}",skill_ids,many2many,hr.skill,f,t,hr_skills
+hr.employee,"{""en_US"": ""Employee""}",skill_set_summary,text,,f,t,hr_employee_cleardeals
+hr.employee,"{""en_US"": ""Employee""}",slip_ids,one2many,hr.payslip,f,t,hr_payroll_community
+hr.employee,"{""en_US"": ""Employee""}",spouse_birthdate,date,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",spouse_complete_name,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",ssnid,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",struct_id,many2one,hr.payroll.structure,f,f,hr_payroll_community
+hr.employee,"{""en_US"": ""Employee""}",structure_type_id,many2one,hr.payroll.structure.type,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",study_field,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",study_school,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",subordinate_ids,one2many,hr.employee,f,f,hr_org_chart
+hr.employee,"{""en_US"": ""Employee""}",sunday_location_id,many2one,hr.work.location,f,t,hr_homeworking
+hr.employee,"{""en_US"": ""Employee""}",thursday_location_id,many2one,hr.work.location,f,t,hr_homeworking
+hr.employee,"{""en_US"": ""Employee""}",today_location_name,char,,f,t,hr_homeworking
+hr.employee,"{""en_US"": ""Employee""}",total_overtime,float,,f,f,hr_attendance
+hr.employee,"{""en_US"": ""Employee""}",travel_allowance,monetary,,f,f,hr_payroll_community
+hr.employee,"{""en_US"": ""Employee""}",trial_date_end,date,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",tuesday_location_id,many2one,hr.work.location,f,t,hr_homeworking
+hr.employee,"{""en_US"": ""Employee""}",tz,selection,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",user_id,many2one,res.users,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",user_partner_id,many2one,res.partner,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",version_id,many2one,hr.version,t,f,hr
+hr.employee,"{""en_US"": ""Employee""}",version_ids,one2many,hr.version,t,t,hr
+hr.employee,"{""en_US"": ""Employee""}",versions_count,integer,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",visa_expire,date,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",visa_no,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",wage,monetary,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",website_message_ids,one2many,mail.message,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",wednesday_location_id,many2one,hr.work.location,f,t,hr_homeworking
+hr.employee,"{""en_US"": ""Employee""}",work_contact_id,many2one,res.partner,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",work_email,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",work_location_id,many2one,hr.work.location,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",work_location_name,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",work_location_type,selection,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",work_permit_expiration_date,date,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",work_permit_name,char,,f,f,hr
+hr.employee,"{""en_US"": ""Employee""}",work_permit_scheduled_activity,boolean,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",work_phone,char,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",write_date,datetime,,f,t,hr
+hr.employee,"{""en_US"": ""Employee""}",write_uid,many2one,res.users,f,t,hr
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",before_days,integer,,f,t,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",create_date,datetime,,f,t,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",create_uid,many2one,res.users,f,t,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",description,text,,f,t,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",display_name,char,,f,f,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",doc_attachment_ids,many2many,ir.attachment,f,t,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",document_type_id,many2one,document.type,f,t,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",employee_ref_id,many2one,hr.employee,f,t,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",expiry_date,date,,f,t,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",id,integer,,f,t,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",issue_date,date,,f,t,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",name,char,,t,t,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",notification_type,selection,,f,t,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",write_date,datetime,,f,t,oh_employee_documents_expiry
+hr.employee.document,"{""en_US"": ""HR Employee Documents""}",write_uid,many2one,res.users,f,t,oh_employee_documents_expiry
+hr.employee.family,"{""en_US"": ""HR Employee Family Info""}",birth_date,date,,f,t,hr_employee_updation
+hr.employee.family,"{""en_US"": ""HR Employee Family Info""}",create_date,datetime,,f,t,hr_employee_updation
+hr.employee.family,"{""en_US"": ""HR Employee Family Info""}",create_uid,many2one,res.users,f,t,hr_employee_updation
+hr.employee.family,"{""en_US"": ""HR Employee Family Info""}",display_name,char,,f,f,hr_employee_updation
+hr.employee.family,"{""en_US"": ""HR Employee Family Info""}",employee_id,many2one,hr.employee,f,t,hr_employee_updation
+hr.employee.family,"{""en_US"": ""HR Employee Family Info""}",id,integer,,f,t,hr_employee_updation
+hr.employee.family,"{""en_US"": ""HR Employee Family Info""}",member_contact,char,,f,t,hr_employee_updation
+hr.employee.family,"{""en_US"": ""HR Employee Family Info""}",member_name,char,,f,t,hr_employee_updation
+hr.employee.family,"{""en_US"": ""HR Employee Family Info""}",relation_id,many2one,hr.employee.relation,f,t,hr_employee_updation
+hr.employee.family,"{""en_US"": ""HR Employee Family Info""}",write_date,datetime,,f,t,hr_employee_updation
+hr.employee.family,"{""en_US"": ""HR Employee Family Info""}",write_uid,many2one,res.users,f,t,hr_employee_updation
+hr.job,"{""en_US"": ""Job Position""}",active,boolean,,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",activity_calendar_event_id,many2one,calendar.event,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",activity_count,integer,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",activity_date_deadline,date,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",activity_exception_decoration,selection,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",activity_exception_icon,char,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",activity_ids,one2many,mail.activity,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",activity_state,selection,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",activity_summary,char,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",activity_type_icon,char,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",activity_type_id,many2one,mail.activity.type,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",activity_user_id,many2one,res.users,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",address_id,many2one,res.partner,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_bounced_content,html,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_contact,selection,,t,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_defaults,text,,t,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_domain,char,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_domain_id,many2one,mail.alias.domain,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_email,char,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_force_thread_id,integer,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_full_name,char,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_id,many2one,mail.alias,t,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_incoming_local,boolean,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_model_id,many2one,ir.model,t,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_name,char,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_parent_model_id,many2one,ir.model,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_parent_thread_id,integer,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",alias_status,selection,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",all_application_count,integer,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",allowed_user_ids,many2many,res.users,f,f,hr
+hr.job,"{""en_US"": ""Job Position""}",applicant_hired,integer,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",applicant_matching_score,float,,f,f,hr_recruitment_skills
+hr.job,"{""en_US"": ""Job Position""}",applicant_properties_definition,properties_definition,,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",application_count,integer,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",application_ids,one2many,hr.applicant,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",color,integer,,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",company_id,many2one,res.company,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",contract_type_id,many2one,hr.contract.type,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",create_date,datetime,,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",create_uid,many2one,res.users,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",current_job_skill_ids,one2many,hr.job.skill,f,f,hr_skills
+hr.job,"{""en_US"": ""Job Position""}",department_id,many2one,hr.department,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",description,html,,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",display_name,char,,f,f,hr_recruitment_skills
+hr.job,"{""en_US"": ""Job Position""}",display_name,char,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",display_name,char,,f,f,hr
+hr.job,"{""en_US"": ""Job Position""}",display_name,char,,f,f,hr_skills
+hr.job,"{""en_US"": ""Job Position""}",display_name,char,,f,f,hr_recruitment_survey
+hr.job,"{""en_US"": ""Job Position""}",document_ids,one2many,ir.attachment,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",documents_count,integer,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",employee_count,integer,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",employee_ids,one2many,hr.employee,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",expected_degree,many2one,hr.recruitment.degree,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",expected_employees,integer,,f,f,hr
+hr.job,"{""en_US"": ""Job Position""}",expected_employees,integer,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",extended_interviewer_ids,many2many,res.users,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",favorite_user_ids,many2many,res.users,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",has_message,boolean,,f,f,hr
+hr.job,"{""en_US"": ""Job Position""}",id,integer,,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",id,integer,,f,t,hr_recruitment_skills
+hr.job,"{""en_US"": ""Job Position""}",id,integer,,f,t,hr_skills
+hr.job,"{""en_US"": ""Job Position""}",id,integer,,f,t,hr_recruitment_survey
+hr.job,"{""en_US"": ""Job Position""}",id,integer,,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",industry_id,many2one,res.partner.industry,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",interviewer_ids,many2many,res.users,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",is_favorite,boolean,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",job_properties,properties,,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",job_skill_ids,one2many,hr.job.skill,f,t,hr_skills
+hr.job,"{""en_US"": ""Job Position""}",job_source_ids,one2many,hr.recruitment.source,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",manager_id,many2one,hr.employee,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",message_attachment_count,integer,,f,f,hr
+hr.job,"{""en_US"": ""Job Position""}",message_follower_ids,one2many,mail.followers,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",message_has_error,boolean,,f,f,hr
+hr.job,"{""en_US"": ""Job Position""}",message_has_error_counter,integer,,f,f,hr
+hr.job,"{""en_US"": ""Job Position""}",message_has_sms_error,boolean,,f,f,hr
+hr.job,"{""en_US"": ""Job Position""}",message_ids,one2many,mail.message,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",message_is_follower,boolean,,f,f,hr
+hr.job,"{""en_US"": ""Job Position""}",message_needaction,boolean,,f,f,hr
+hr.job,"{""en_US"": ""Job Position""}",message_needaction_counter,integer,,f,f,hr
+hr.job,"{""en_US"": ""Job Position""}",message_partner_ids,many2many,res.partner,f,f,hr
+hr.job,"{""en_US"": ""Job Position""}",my_activity_date_deadline,date,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",name,char,,t,t,hr
+hr.job,"{""en_US"": ""Job Position""}",new_application_count,integer,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",no_of_employee,integer,,f,f,hr
+hr.job,"{""en_US"": ""Job Position""}",no_of_employee,integer,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",no_of_hired_employee,integer,,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",no_of_recruitment,integer,,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",old_application_count,integer,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",open_application_count,integer,,f,f,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",rating_ids,one2many,rating.rating,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",requirements,text,,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",requirements,text,,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",sequence,integer,,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",skill_ids,many2many,hr.skill,f,t,hr_skills
+hr.job,"{""en_US"": ""Job Position""}",survey_id,many2one,survey.survey,f,t,hr_recruitment_survey
+hr.job,"{""en_US"": ""Job Position""}",user_id,many2one,res.users,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",user_id,many2one,res.users,f,t,hr_recruitment
+hr.job,"{""en_US"": ""Job Position""}",website_message_ids,one2many,mail.message,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",write_date,datetime,,f,t,hr
+hr.job,"{""en_US"": ""Job Position""}",write_uid,many2one,res.users,f,t,hr
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",create_date,datetime,,f,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",create_uid,many2one,res.users,f,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",display_name,char,,f,f,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",fold,boolean,,f,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",hired_stage,boolean,,f,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",id,integer,,f,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",is_warning_visible,boolean,,f,f,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",job_ids,many2many,hr.job,f,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",legend_blocked,char,,t,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",legend_done,char,,t,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",legend_normal,char,,t,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",legend_waiting,char,,t,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",name,char,,t,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",requirements,text,,f,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",rotting_threshold_days,integer,,f,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",sequence,integer,,f,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",template_id,many2one,mail.template,f,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",write_date,datetime,,f,t,hr_recruitment
+hr.recruitment.stage,"{""en_US"": ""Recruitment Stages""}",write_uid,many2one,res.users,f,t,hr_recruitment
+hr.version,"{""en_US"": ""Employee Contract""}",active,boolean,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",active_employee,boolean,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",activity_calendar_event_id,many2one,calendar.event,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",activity_date_deadline,date,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",activity_exception_decoration,selection,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",activity_exception_icon,char,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",activity_ids,one2many,mail.activity,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",activity_state,selection,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",activity_summary,char,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",activity_type_icon,char,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",activity_type_id,many2one,mail.activity.type,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",activity_user_id,many2one,res.users,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",additional_note,text,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",address_id,many2one,res.partner,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",allowed_country_state_ids,many2many,res.country.state,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",analytic_account_id,many2one,account.analytic.account,f,t,hr_payroll_account_community
+hr.version,"{""en_US"": ""Employee Contract""}",children,integer,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",company_country_id,many2one,res.country,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",company_id,many2one,res.company,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",contract_date_end,date,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",contract_date_start,date,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",contract_template_id,many2one,hr.version,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",contract_type_id,many2one,hr.contract.type,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",contract_wage,monetary,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",country_code,char,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",country_id,many2one,res.country,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",create_date,datetime,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",create_uid,many2one,res.users,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",currency_id,many2one,res.currency,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",da,monetary,,f,t,hr_payroll_community
+hr.version,"{""en_US"": ""Employee Contract""}",date_end,date,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",date_start,date,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",date_version,date,,t,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",department_id,many2one,hr.department,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",departure_date,date,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",departure_description,html,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",departure_reason_id,many2one,hr.departure.reason,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",display_name,char,,f,f,hr_holidays
+hr.version,"{""en_US"": ""Employee Contract""}",display_name,char,,f,f,hrms_dashboard
+hr.version,"{""en_US"": ""Employee Contract""}",display_name,char,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",display_name,char,,f,f,hr_attendance
+hr.version,"{""en_US"": ""Employee Contract""}",display_name,char,,f,f,hr_payroll_account_community
+hr.version,"{""en_US"": ""Employee Contract""}",display_name,char,,f,f,hr_payroll_community
+hr.version,"{""en_US"": ""Employee Contract""}",display_name,char,,f,f,hr_employee_updation
+hr.version,"{""en_US"": ""Employee Contract""}",distance_home_work,integer,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",distance_home_work_unit,selection,,t,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",employee_id,many2one,hr.employee,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",employee_type,selection,,t,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",has_message,boolean,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",hr_responsible_id,many2one,res.users,t,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",hra,monetary,,f,t,hr_payroll_community
+hr.version,"{""en_US"": ""Employee Contract""}",id,integer,,f,t,hr_holidays
+hr.version,"{""en_US"": ""Employee Contract""}",id,integer,,f,t,hrms_dashboard
+hr.version,"{""en_US"": ""Employee Contract""}",id,integer,,f,t,hr_attendance
+hr.version,"{""en_US"": ""Employee Contract""}",id,integer,,f,t,hr_employee_updation
+hr.version,"{""en_US"": ""Employee Contract""}",id,integer,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",id,integer,,f,t,hr_payroll_community
+hr.version,"{""en_US"": ""Employee Contract""}",id,integer,,f,t,hr_payroll_account_community
+hr.version,"{""en_US"": ""Employee Contract""}",identification_id,char,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",is_current,boolean,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",is_custom_job_title,boolean,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",is_flexible,boolean,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",is_fully_flexible,boolean,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",is_future,boolean,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",is_in_contract,boolean,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",is_past,boolean,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",job_id,many2one,hr.job,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",job_title,char,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",journal_id,many2one,account.journal,f,t,hr_payroll_account_community
+hr.version,"{""en_US"": ""Employee Contract""}",km_home_work,integer,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",last_modified_date,datetime,,t,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",last_modified_uid,many2one,res.users,t,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",marital,selection,,t,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",meal_allowance,monetary,,f,t,hr_payroll_community
+hr.version,"{""en_US"": ""Employee Contract""}",medical_allowance,monetary,,f,t,hr_payroll_community
+hr.version,"{""en_US"": ""Employee Contract""}",member_of_department,boolean,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",message_attachment_count,integer,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",message_follower_ids,one2many,mail.followers,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",message_has_error,boolean,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",message_has_error_counter,integer,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",message_has_sms_error,boolean,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",message_ids,one2many,mail.message,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",message_is_follower,boolean,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",message_needaction,boolean,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",message_needaction_counter,integer,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",message_partner_ids,many2many,res.partner,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",my_activity_date_deadline,date,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",name,char,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",notice_days,integer,,f,f,hr_employee_updation
+hr.version,"{""en_US"": ""Employee Contract""}",other_allowance,monetary,,f,t,hr_payroll_community
+hr.version,"{""en_US"": ""Employee Contract""}",passport_expiration_date,date,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",passport_id,char,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",private_city,char,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",private_country_id,many2one,res.country,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",private_state_id,many2one,res.country.state,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",private_street,char,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",private_street2,char,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",private_zip,char,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",rating_ids,one2many,rating.rating,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",resource_calendar_id,many2one,resource.calendar,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",ruleset_id,many2one,hr.attendance.overtime.ruleset,f,t,hr_attendance
+hr.version,"{""en_US"": ""Employee Contract""}",schedule_pay,selection,,f,t,hr_payroll_community
+hr.version,"{""en_US"": ""Employee Contract""}",sex,selection,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",spouse_birthdate,date,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",spouse_complete_name,char,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",ssnid,char,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",struct_id,many2one,hr.payroll.structure,f,t,hr_payroll_community
+hr.version,"{""en_US"": ""Employee Contract""}",structure_type_id,many2one,hr.payroll.structure.type,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",travel_allowance,monetary,,f,t,hr_payroll_community
+hr.version,"{""en_US"": ""Employee Contract""}",trial_date_end,date,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",tz,selection,,f,f,hr
+hr.version,"{""en_US"": ""Employee Contract""}",wage,monetary,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",website_message_ids,one2many,mail.message,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",work_location_id,many2one,hr.work.location,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",write_date,datetime,,f,t,hr
+hr.version,"{""en_US"": ""Employee Contract""}",write_uid,many2one,res.users,f,t,hr
+ir.attachment,"{""en_US"": ""Attachment""}",access_token,char,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",attach_rel,many2many,hr.document,f,t,oh_employee_documents_expiry
+ir.attachment,"{""en_US"": ""Attachment""}",checksum,char,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",company_id,many2one,res.company,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",create_date,datetime,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",create_uid,many2one,res.users,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",datas,binary,,f,f,base
+ir.attachment,"{""en_US"": ""Attachment""}",db_datas,binary,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",description,text,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",display_name,char,,f,f,hr_recruitment
+ir.attachment,"{""en_US"": ""Attachment""}",display_name,char,,f,f,oh_employee_documents_expiry
+ir.attachment,"{""en_US"": ""Attachment""}",display_name,char,,f,f,base
+ir.attachment,"{""en_US"": ""Attachment""}",display_name,char,,f,f,api_doc
+ir.attachment,"{""en_US"": ""Attachment""}",display_name,char,,f,f,bus
+ir.attachment,"{""en_US"": ""Attachment""}",display_name,char,,f,f,html_editor
+ir.attachment,"{""en_US"": ""Attachment""}",display_name,char,,f,f,web_unsplash
+ir.attachment,"{""en_US"": ""Attachment""}",display_name,char,,f,f,attachment_indexation
+ir.attachment,"{""en_US"": ""Attachment""}",display_name,char,,f,f,mail
+ir.attachment,"{""en_US"": ""Attachment""}",display_name,char,,f,f,product
+ir.attachment,"{""en_US"": ""Attachment""}",display_name,char,,f,f,account
+ir.attachment,"{""en_US"": ""Attachment""}",doc_attach_rel,many2many,hr.employee.document,f,t,oh_employee_documents_expiry
+ir.attachment,"{""en_US"": ""Attachment""}",file_size,integer,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",has_thumbnail,boolean,,f,f,mail
+ir.attachment,"{""en_US"": ""Attachment""}",id,integer,,f,t,mail
+ir.attachment,"{""en_US"": ""Attachment""}",id,integer,,f,t,api_doc
+ir.attachment,"{""en_US"": ""Attachment""}",id,integer,,f,t,bus
+ir.attachment,"{""en_US"": ""Attachment""}",id,integer,,f,t,html_editor
+ir.attachment,"{""en_US"": ""Attachment""}",id,integer,,f,t,web_unsplash
+ir.attachment,"{""en_US"": ""Attachment""}",id,integer,,f,t,attachment_indexation
+ir.attachment,"{""en_US"": ""Attachment""}",id,integer,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",id,integer,,f,t,product
+ir.attachment,"{""en_US"": ""Attachment""}",id,integer,,f,t,account
+ir.attachment,"{""en_US"": ""Attachment""}",id,integer,,f,t,hr_recruitment
+ir.attachment,"{""en_US"": ""Attachment""}",id,integer,,f,t,oh_employee_documents_expiry
+ir.attachment,"{""en_US"": ""Attachment""}",image_height,integer,,f,f,html_editor
+ir.attachment,"{""en_US"": ""Attachment""}",image_src,char,,f,f,html_editor
+ir.attachment,"{""en_US"": ""Attachment""}",image_width,integer,,f,f,html_editor
+ir.attachment,"{""en_US"": ""Attachment""}",index_content,text,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",local_url,char,,f,f,html_editor
+ir.attachment,"{""en_US"": ""Attachment""}",mimetype,char,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",name,char,,t,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",original_id,many2one,ir.attachment,f,t,html_editor
+ir.attachment,"{""en_US"": ""Attachment""}",public,boolean,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",raw,binary,,f,f,base
+ir.attachment,"{""en_US"": ""Attachment""}",res_field,char,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",res_id,many2one_reference,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",res_model,char,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",res_name,char,,f,f,base
+ir.attachment,"{""en_US"": ""Attachment""}",store_fname,char,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",thumbnail,binary,,f,t,mail
+ir.attachment,"{""en_US"": ""Attachment""}",type,selection,,t,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",url,char,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",voice_ids,one2many,discuss.voice.metadata,f,t,mail
+ir.attachment,"{""en_US"": ""Attachment""}",write_date,datetime,,f,t,base
+ir.attachment,"{""en_US"": ""Attachment""}",write_uid,many2one,res.users,f,t,base
+res.company,"{""en_US"": ""Companies""}",absence_management,boolean,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",account_cash_basis_base_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_default_pos_receivable_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_discount_expense_allocation_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_discount_income_allocation_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_enabled_tax_country_ids,many2many,res.country,f,f,account
+res.company,"{""en_US"": ""Companies""}",account_fiscal_country_group_codes,json,,f,f,account
+res.company,"{""en_US"": ""Companies""}",account_fiscal_country_id,many2one,res.country,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_journal_early_pay_discount_gain_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_journal_early_pay_discount_loss_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_journal_suspense_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_opening_date,date,,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_opening_journal_id,many2one,account.journal,f,f,account
+res.company,"{""en_US"": ""Companies""}",account_opening_move_id,many2one,account.move,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_price_include,selection,,t,t,account
+res.company,"{""en_US"": ""Companies""}",account_purchase_receipt_fiscal_position_id,many2one,account.fiscal.position,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_purchase_tax_id,many2one,account.tax,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_sale_tax_id,many2one,account.tax,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_storno,boolean,,f,t,account
+res.company,"{""en_US"": ""Companies""}",account_use_credit_limit,boolean,,f,t,account
+res.company,"{""en_US"": ""Companies""}",active,boolean,,f,t,base
+res.company,"{""en_US"": ""Companies""}",alias_domain_id,many2one,mail.alias.domain,f,t,mail
+res.company,"{""en_US"": ""Companies""}",all_child_ids,one2many,res.company,f,t,base
+res.company,"{""en_US"": ""Companies""}",anglo_saxon_accounting,boolean,,f,t,account
+res.company,"{""en_US"": ""Companies""}",attendance_barcode_source,selection,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",attendance_device_tracking,boolean,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",attendance_from_systray,boolean,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",attendance_kiosk_delay,integer,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",attendance_kiosk_key,char,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",attendance_kiosk_mode,selection,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",attendance_kiosk_url,char,,f,f,hr_attendance
+res.company,"{""en_US"": ""Companies""}",attendance_kiosk_use_pin,boolean,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",attendance_overtime_validation,selection,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",auto_check_out,boolean,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",auto_check_out_tolerance,float,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",automatic_entry_default_journal_id,many2one,account.journal,f,t,account
+res.company,"{""en_US"": ""Companies""}",autopost_bills,boolean,,f,t,account
+res.company,"{""en_US"": ""Companies""}",bank_account_code_prefix,char,,f,t,account
+res.company,"{""en_US"": ""Companies""}",bank_ids,one2many,res.partner.bank,f,f,base
+res.company,"{""en_US"": ""Companies""}",bank_journal_ids,one2many,account.journal,f,t,account
+res.company,"{""en_US"": ""Companies""}",batch_payment_sequence_id,many2one,ir.sequence,f,t,account
+res.company,"{""en_US"": ""Companies""}",bounce_email,char,,f,f,mail
+res.company,"{""en_US"": ""Companies""}",bounce_formatted,char,,f,f,mail
+res.company,"{""en_US"": ""Companies""}",cash_account_code_prefix,char,,f,t,account
+res.company,"{""en_US"": ""Companies""}",catchall_email,char,,f,f,mail
+res.company,"{""en_US"": ""Companies""}",catchall_formatted,char,,f,f,mail
+res.company,"{""en_US"": ""Companies""}",chart_template,selection,,f,t,account
+res.company,"{""en_US"": ""Companies""}",child_ids,one2many,res.company,f,t,base
+res.company,"{""en_US"": ""Companies""}",city,char,,f,f,base
+res.company,"{""en_US"": ""Companies""}",color,integer,,f,f,base
+res.company,"{""en_US"": ""Companies""}",company_details,html,,f,t,base
+res.company,"{""en_US"": ""Companies""}",company_expense_allowed_payment_method_line_ids,many2many,account.payment.method.line,f,t,hr_expense
+res.company,"{""en_US"": ""Companies""}",company_registry,char,,f,f,base
+res.company,"{""en_US"": ""Companies""}",company_registry_placeholder,char,,f,f,account
+res.company,"{""en_US"": ""Companies""}",company_registry_placeholder,char,,f,f,base
+res.company,"{""en_US"": ""Companies""}",company_vat_placeholder,char,,f,f,account
+res.company,"{""en_US"": ""Companies""}",contract_expiration_notice_period,integer,,f,t,hr
+res.company,"{""en_US"": ""Companies""}",country_code,char,,f,f,base
+res.company,"{""en_US"": ""Companies""}",country_id,many2one,res.country,f,f,base
+res.company,"{""en_US"": ""Companies""}",create_date,datetime,,f,t,base
+res.company,"{""en_US"": ""Companies""}",create_uid,many2one,res.users,f,t,base
+res.company,"{""en_US"": ""Companies""}",currency_exchange_journal_id,many2one,account.journal,f,t,account
+res.company,"{""en_US"": ""Companies""}",currency_id,many2one,res.currency,t,t,base
+res.company,"{""en_US"": ""Companies""}",default_cash_difference_expense_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",default_cash_difference_income_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",default_from_email,char,,f,f,mail
+res.company,"{""en_US"": ""Companies""}",display_account_storno,boolean,,f,f,account
+res.company,"{""en_US"": ""Companies""}",display_invoice_amount_total_words,boolean,,f,t,account
+res.company,"{""en_US"": ""Companies""}",display_invoice_tax_company_currency,boolean,,f,t,account
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,hr_attendance
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,hr
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,account
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,payment
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,snailmail
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,sms
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,partner_autocomplete
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,base_vat
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,project_timesheet_holidays
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,l10n_in
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,hr_timesheet
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,spreadsheet_account
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,hr_recruitment
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,hr_expense
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,product
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,mail
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,resource
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,barcodes
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,web
+res.company,"{""en_US"": ""Companies""}",display_name,char,,f,f,base
+res.company,"{""en_US"": ""Companies""}",domestic_fiscal_position_id,many2one,account.fiscal.position,f,t,account
+res.company,"{""en_US"": ""Companies""}",email,char,,f,t,base
+res.company,"{""en_US"": ""Companies""}",email_formatted,char,,f,f,mail
+res.company,"{""en_US"": ""Companies""}",email_primary_color,char,,f,t,mail
+res.company,"{""en_US"": ""Companies""}",email_secondary_color,char,,f,t,mail
+res.company,"{""en_US"": ""Companies""}",employee_properties_definition,properties_definition,,f,t,hr
+res.company,"{""en_US"": ""Companies""}",expects_chart_of_accounts,boolean,,f,t,account
+res.company,"{""en_US"": ""Companies""}",expense_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",expense_accrual_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",expense_currency_exchange_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",expense_journal_id,many2one,account.journal,f,t,hr_expense
+res.company,"{""en_US"": ""Companies""}",external_report_layout_id,many2one,ir.ui.view,f,t,base
+res.company,"{""en_US"": ""Companies""}",fiscal_position_ids,one2many,account.fiscal.position,f,t,account
+res.company,"{""en_US"": ""Companies""}",fiscalyear_last_day,integer,,t,t,account
+res.company,"{""en_US"": ""Companies""}",fiscalyear_last_month,selection,,t,t,account
+res.company,"{""en_US"": ""Companies""}",fiscalyear_lock_date,date,,f,t,account
+res.company,"{""en_US"": ""Companies""}",font,selection,,f,t,base
+res.company,"{""en_US"": ""Companies""}",force_restrictive_audit_trail,boolean,,f,f,account
+res.company,"{""en_US"": ""Companies""}",hard_lock_date,date,,f,t,account
+res.company,"{""en_US"": ""Companies""}",has_message,boolean,,f,f,account
+res.company,"{""en_US"": ""Companies""}",hr_attendance_display_overtime,boolean,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",hr_presence_control_attendance,boolean,,f,t,hr
+res.company,"{""en_US"": ""Companies""}",hr_presence_control_email,boolean,,f,t,hr
+res.company,"{""en_US"": ""Companies""}",hr_presence_control_email_amount,integer,,f,t,hr
+res.company,"{""en_US"": ""Companies""}",hr_presence_control_ip,boolean,,f,t,hr
+res.company,"{""en_US"": ""Companies""}",hr_presence_control_ip_list,char,,f,t,hr
+res.company,"{""en_US"": ""Companies""}",hr_presence_control_login,boolean,,f,t,hr
+res.company,"{""en_US"": ""Companies""}",iap_enrich_auto_done,boolean,,f,t,partner_autocomplete
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,l10n_in
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,resource
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,hr_timesheet
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,account
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,payment
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,partner_autocomplete
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,sms
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,hr_expense
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,hr_recruitment
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,snailmail
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,web
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,barcodes
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,spreadsheet_account
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,hr
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,base_vat
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,mail
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,product
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,base
+res.company,"{""en_US"": ""Companies""}",id,integer,,f,t,project_timesheet_holidays
+res.company,"{""en_US"": ""Companies""}",income_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",income_currency_exchange_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",incoterm_id,many2one,account.incoterms,f,t,account
+res.company,"{""en_US"": ""Companies""}",internal_project_id,many2one,project.project,f,t,hr_timesheet
+res.company,"{""en_US"": ""Companies""}",invoice_terms,html,,f,t,account
+res.company,"{""en_US"": ""Companies""}",invoice_terms_html,html,,f,t,account
+res.company,"{""en_US"": ""Companies""}",is_company_details_empty,boolean,,f,f,base
+res.company,"{""en_US"": ""Companies""}",job_properties_definition,properties_definition,,f,t,hr_recruitment
+res.company,"{""en_US"": ""Companies""}",l10n_in_edi_production_env,boolean,,f,t,l10n_in
+res.company,"{""en_US"": ""Companies""}",l10n_in_gst_state_warning,char,,f,f,l10n_in
+res.company,"{""en_US"": ""Companies""}",l10n_in_gstin_status_feature,boolean,,f,t,l10n_in
+res.company,"{""en_US"": ""Companies""}",l10n_in_hsn_code_digit,selection,,f,t,l10n_in
+res.company,"{""en_US"": ""Companies""}",l10n_in_is_gst_registered,boolean,,f,t,l10n_in
+res.company,"{""en_US"": ""Companies""}",l10n_in_pan_entity_id,many2one,l10n_in.pan.entity,f,t,l10n_in
+res.company,"{""en_US"": ""Companies""}",l10n_in_pan_type,selection,,f,f,l10n_in
+res.company,"{""en_US"": ""Companies""}",l10n_in_tan,char,,f,f,l10n_in
+res.company,"{""en_US"": ""Companies""}",l10n_in_tcs_feature,boolean,,f,t,l10n_in
+res.company,"{""en_US"": ""Companies""}",l10n_in_tds_feature,boolean,,f,t,l10n_in
+res.company,"{""en_US"": ""Companies""}",l10n_in_upi_id,char,,f,t,l10n_in
+res.company,"{""en_US"": ""Companies""}",l10n_in_withholding_account_id,many2one,account.account,f,t,l10n_in
+res.company,"{""en_US"": ""Companies""}",l10n_in_withholding_journal_id,many2one,account.journal,f,t,l10n_in
+res.company,"{""en_US"": ""Companies""}",layout_background,selection,,t,t,base
+res.company,"{""en_US"": ""Companies""}",layout_background_image,binary,,f,t,base
+res.company,"{""en_US"": ""Companies""}",leave_timesheet_task_id,many2one,project.task,f,t,project_timesheet_holidays
+res.company,"{""en_US"": ""Companies""}",link_qr_code,boolean,,f,t,account
+res.company,"{""en_US"": ""Companies""}",logo,binary,,f,f,base
+res.company,"{""en_US"": ""Companies""}",logo_web,binary,,f,t,base
+res.company,"{""en_US"": ""Companies""}",message_attachment_count,integer,,f,f,account
+res.company,"{""en_US"": ""Companies""}",message_follower_ids,one2many,mail.followers,f,t,account
+res.company,"{""en_US"": ""Companies""}",message_has_error,boolean,,f,f,account
+res.company,"{""en_US"": ""Companies""}",message_has_error_counter,integer,,f,f,account
+res.company,"{""en_US"": ""Companies""}",message_has_sms_error,boolean,,f,f,account
+res.company,"{""en_US"": ""Companies""}",message_ids,one2many,mail.message,f,t,account
+res.company,"{""en_US"": ""Companies""}",message_is_follower,boolean,,f,f,account
+res.company,"{""en_US"": ""Companies""}",message_needaction,boolean,,f,f,account
+res.company,"{""en_US"": ""Companies""}",message_needaction_counter,integer,,f,f,account
+res.company,"{""en_US"": ""Companies""}",message_partner_ids,many2many,res.partner,f,f,account
+res.company,"{""en_US"": ""Companies""}",multi_vat_foreign_country_ids,many2many,res.country,f,f,account
+res.company,"{""en_US"": ""Companies""}",name,char,,t,t,base
+res.company,"{""en_US"": ""Companies""}",nomenclature_id,many2one,barcode.nomenclature,f,t,barcodes
+res.company,"{""en_US"": ""Companies""}",overtime_company_threshold,integer,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",overtime_employee_threshold,integer,,f,t,hr_attendance
+res.company,"{""en_US"": ""Companies""}",paperformat_id,many2one,report.paperformat,f,t,base
+res.company,"{""en_US"": ""Companies""}",parent_id,many2one,res.company,f,t,base
+res.company,"{""en_US"": ""Companies""}",parent_ids,many2many,res.company,f,f,base
+res.company,"{""en_US"": ""Companies""}",parent_path,char,,f,t,base
+res.company,"{""en_US"": ""Companies""}",partner_id,many2one,res.partner,t,t,base
+res.company,"{""en_US"": ""Companies""}",phone,char,,f,t,base
+res.company,"{""en_US"": ""Companies""}",price_difference_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",primary_color,char,,f,t,base
+res.company,"{""en_US"": ""Companies""}",project_time_mode_id,many2one,uom.uom,f,t,hr_timesheet
+res.company,"{""en_US"": ""Companies""}",purchase_lock_date,date,,f,t,account
+res.company,"{""en_US"": ""Companies""}",qr_code,boolean,,f,t,account
+res.company,"{""en_US"": ""Companies""}",quick_edit_mode,selection,,f,t,account
+res.company,"{""en_US"": ""Companies""}",rating_ids,one2many,rating.rating,f,t,account
+res.company,"{""en_US"": ""Companies""}",report_footer,html,,f,t,base
+res.company,"{""en_US"": ""Companies""}",report_header,html,,f,t,base
+res.company,"{""en_US"": ""Companies""}",resource_calendar_id,many2one,resource.calendar,f,t,resource
+res.company,"{""en_US"": ""Companies""}",resource_calendar_ids,one2many,resource.calendar,f,t,resource
+res.company,"{""en_US"": ""Companies""}",restrictive_audit_trail,boolean,,f,t,account
+res.company,"{""en_US"": ""Companies""}",revenue_accrual_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",root_id,many2one,res.company,f,f,base
+res.company,"{""en_US"": ""Companies""}",sale_lock_date,date,,f,t,account
+res.company,"{""en_US"": ""Companies""}",secondary_color,char,,f,t,base
+res.company,"{""en_US"": ""Companies""}",sequence,integer,,f,t,base
+res.company,"{""en_US"": ""Companies""}",snailmail_color,boolean,,f,t,snailmail
+res.company,"{""en_US"": ""Companies""}",snailmail_cover,boolean,,f,t,snailmail
+res.company,"{""en_US"": ""Companies""}",snailmail_duplex,boolean,,f,t,snailmail
+res.company,"{""en_US"": ""Companies""}",state_id,many2one,res.country.state,f,f,base
+res.company,"{""en_US"": ""Companies""}",street,char,,f,f,base
+res.company,"{""en_US"": ""Companies""}",street2,char,,f,f,base
+res.company,"{""en_US"": ""Companies""}",tax_calculation_rounding_method,selection,,f,t,account
+res.company,"{""en_US"": ""Companies""}",tax_cash_basis_journal_id,many2one,account.journal,f,t,account
+res.company,"{""en_US"": ""Companies""}",tax_exigibility,boolean,,f,t,account
+res.company,"{""en_US"": ""Companies""}",tax_lock_date,date,,f,t,account
+res.company,"{""en_US"": ""Companies""}",terms_type,selection,,f,t,account
+res.company,"{""en_US"": ""Companies""}",timesheet_encode_uom_id,many2one,uom.uom,f,t,hr_timesheet
+res.company,"{""en_US"": ""Companies""}",transfer_account_code_prefix,char,,f,t,account
+res.company,"{""en_US"": ""Companies""}",transfer_account_id,many2one,account.account,f,t,account
+res.company,"{""en_US"": ""Companies""}",uninstalled_l10n_module_ids,many2many,ir.module.module,f,f,base
+res.company,"{""en_US"": ""Companies""}",user_fiscalyear_lock_date,date,,f,f,account
+res.company,"{""en_US"": ""Companies""}",user_hard_lock_date,date,,f,f,account
+res.company,"{""en_US"": ""Companies""}",user_ids,many2many,res.users,f,t,base
+res.company,"{""en_US"": ""Companies""}",user_purchase_lock_date,date,,f,f,account
+res.company,"{""en_US"": ""Companies""}",user_sale_lock_date,date,,f,f,account
+res.company,"{""en_US"": ""Companies""}",user_tax_lock_date,date,,f,f,account
+res.company,"{""en_US"": ""Companies""}",uses_default_logo,boolean,,f,t,base
+res.company,"{""en_US"": ""Companies""}",vat,char,,f,f,base
+res.company,"{""en_US"": ""Companies""}",vat_check_vies,boolean,,f,t,base_vat
+res.company,"{""en_US"": ""Companies""}",website,char,,f,f,base
+res.company,"{""en_US"": ""Companies""}",website_message_ids,one2many,mail.message,f,t,account
+res.company,"{""en_US"": ""Companies""}",work_permit_expiration_notice_period,integer,,f,t,hr
+res.company,"{""en_US"": ""Companies""}",write_date,datetime,,f,t,base
+res.company,"{""en_US"": ""Companies""}",write_uid,many2one,res.users,f,t,base
+res.company,"{""en_US"": ""Companies""}",zip,char,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",account_move_count,integer,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",active,boolean,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",active_lang_count,integer,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",activity_calendar_event_id,many2one,calendar.event,f,f,calendar
+res.partner,"{""en_US"": ""Contact""}",activity_date_deadline,date,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",activity_exception_decoration,selection,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",activity_exception_icon,char,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",activity_ids,one2many,mail.activity,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",activity_state,selection,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",activity_summary,char,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",activity_type_icon,char,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",activity_type_id,many2one,mail.activity.type,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",activity_user_id,many2one,res.users,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",applicant_ids,one2many,hr.applicant,f,t,hr_recruitment
+res.partner,"{""en_US"": ""Contact""}",application_statistics,json,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",autopost_bills,selection,,t,t,account
+res.partner,"{""en_US"": ""Contact""}",available_invoice_template_pdf_report_ids,one2many,ir.actions.report,f,f,account
+res.partner,"{""en_US"": ""Contact""}",available_peppol_eas,json,,f,f,account_edi_ubl_cii
+res.partner,"{""en_US"": ""Contact""}",avatar_1024,binary,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",avatar_128,binary,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",avatar_1920,binary,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",avatar_256,binary,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",avatar_512,binary,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",bank_account_count,integer,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",bank_ids,one2many,res.partner.bank,f,t,base
+res.partner,"{""en_US"": ""Contact""}",barcode,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",calendar_last_notif_ack,datetime,,f,t,calendar
+res.partner,"{""en_US"": ""Contact""}",category_id,many2many,res.partner.category,f,t,base
+res.partner,"{""en_US"": ""Contact""}",certifications_company_count,integer,,f,f,survey
+res.partner,"{""en_US"": ""Contact""}",certifications_count,integer,,f,f,survey
+res.partner,"{""en_US"": ""Contact""}",channel_ids,many2many,discuss.channel,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",channel_member_ids,one2many,discuss.channel.member,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",child_ids,one2many,res.partner,f,t,base
+res.partner,"{""en_US"": ""Contact""}",city,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",color,integer,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",comment,html,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",commercial_company_name,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",commercial_partner_id,many2one,res.partner,f,t,base
+res.partner,"{""en_US"": ""Contact""}",company_id,many2one,res.company,f,t,base
+res.partner,"{""en_US"": ""Contact""}",company_name,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",company_registry,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",company_registry_label,char,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",company_registry_placeholder,char,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",company_type,selection,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",complete_name,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",contact_address,char,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",contact_address_inline,char,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",contract_ids,one2many,account.analytic.account,f,t,account
+res.partner,"{""en_US"": ""Contact""}",country_code,char,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",country_id,many2one,res.country,f,t,base_vat
+res.partner,"{""en_US"": ""Contact""}",country_id,many2one,res.country,f,t,base
+res.partner,"{""en_US"": ""Contact""}",create_date,datetime,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",create_uid,many2one,res.users,f,t,base
+res.partner,"{""en_US"": ""Contact""}",credit,monetary,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",credit_limit,float,,f,t,account
+res.partner,"{""en_US"": ""Contact""}",credit_to_invoice,monetary,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",currency_id,many2one,res.currency,f,f,account
+res.partner,"{""en_US"": ""Contact""}",customer_rank,integer,,f,t,account
+res.partner,"{""en_US"": ""Contact""}",date_localization,date,,f,t,base_geolocalize
+res.partner,"{""en_US"": ""Contact""}",days_sales_outstanding,float,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",debit,monetary,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",display_invoice_edi_format,boolean,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",display_invoice_template_pdf_report_id,boolean,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,account_edi_ubl_cii
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,web
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,bus
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,base_geolocalize
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,auth_signup
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,calendar
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,phone_validation
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,privacy_lookup
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,product
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,partner_autocomplete
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,portal
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,snailmail
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,event
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,payment
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,hr
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,project
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,account_add_gln
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,base_vat
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,hr_calendar
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,hr_holidays
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,hr_homeworking
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,hr_recruitment
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,snailmail_account
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,hr_homeworking_calendar
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,l10n_in
+res.partner,"{""en_US"": ""Contact""}",display_name,char,,f,f,survey
+res.partner,"{""en_US"": ""Contact""}",display_pan_warning,boolean,,f,f,l10n_in
+res.partner,"{""en_US"": ""Contact""}",duplicate_bank_partner_ids,many2many,res.partner,f,f,account
+res.partner,"{""en_US"": ""Contact""}",email,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",email,char,,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",email_formatted,char,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",email_normalized,char,,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",employee,boolean,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",employee,boolean,,f,t,hr
+res.partner,"{""en_US"": ""Contact""}",employee_ids,one2many,hr.employee,f,t,hr
+res.partner,"{""en_US"": ""Contact""}",employees_count,integer,,f,f,hr
+res.partner,"{""en_US"": ""Contact""}",event_count,integer,,f,f,event
+res.partner,"{""en_US"": ""Contact""}",fiscal_country_codes,char,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",fiscal_country_group_codes,json,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",function,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",global_location_number,char,,f,t,account_add_gln
+res.partner,"{""en_US"": ""Contact""}",has_message,boolean,,f,f,phone_validation
+res.partner,"{""en_US"": ""Contact""}",has_message,boolean,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,base_geolocalize
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,survey
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,hr_calendar
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,hr_holidays
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,hr_homeworking
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,base_vat
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,account_edi_ubl_cii
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,account_add_gln
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,project
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,hr
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,account
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,payment
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,event
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,snailmail
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,hr_recruitment
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,portal
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,partner_autocomplete
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,snailmail_account
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,hr_homeworking_calendar
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,l10n_in
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,product
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,privacy_lookup
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,phone_validation
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,calendar
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,auth_signup
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,web
+res.partner,"{""en_US"": ""Contact""}",id,integer,,f,t,bus
+res.partner,"{""en_US"": ""Contact""}",ignore_abnormal_invoice_amount,boolean,,f,t,account
+res.partner,"{""en_US"": ""Contact""}",ignore_abnormal_invoice_date,boolean,,f,t,account
+res.partner,"{""en_US"": ""Contact""}",im_status,char,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",image_1024,binary,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",image_128,binary,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",image_1920,binary,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",image_256,binary,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",image_512,binary,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",industry_id,many2one,res.partner.industry,f,t,base
+res.partner,"{""en_US"": ""Contact""}",invoice_edi_format,selection,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",invoice_edi_format,selection,,f,f,account_edi_ubl_cii
+res.partner,"{""en_US"": ""Contact""}",invoice_edi_format_store,char,,f,t,account
+res.partner,"{""en_US"": ""Contact""}",invoice_ids,one2many,account.move,f,t,account
+res.partner,"{""en_US"": ""Contact""}",invoice_sending_method,selection,,f,t,snailmail_account
+res.partner,"{""en_US"": ""Contact""}",invoice_sending_method,selection,,f,t,account
+res.partner,"{""en_US"": ""Contact""}",invoice_template_pdf_report_id,many2one,ir.actions.report,f,t,account
+res.partner,"{""en_US"": ""Contact""}",is_blacklisted,boolean,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",is_company,boolean,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",is_in_call,boolean,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",is_peppol_edi_format,boolean,,f,f,account_edi_ubl_cii
+res.partner,"{""en_US"": ""Contact""}",is_public,boolean,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",is_ubl_format,boolean,,f,f,account_edi_ubl_cii
+res.partner,"{""en_US"": ""Contact""}",l10n_in_gst_state_warning,char,,f,f,l10n_in
+res.partner,"{""en_US"": ""Contact""}",l10n_in_gst_treatment,selection,,f,t,l10n_in
+res.partner,"{""en_US"": ""Contact""}",l10n_in_gstin_status_feature_enabled,boolean,,f,f,l10n_in
+res.partner,"{""en_US"": ""Contact""}",l10n_in_gstin_verified_date,date,,f,t,l10n_in
+res.partner,"{""en_US"": ""Contact""}",l10n_in_gstin_verified_status,boolean,,f,t,l10n_in
+res.partner,"{""en_US"": ""Contact""}",l10n_in_is_gst_registered_enabled,boolean,,f,f,l10n_in
+res.partner,"{""en_US"": ""Contact""}",l10n_in_pan_entity_id,many2one,l10n_in.pan.entity,f,t,l10n_in
+res.partner,"{""en_US"": ""Contact""}",l10n_in_tan,char,,f,t,l10n_in
+res.partner,"{""en_US"": ""Contact""}",lang,selection,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",leave_date_to,date,,f,f,hr_holidays
+res.partner,"{""en_US"": ""Contact""}",main_user_id,many2one,res.users,f,f,base
+res.partner,"{""en_US"": ""Contact""}",meeting_count,integer,,f,f,calendar
+res.partner,"{""en_US"": ""Contact""}",meeting_ids,many2many,calendar.event,f,t,calendar
+res.partner,"{""en_US"": ""Contact""}",message_attachment_count,integer,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",message_attachment_count,integer,,f,f,phone_validation
+res.partner,"{""en_US"": ""Contact""}",message_bounce,integer,,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",message_follower_ids,one2many,mail.followers,f,t,phone_validation
+res.partner,"{""en_US"": ""Contact""}",message_follower_ids,one2many,mail.followers,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",message_has_error,boolean,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",message_has_error,boolean,,f,f,phone_validation
+res.partner,"{""en_US"": ""Contact""}",message_has_error_counter,integer,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",message_has_error_counter,integer,,f,f,phone_validation
+res.partner,"{""en_US"": ""Contact""}",message_has_sms_error,boolean,,f,f,sms
+res.partner,"{""en_US"": ""Contact""}",message_ids,one2many,mail.message,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",message_ids,one2many,mail.message,f,t,phone_validation
+res.partner,"{""en_US"": ""Contact""}",message_is_follower,boolean,,f,f,phone_validation
+res.partner,"{""en_US"": ""Contact""}",message_is_follower,boolean,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",message_needaction,boolean,,f,f,phone_validation
+res.partner,"{""en_US"": ""Contact""}",message_needaction,boolean,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",message_needaction_counter,integer,,f,f,phone_validation
+res.partner,"{""en_US"": ""Contact""}",message_needaction_counter,integer,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",message_partner_ids,many2many,res.partner,f,f,phone_validation
+res.partner,"{""en_US"": ""Contact""}",message_partner_ids,many2many,res.partner,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",my_activity_date_deadline,date,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",name,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",name,char,,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",name,char,,f,t,account
+res.partner,"{""en_US"": ""Contact""}",offline_since,datetime,,f,f,mail
+res.partner,"{""en_US"": ""Contact""}",parent_id,many2one,res.partner,f,t,base
+res.partner,"{""en_US"": ""Contact""}",parent_id,many2one,res.partner,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",parent_name,char,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",partner_company_registry_placeholder,char,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",partner_latitude,float,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",partner_longitude,float,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",partner_share,boolean,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",partner_vat_placeholder,char,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",payment_token_count,integer,,f,f,payment
+res.partner,"{""en_US"": ""Contact""}",payment_token_ids,one2many,payment.token,f,t,payment
+res.partner,"{""en_US"": ""Contact""}",peppol_eas,selection,,f,t,account_edi_ubl_cii
+res.partner,"{""en_US"": ""Contact""}",peppol_endpoint,char,,f,t,account_edi_ubl_cii
+res.partner,"{""en_US"": ""Contact""}",perform_vies_validation,boolean,,f,f,base_vat
+res.partner,"{""en_US"": ""Contact""}",phone,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",phone,char,,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",phone_blacklisted,boolean,,f,f,phone_validation
+res.partner,"{""en_US"": ""Contact""}",phone_mobile_search,char,,f,f,phone_validation
+res.partner,"{""en_US"": ""Contact""}",phone_sanitized,char,,f,t,phone_validation
+res.partner,"{""en_US"": ""Contact""}",phone_sanitized_blacklisted,boolean,,f,f,phone_validation
+res.partner,"{""en_US"": ""Contact""}",project_ids,one2many,project.project,f,t,project
+res.partner,"{""en_US"": ""Contact""}",properties,properties,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",properties_base_definition_id,many2one,properties.base.definition,f,f,base
+res.partner,"{""en_US"": ""Contact""}",property_account_payable_id,many2one,account.account,f,t,account
+res.partner,"{""en_US"": ""Contact""}",property_account_position_id,many2one,account.fiscal.position,f,t,account
+res.partner,"{""en_US"": ""Contact""}",property_account_receivable_id,many2one,account.account,f,t,account
+res.partner,"{""en_US"": ""Contact""}",property_inbound_payment_method_line_id,many2one,account.payment.method.line,f,t,account
+res.partner,"{""en_US"": ""Contact""}",property_outbound_payment_method_line_id,many2one,account.payment.method.line,f,t,account
+res.partner,"{""en_US"": ""Contact""}",property_payment_term_id,many2one,account.payment.term,f,t,account
+res.partner,"{""en_US"": ""Contact""}",property_product_pricelist,many2one,product.pricelist,f,f,product
+res.partner,"{""en_US"": ""Contact""}",property_supplier_payment_term_id,many2one,account.payment.term,f,t,account
+res.partner,"{""en_US"": ""Contact""}",rating_ids,one2many,rating.rating,f,t,rating
+res.partner,"{""en_US"": ""Contact""}",ref,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",ref_company_ids,one2many,res.company,f,t,account
+res.partner,"{""en_US"": ""Contact""}",rtc_session_ids,one2many,discuss.channel.rtc.session,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",same_company_registry_partner_id,many2one,res.partner,f,f,base
+res.partner,"{""en_US"": ""Contact""}",same_vat_partner_id,many2one,res.partner,f,f,base
+res.partner,"{""en_US"": ""Contact""}",self,many2one,res.partner,f,f,base
+res.partner,"{""en_US"": ""Contact""}",show_credit_limit,boolean,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",signup_type,char,,f,t,auth_signup
+res.partner,"{""en_US"": ""Contact""}",specific_property_product_pricelist,many2one,product.pricelist,f,t,product
+res.partner,"{""en_US"": ""Contact""}",state_id,many2one,res.country.state,f,t,base
+res.partner,"{""en_US"": ""Contact""}",static_map_url,char,,f,f,event
+res.partner,"{""en_US"": ""Contact""}",static_map_url_is_valid,boolean,,f,f,event
+res.partner,"{""en_US"": ""Contact""}",street,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",street2,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",supplier_invoice_count,integer,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",supplier_rank,integer,,f,t,account
+res.partner,"{""en_US"": ""Contact""}",task_count,integer,,f,f,project
+res.partner,"{""en_US"": ""Contact""}",task_ids,one2many,project.task,f,t,project
+res.partner,"{""en_US"": ""Contact""}",total_invoiced,monetary,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",trust,selection,,f,t,account
+res.partner,"{""en_US"": ""Contact""}",type,selection,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",type_address_label,char,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",tz,selection,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",tz_offset,char,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",use_partner_credit_limit,boolean,,f,f,account
+res.partner,"{""en_US"": ""Contact""}",user_id,many2one,res.users,f,t,base
+res.partner,"{""en_US"": ""Contact""}",user_id,many2one,res.users,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",user_ids,one2many,res.users,f,t,base
+res.partner,"{""en_US"": ""Contact""}",vat,char,,f,t,base_vat
+res.partner,"{""en_US"": ""Contact""}",vat,char,,f,t,mail
+res.partner,"{""en_US"": ""Contact""}",vat,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",vat_label,char,,f,f,base
+res.partner,"{""en_US"": ""Contact""}",vies_valid,boolean,,f,t,base_vat
+res.partner,"{""en_US"": ""Contact""}",website,char,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",website_message_ids,one2many,mail.message,f,t,portal
+res.partner,"{""en_US"": ""Contact""}",write_date,datetime,,f,t,base
+res.partner,"{""en_US"": ""Contact""}",write_uid,many2one,res.users,f,t,base
+res.partner,"{""en_US"": ""Contact""}",zip,char,,f,t,base
+res.users,"{""en_US"": ""User""}",accesses_count,integer,,f,f,base
+res.users,"{""en_US"": ""User""}",account_move_count,integer,,f,f,account
+res.users,"{""en_US"": ""User""}",action_id,many2one,ir.actions.actions,f,t,base
+res.users,"{""en_US"": ""User""}",active,boolean,,f,t,base
+res.users,"{""en_US"": ""User""}",active_lang_count,integer,,f,f,base
+res.users,"{""en_US"": ""User""}",active_partner,boolean,,f,f,base
+res.users,"{""en_US"": ""User""}",activity_calendar_event_id,many2one,calendar.event,f,f,calendar
+res.users,"{""en_US"": ""User""}",activity_date_deadline,date,,f,f,mail
+res.users,"{""en_US"": ""User""}",activity_exception_decoration,selection,,f,f,mail
+res.users,"{""en_US"": ""User""}",activity_exception_icon,char,,f,f,mail
+res.users,"{""en_US"": ""User""}",activity_ids,one2many,mail.activity,f,f,mail
+res.users,"{""en_US"": ""User""}",activity_state,selection,,f,f,mail
+res.users,"{""en_US"": ""User""}",activity_summary,char,,f,f,mail
+res.users,"{""en_US"": ""User""}",activity_type_icon,char,,f,f,mail
+res.users,"{""en_US"": ""User""}",activity_type_id,many2one,mail.activity.type,f,f,mail
+res.users,"{""en_US"": ""User""}",activity_user_id,many2one,res.users,f,f,mail
+res.users,"{""en_US"": ""User""}",additional_note,text,,f,f,hr
+res.users,"{""en_US"": ""User""}",all_group_ids,many2many,res.groups,f,f,base
+res.users,"{""en_US"": ""User""}",api_key_ids,one2many,res.users.apikeys,f,t,base
+res.users,"{""en_US"": ""User""}",applicant_ids,one2many,hr.applicant,f,f,hr_recruitment
+res.users,"{""en_US"": ""User""}",application_statistics,json,,f,f,base
+res.users,"{""en_US"": ""User""}",auth_passkey_key_ids,one2many,auth.passkey.key,f,t,auth_passkey
+res.users,"{""en_US"": ""User""}",autopost_bills,selection,,t,f,account
+res.users,"{""en_US"": ""User""}",available_invoice_template_pdf_report_ids,one2many,ir.actions.report,f,f,account
+res.users,"{""en_US"": ""User""}",available_peppol_eas,json,,f,f,account_edi_ubl_cii
+res.users,"{""en_US"": ""User""}",avatar_1024,binary,,f,f,base
+res.users,"{""en_US"": ""User""}",avatar_128,binary,,f,f,base
+res.users,"{""en_US"": ""User""}",avatar_1920,binary,,f,f,base
+res.users,"{""en_US"": ""User""}",avatar_256,binary,,f,f,base
+res.users,"{""en_US"": ""User""}",avatar_512,binary,,f,f,base
+res.users,"{""en_US"": ""User""}",badge_ids,one2many,gamification.badge.user,f,t,hr_gamification
+res.users,"{""en_US"": ""User""}",badge_ids,one2many,gamification.badge.user,f,t,gamification
+res.users,"{""en_US"": ""User""}",bank_account_count,integer,,f,f,account
+res.users,"{""en_US"": ""User""}",bank_account_ids,many2many,res.partner.bank,f,f,hr
+res.users,"{""en_US"": ""User""}",bank_ids,one2many,res.partner.bank,f,f,base
+res.users,"{""en_US"": ""User""}",barcode,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",barcode,char,,f,f,base
+res.users,"{""en_US"": ""User""}",bronze_badge,integer,,f,f,gamification
+res.users,"{""en_US"": ""User""}",calendar_default_privacy,selection,,f,f,calendar
+res.users,"{""en_US"": ""User""}",calendar_last_notif_ack,datetime,,f,f,calendar
+res.users,"{""en_US"": ""User""}",can_edit_role,boolean,,f,f,mail
+res.users,"{""en_US"": ""User""}",category_id,many2many,res.partner.category,f,f,base
+res.users,"{""en_US"": ""User""}",category_ids,many2many,hr.employee.category,f,f,hr
+res.users,"{""en_US"": ""User""}",certifications_company_count,integer,,f,f,survey
+res.users,"{""en_US"": ""User""}",certifications_count,integer,,f,f,survey
+res.users,"{""en_US"": ""User""}",channel_ids,many2many,discuss.channel,f,f,mail
+res.users,"{""en_US"": ""User""}",channel_member_ids,one2many,discuss.channel.member,f,f,mail
+res.users,"{""en_US"": ""User""}",child_ids,one2many,res.partner,f,f,base
+res.users,"{""en_US"": ""User""}",city,char,,f,f,base
+res.users,"{""en_US"": ""User""}",color,integer,,f,f,base
+res.users,"{""en_US"": ""User""}",comment,html,,f,f,base
+res.users,"{""en_US"": ""User""}",commercial_company_name,char,,f,f,base
+res.users,"{""en_US"": ""User""}",commercial_partner_id,many2one,res.partner,f,f,base
+res.users,"{""en_US"": ""User""}",companies_count,integer,,f,f,base
+res.users,"{""en_US"": ""User""}",company_id,many2one,res.company,t,t,base
+res.users,"{""en_US"": ""User""}",company_ids,many2many,res.company,f,t,base
+res.users,"{""en_US"": ""User""}",company_name,char,,f,f,base
+res.users,"{""en_US"": ""User""}",company_registry,char,,f,f,base
+res.users,"{""en_US"": ""User""}",company_registry_label,char,,f,f,base
+res.users,"{""en_US"": ""User""}",company_registry_placeholder,char,,f,f,base
+res.users,"{""en_US"": ""User""}",company_type,selection,,f,f,base
+res.users,"{""en_US"": ""User""}",complete_name,char,,f,f,base
+res.users,"{""en_US"": ""User""}",contact_address,char,,f,f,base
+res.users,"{""en_US"": ""User""}",contact_address_inline,char,,f,f,mail
+res.users,"{""en_US"": ""User""}",contract_ids,one2many,account.analytic.account,f,f,account
+res.users,"{""en_US"": ""User""}",country_code,char,,f,f,base
+res.users,"{""en_US"": ""User""}",country_id,many2one,res.country,f,f,base
+res.users,"{""en_US"": ""User""}",country_id,many2one,res.country,f,f,base_vat
+res.users,"{""en_US"": ""User""}",create_date,datetime,,f,t,base
+res.users,"{""en_US"": ""User""}",create_employee,boolean,,f,f,hr
+res.users,"{""en_US"": ""User""}",create_employee_id,many2one,hr.employee,f,f,hr
+res.users,"{""en_US"": ""User""}",create_uid,many2one,res.users,f,t,base
+res.users,"{""en_US"": ""User""}",credit,monetary,,f,f,account
+res.users,"{""en_US"": ""User""}",credit_limit,float,,f,f,account
+res.users,"{""en_US"": ""User""}",credit_to_invoice,monetary,,f,f,account
+res.users,"{""en_US"": ""User""}",currency_id,many2one,res.currency,f,f,account
+res.users,"{""en_US"": ""User""}",customer_rank,integer,,f,f,account
+res.users,"{""en_US"": ""User""}",date_localization,date,,f,f,base_geolocalize
+res.users,"{""en_US"": ""User""}",days_sales_outstanding,float,,f,f,account
+res.users,"{""en_US"": ""User""}",debit,monetary,,f,f,account
+res.users,"{""en_US"": ""User""}",device_ids,one2many,res.device,f,t,base
+res.users,"{""en_US"": ""User""}",display_invoice_edi_format,boolean,,f,f,account
+res.users,"{""en_US"": ""User""}",display_invoice_template_pdf_report_id,boolean,,f,f,account
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,microsoft_outlook
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,base
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,web
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,auth_totp
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,base_import
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,base_setup
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,bus
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,web_tour
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,auth_passkey
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,web_unsplash
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,resource
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,mail
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,auth_signup
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,auth_totp_mail
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,calendar
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,gamification
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,google_gmail
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,mail_bot
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,phone_validation
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,auth_totp_portal
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,digest
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,project
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,hr_attendance
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,hr_gamification
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,hr_holidays
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,hr_homeworking
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,hr_recruitment
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,oh_employee_creation_from_user
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,project_todo
+res.users,"{""en_US"": ""User""}",display_name,char,,f,f,project_hr_skills
+res.users,"{""en_US"": ""User""}",display_pan_warning,boolean,,f,f,l10n_in
+res.users,"{""en_US"": ""User""}",duplicate_bank_partner_ids,many2many,res.partner,f,f,account
+res.users,"{""en_US"": ""User""}",email,char,,f,f,mail
+res.users,"{""en_US"": ""User""}",email,char,,f,f,base
+res.users,"{""en_US"": ""User""}",email_domain_placeholder,char,,f,f,base
+res.users,"{""en_US"": ""User""}",email_formatted,char,,f,f,base
+res.users,"{""en_US"": ""User""}",email_normalized,char,,f,f,mail
+res.users,"{""en_US"": ""User""}",emergency_contact,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",emergency_phone,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",employee,boolean,,f,f,hr
+res.users,"{""en_US"": ""User""}",employee,boolean,,f,f,base
+res.users,"{""en_US"": ""User""}",employee_bank_account_ids,many2many,res.partner.bank,f,f,hr
+res.users,"{""en_US"": ""User""}",employee_count,integer,,f,f,hr
+res.users,"{""en_US"": ""User""}",employee_id,many2one,hr.employee,f,f,hr
+res.users,"{""en_US"": ""User""}",employee_id,many2one,hr.employee,f,f,oh_employee_creation_from_user
+res.users,"{""en_US"": ""User""}",employee_ids,one2many,hr.employee,f,t,hr
+res.users,"{""en_US"": ""User""}",employee_resource_calendar_id,many2one,resource.calendar,f,f,hr
+res.users,"{""en_US"": ""User""}",employee_skill_ids,one2many,hr.employee.skill,f,f,project_hr_skills
+res.users,"{""en_US"": ""User""}",employees_count,integer,,f,f,hr
+res.users,"{""en_US"": ""User""}",event_count,integer,,f,f,event
+res.users,"{""en_US"": ""User""}",favorite_project_ids,many2many,project.project,f,t,project
+res.users,"{""en_US"": ""User""}",fiscal_country_codes,char,,f,f,account
+res.users,"{""en_US"": ""User""}",fiscal_country_group_codes,json,,f,f,account
+res.users,"{""en_US"": ""User""}",friday_location_id,many2one,hr.work.location,f,f,hr_homeworking
+res.users,"{""en_US"": ""User""}",function,char,,f,f,base
+res.users,"{""en_US"": ""User""}",global_location_number,char,,f,f,account_add_gln
+res.users,"{""en_US"": ""User""}",goal_ids,one2many,gamification.goal,f,t,hr_gamification
+res.users,"{""en_US"": ""User""}",gold_badge,integer,,f,f,gamification
+res.users,"{""en_US"": ""User""}",group_ids,many2many,res.groups,f,t,base
+res.users,"{""en_US"": ""User""}",groups_count,integer,,f,f,base
+res.users,"{""en_US"": ""User""}",has_external_mail_server,boolean,,f,f,mail
+res.users,"{""en_US"": ""User""}",has_message,boolean,,f,f,mail
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,auth_signup
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,project_hr_skills
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,base
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,digest
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,hr
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,auth_totp_portal
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,project
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,hr_attendance
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,hr_gamification
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,hr_recruitment
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,hr_holidays
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,hr_homeworking
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,oh_employee_creation_from_user
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,phone_validation
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,microsoft_outlook
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,mail_bot
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,google_gmail
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,gamification
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,calendar
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,auth_totp_mail
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,project_todo
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,web
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,auth_totp
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,base_import
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,base_setup
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,bus
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,web_tour
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,auth_passkey
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,web_unsplash
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,resource
+res.users,"{""en_US"": ""User""}",id,integer,,f,t,mail
+res.users,"{""en_US"": ""User""}",ignore_abnormal_invoice_amount,boolean,,f,f,account
+res.users,"{""en_US"": ""User""}",ignore_abnormal_invoice_date,boolean,,f,f,account
+res.users,"{""en_US"": ""User""}",im_status,char,,f,f,mail
+res.users,"{""en_US"": ""User""}",image_1024,binary,,f,f,base
+res.users,"{""en_US"": ""User""}",image_128,binary,,f,f,base
+res.users,"{""en_US"": ""User""}",image_1920,binary,,f,f,base
+res.users,"{""en_US"": ""User""}",image_256,binary,,f,f,base
+res.users,"{""en_US"": ""User""}",image_512,binary,,f,f,base
+res.users,"{""en_US"": ""User""}",industry_id,many2one,res.partner.industry,f,f,base
+res.users,"{""en_US"": ""User""}",invoice_edi_format,selection,,f,f,account
+res.users,"{""en_US"": ""User""}",invoice_edi_format,selection,,f,f,account_edi_ubl_cii
+res.users,"{""en_US"": ""User""}",invoice_edi_format_store,char,,f,f,account
+res.users,"{""en_US"": ""User""}",invoice_ids,one2many,account.move,f,f,account
+res.users,"{""en_US"": ""User""}",invoice_sending_method,selection,,f,f,snailmail_account
+res.users,"{""en_US"": ""User""}",invoice_sending_method,selection,,f,f,account
+res.users,"{""en_US"": ""User""}",invoice_template_pdf_report_id,many2one,ir.actions.report,f,f,account
+res.users,"{""en_US"": ""User""}",is_blacklisted,boolean,,f,f,mail
+res.users,"{""en_US"": ""User""}",is_company,boolean,,f,f,base
+res.users,"{""en_US"": ""User""}",is_hr_user,boolean,,f,f,hr
+res.users,"{""en_US"": ""User""}",is_in_call,boolean,,f,f,mail
+res.users,"{""en_US"": ""User""}",is_out_of_office,boolean,,f,f,mail
+res.users,"{""en_US"": ""User""}",is_peppol_edi_format,boolean,,f,f,account_edi_ubl_cii
+res.users,"{""en_US"": ""User""}",is_public,boolean,,f,f,base
+res.users,"{""en_US"": ""User""}",is_system,boolean,,f,f,hr
+res.users,"{""en_US"": ""User""}",is_ubl_format,boolean,,f,f,account_edi_ubl_cii
+res.users,"{""en_US"": ""User""}",job_title,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",karma,integer,,f,t,gamification
+res.users,"{""en_US"": ""User""}",karma_tracking_ids,one2many,gamification.karma.tracking,f,t,gamification
+res.users,"{""en_US"": ""User""}",km_home_work,integer,,f,f,hr
+res.users,"{""en_US"": ""User""}",l10n_in_gst_state_warning,char,,f,f,l10n_in
+res.users,"{""en_US"": ""User""}",l10n_in_gst_treatment,selection,,f,f,l10n_in
+res.users,"{""en_US"": ""User""}",l10n_in_gstin_status_feature_enabled,boolean,,f,f,l10n_in
+res.users,"{""en_US"": ""User""}",l10n_in_gstin_verified_date,date,,f,f,l10n_in
+res.users,"{""en_US"": ""User""}",l10n_in_gstin_verified_status,boolean,,f,f,l10n_in
+res.users,"{""en_US"": ""User""}",l10n_in_is_gst_registered_enabled,boolean,,f,f,l10n_in
+res.users,"{""en_US"": ""User""}",l10n_in_pan_entity_id,many2one,l10n_in.pan.entity,f,f,l10n_in
+res.users,"{""en_US"": ""User""}",l10n_in_tan,char,,f,f,l10n_in
+res.users,"{""en_US"": ""User""}",lang,selection,,f,f,base
+res.users,"{""en_US"": ""User""}",leave_date_to,date,,f,f,hr_holidays
+res.users,"{""en_US"": ""User""}",log_ids,one2many,res.users.log,f,t,base
+res.users,"{""en_US"": ""User""}",login,char,,t,t,base
+res.users,"{""en_US"": ""User""}",login_date,datetime,,f,f,base
+res.users,"{""en_US"": ""User""}",main_user_id,many2one,res.users,f,f,base
+res.users,"{""en_US"": ""User""}",manual_im_status,selection,,f,t,mail
+res.users,"{""en_US"": ""User""}",meeting_count,integer,,f,f,calendar
+res.users,"{""en_US"": ""User""}",meeting_ids,many2many,calendar.event,f,f,calendar
+res.users,"{""en_US"": ""User""}",message_attachment_count,integer,,f,f,mail
+res.users,"{""en_US"": ""User""}",message_bounce,integer,,f,f,mail
+res.users,"{""en_US"": ""User""}",message_follower_ids,one2many,mail.followers,f,f,mail
+res.users,"{""en_US"": ""User""}",message_has_error,boolean,,f,f,mail
+res.users,"{""en_US"": ""User""}",message_has_error_counter,integer,,f,f,mail
+res.users,"{""en_US"": ""User""}",message_has_sms_error,boolean,,f,f,sms
+res.users,"{""en_US"": ""User""}",message_ids,one2many,mail.message,f,f,mail
+res.users,"{""en_US"": ""User""}",message_is_follower,boolean,,f,f,mail
+res.users,"{""en_US"": ""User""}",message_needaction,boolean,,f,f,mail
+res.users,"{""en_US"": ""User""}",message_needaction_counter,integer,,f,f,mail
+res.users,"{""en_US"": ""User""}",message_partner_ids,many2many,res.partner,f,f,mail
+res.users,"{""en_US"": ""User""}",mobile_phone,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",monday_location_id,many2one,hr.work.location,f,f,hr_homeworking
+res.users,"{""en_US"": ""User""}",my_activity_date_deadline,date,,f,f,mail
+res.users,"{""en_US"": ""User""}",name,char,,f,f,mail
+res.users,"{""en_US"": ""User""}",name,char,,f,f,base
+res.users,"{""en_US"": ""User""}",name,char,,f,f,account
+res.users,"{""en_US"": ""User""}",new_password,char,,f,f,base
+res.users,"{""en_US"": ""User""}",next_rank_id,many2one,gamification.karma.rank,f,t,gamification
+res.users,"{""en_US"": ""User""}",notification_type,selection,,t,t,mail
+res.users,"{""en_US"": ""User""}",odoobot_failed,boolean,,f,t,mail_bot
+res.users,"{""en_US"": ""User""}",odoobot_state,selection,,f,t,mail_bot
+res.users,"{""en_US"": ""User""}",offline_since,datetime,,f,f,mail
+res.users,"{""en_US"": ""User""}",out_of_office_from,datetime,,f,t,mail
+res.users,"{""en_US"": ""User""}",out_of_office_message,html,,f,t,mail
+res.users,"{""en_US"": ""User""}",out_of_office_to,datetime,,f,t,mail
+res.users,"{""en_US"": ""User""}",outgoing_mail_server_id,many2one,ir.mail_server,f,f,mail
+res.users,"{""en_US"": ""User""}",outgoing_mail_server_type,selection,,t,f,microsoft_outlook
+res.users,"{""en_US"": ""User""}",outgoing_mail_server_type,selection,,t,f,mail
+res.users,"{""en_US"": ""User""}",outgoing_mail_server_type,selection,,t,f,google_gmail
+res.users,"{""en_US"": ""User""}",parent_id,many2one,res.partner,f,f,base
+res.users,"{""en_US"": ""User""}",parent_id,many2one,res.partner,f,f,mail
+res.users,"{""en_US"": ""User""}",parent_name,char,,f,f,base
+res.users,"{""en_US"": ""User""}",partner_company_registry_placeholder,char,,f,f,account
+res.users,"{""en_US"": ""User""}",partner_id,many2one,res.partner,t,t,base
+res.users,"{""en_US"": ""User""}",partner_latitude,float,,f,f,base
+res.users,"{""en_US"": ""User""}",partner_longitude,float,,f,f,base
+res.users,"{""en_US"": ""User""}",partner_share,boolean,,f,f,base
+res.users,"{""en_US"": ""User""}",partner_vat_placeholder,char,,f,f,account
+res.users,"{""en_US"": ""User""}",password,char,,f,f,base
+res.users,"{""en_US"": ""User""}",payment_token_count,integer,,f,f,payment
+res.users,"{""en_US"": ""User""}",payment_token_ids,one2many,payment.token,f,f,payment
+res.users,"{""en_US"": ""User""}",peppol_eas,selection,,f,f,account_edi_ubl_cii
+res.users,"{""en_US"": ""User""}",peppol_endpoint,char,,f,f,account_edi_ubl_cii
+res.users,"{""en_US"": ""User""}",perform_vies_validation,boolean,,f,f,base_vat
+res.users,"{""en_US"": ""User""}",phone,char,,f,f,mail
+res.users,"{""en_US"": ""User""}",phone,char,,f,f,base
+res.users,"{""en_US"": ""User""}",phone_blacklisted,boolean,,f,f,phone_validation
+res.users,"{""en_US"": ""User""}",phone_mobile_search,char,,f,f,phone_validation
+res.users,"{""en_US"": ""User""}",phone_sanitized,char,,f,f,phone_validation
+res.users,"{""en_US"": ""User""}",phone_sanitized_blacklisted,boolean,,f,f,phone_validation
+res.users,"{""en_US"": ""User""}",pin,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",presence_ids,one2many,mail.presence,f,t,mail
+res.users,"{""en_US"": ""User""}",private_city,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",private_country_id,many2one,res.country,f,f,hr
+res.users,"{""en_US"": ""User""}",private_email,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",private_phone,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",private_state_id,many2one,res.country.state,f,f,hr
+res.users,"{""en_US"": ""User""}",private_street,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",private_street2,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",private_zip,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",project_ids,one2many,project.project,f,f,project
+res.users,"{""en_US"": ""User""}",properties,properties,,f,f,base
+res.users,"{""en_US"": ""User""}",properties_base_definition_id,many2one,properties.base.definition,f,f,base
+res.users,"{""en_US"": ""User""}",property_account_payable_id,many2one,account.account,f,f,account
+res.users,"{""en_US"": ""User""}",property_account_position_id,many2one,account.fiscal.position,f,f,account
+res.users,"{""en_US"": ""User""}",property_account_receivable_id,many2one,account.account,f,f,account
+res.users,"{""en_US"": ""User""}",property_inbound_payment_method_line_id,many2one,account.payment.method.line,f,f,account
+res.users,"{""en_US"": ""User""}",property_outbound_payment_method_line_id,many2one,account.payment.method.line,f,f,account
+res.users,"{""en_US"": ""User""}",property_payment_term_id,many2one,account.payment.term,f,f,account
+res.users,"{""en_US"": ""User""}",property_product_pricelist,many2one,product.pricelist,f,f,product
+res.users,"{""en_US"": ""User""}",property_supplier_payment_term_id,many2one,account.payment.term,f,f,account
+res.users,"{""en_US"": ""User""}",rank_id,many2one,gamification.karma.rank,f,t,gamification
+res.users,"{""en_US"": ""User""}",rating_ids,one2many,rating.rating,f,f,rating
+res.users,"{""en_US"": ""User""}",ref,char,,f,f,base
+res.users,"{""en_US"": ""User""}",ref_company_ids,one2many,res.company,f,f,account
+res.users,"{""en_US"": ""User""}",res_users_settings_id,many2one,res.users.settings,f,f,base
+res.users,"{""en_US"": ""User""}",res_users_settings_ids,one2many,res.users.settings,f,t,base
+res.users,"{""en_US"": ""User""}",resource_calendar_id,many2one,resource.calendar,f,f,resource
+res.users,"{""en_US"": ""User""}",resource_ids,one2many,resource.resource,f,t,resource
+res.users,"{""en_US"": ""User""}",role,selection,,f,f,base
+res.users,"{""en_US"": ""User""}",role_ids,many2many,res.role,f,t,mail
+res.users,"{""en_US"": ""User""}",rtc_session_ids,one2many,discuss.channel.rtc.session,f,f,mail
+res.users,"{""en_US"": ""User""}",rules_count,integer,,f,f,base
+res.users,"{""en_US"": ""User""}",same_company_registry_partner_id,many2one,res.partner,f,f,base
+res.users,"{""en_US"": ""User""}",same_vat_partner_id,many2one,res.partner,f,f,base
+res.users,"{""en_US"": ""User""}",saturday_location_id,many2one,hr.work.location,f,f,hr_homeworking
+res.users,"{""en_US"": ""User""}",self,many2one,res.partner,f,f,base
+res.users,"{""en_US"": ""User""}",share,boolean,,f,t,base
+res.users,"{""en_US"": ""User""}",show_credit_limit,boolean,,f,f,account
+res.users,"{""en_US"": ""User""}",signature,html,,f,t,base
+res.users,"{""en_US"": ""User""}",signup_type,char,,f,f,auth_signup
+res.users,"{""en_US"": ""User""}",silver_badge,integer,,f,f,gamification
+res.users,"{""en_US"": ""User""}",specific_property_product_pricelist,many2one,product.pricelist,f,f,product
+res.users,"{""en_US"": ""User""}",state,selection,,f,f,auth_signup
+res.users,"{""en_US"": ""User""}",state_id,many2one,res.country.state,f,f,base
+res.users,"{""en_US"": ""User""}",static_map_url,char,,f,f,event
+res.users,"{""en_US"": ""User""}",static_map_url_is_valid,boolean,,f,f,event
+res.users,"{""en_US"": ""User""}",street,char,,f,f,base
+res.users,"{""en_US"": ""User""}",street2,char,,f,f,base
+res.users,"{""en_US"": ""User""}",sunday_location_id,many2one,hr.work.location,f,f,hr_homeworking
+res.users,"{""en_US"": ""User""}",supplier_invoice_count,integer,,f,f,account
+res.users,"{""en_US"": ""User""}",supplier_rank,integer,,f,f,account
+res.users,"{""en_US"": ""User""}",task_count,integer,,f,f,project
+res.users,"{""en_US"": ""User""}",task_ids,one2many,project.task,f,f,project
+res.users,"{""en_US"": ""User""}",thursday_location_id,many2one,hr.work.location,f,f,hr_homeworking
+res.users,"{""en_US"": ""User""}",total_invoiced,monetary,,f,f,account
+res.users,"{""en_US"": ""User""}",totp_enabled,boolean,,f,f,auth_totp
+res.users,"{""en_US"": ""User""}",totp_last_counter,integer,,f,t,auth_totp
+res.users,"{""en_US"": ""User""}",totp_secret,char,,f,f,auth_totp
+res.users,"{""en_US"": ""User""}",totp_trusted_device_ids,one2many,auth_totp.device,f,t,auth_totp
+res.users,"{""en_US"": ""User""}",tour_enabled,boolean,,f,t,web_tour
+res.users,"{""en_US"": ""User""}",trust,selection,,f,f,account
+res.users,"{""en_US"": ""User""}",tuesday_location_id,many2one,hr.work.location,f,f,hr_homeworking
+res.users,"{""en_US"": ""User""}",type,selection,,f,f,base
+res.users,"{""en_US"": ""User""}",type_address_label,char,,f,f,base
+res.users,"{""en_US"": ""User""}",tz,selection,,f,f,base
+res.users,"{""en_US"": ""User""}",tz_offset,char,,f,f,base
+res.users,"{""en_US"": ""User""}",use_partner_credit_limit,boolean,,f,f,account
+res.users,"{""en_US"": ""User""}",user_id,many2one,res.users,f,f,mail
+res.users,"{""en_US"": ""User""}",user_id,many2one,res.users,f,f,base
+res.users,"{""en_US"": ""User""}",user_ids,one2many,res.users,f,f,base
+res.users,"{""en_US"": ""User""}",vat,char,,f,f,base
+res.users,"{""en_US"": ""User""}",vat,char,,f,f,mail
+res.users,"{""en_US"": ""User""}",vat,char,,f,f,base_vat
+res.users,"{""en_US"": ""User""}",vat_label,char,,f,f,base
+res.users,"{""en_US"": ""User""}",vies_valid,boolean,,f,f,base_vat
+res.users,"{""en_US"": ""User""}",view_group_hierarchy,json,,f,f,base
+res.users,"{""en_US"": ""User""}",visa_expire,date,,f,f,hr
+res.users,"{""en_US"": ""User""}",website,char,,f,f,base
+res.users,"{""en_US"": ""User""}",website_message_ids,one2many,mail.message,f,f,portal
+res.users,"{""en_US"": ""User""}",wednesday_location_id,many2one,hr.work.location,f,f,hr_homeworking
+res.users,"{""en_US"": ""User""}",work_contact_id,many2one,res.partner,f,f,hr
+res.users,"{""en_US"": ""User""}",work_email,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",work_location_id,many2one,hr.work.location,f,f,hr
+res.users,"{""en_US"": ""User""}",work_location_name,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",work_location_type,selection,,f,f,hr
+res.users,"{""en_US"": ""User""}",work_phone,char,,f,f,hr
+res.users,"{""en_US"": ""User""}",write_date,datetime,,f,t,base
+res.users,"{""en_US"": ""User""}",write_uid,many2one,res.users,f,t,base
+res.users,"{""en_US"": ""User""}",zip,char,,f,f,base

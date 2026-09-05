@@ -1,0 +1,1031 @@
+openapi: 3.1.0
+
+info:
+  title: Document Template Manager API
+  version: 19.0.1.0.0
+  summary: Document templates, template variables and PDF generation.
+  description: |
+    REST API exposed by the `document_template_manager` Odoo addon.
+
+    Templates are HTML documents containing `{{variable}}` placeholders. The API
+    lets a client create and maintain templates and their variable definitions,
+    then render a template to PDF by supplying values for those variables.
+
+    ## Response envelope
+
+    Every response has the shape:
+
+    ```json
+    {
+      "success": true,
+      "message": "Human readable message",
+      "timestamp": "2026-02-14T12:00:00.000000Z",
+      "data": { },
+      "errors": [ ],
+      "meta": { }
+    }
+    ```
+
+    `data`, `errors` and `meta` are omitted when empty. Unlike the HR API, every
+    endpoint here — including PDF retrieval — returns JSON; binaries are
+    base64-encoded inside `data` or referenced by a `/web/content/...` URL.
+
+    ## Authentication
+
+    All endpoints require a static API key, sent as `X-API-Key: <key>` or
+    `Authorization: Bearer <key>`. The key lives in the Odoo system parameter
+    `document_template_manager.api_key` and is **separate from** the
+    `hr_employee_cleardeals.api_key` used by the HR API.
+
+    The routes are declared `auth='public'` and all record access uses `sudo()`,
+    so the key alone grants full create/read/update/delete access to templates.
+
+    ## Conventions
+
+    - Ids in paths are Odoo database ids.
+    - Request bodies are JSON; query parameters are strings.
+    - `per_page` is capped server-side at 100.
+    - Booleans in query strings accept `true` / `1` / `yes`.
+  contact:
+    name: ClearDeals Technology
+  license:
+    name: LGPL-3
+
+servers:
+  - url: https://{host}
+    description: Deployment host
+    variables:
+      host:
+        default: localhost:8069
+        description: Odoo host serving the addon
+
+tags:
+  - name: Templates
+    description: Template CRUD.
+  - name: Template Actions
+    description: Duplicate, favourite, variable auto-detection and PDF retrieval.
+  - name: Variables
+    description: Variable definitions belonging to a template.
+  - name: PDF
+    description: Rendering templates to PDF.
+
+security:
+  - ApiKeyHeader: []
+  - BearerToken: []
+
+paths:
+
+  /api/v1/templates:
+    get:
+      tags: [Templates]
+      operationId: listTemplates
+      summary: List templates
+      description: |
+        Returns templates matching the filters, with pagination metadata. Each
+        template is serialised in full, including its variables and its
+        `html_content`, so prefer a small `per_page` for large template bodies.
+      parameters:
+        - name: name
+          in: query
+          description: Case-insensitive partial match on the template name.
+          schema: { type: string }
+        - name: category_id
+          in: query
+          description: Exact match on `document.category` id.
+          schema: { type: integer }
+        - name: tag_ids
+          in: query
+          description: Comma-separated `document.tag` ids; matches any of them.
+          schema: { type: string }
+          example: '1,2,3'
+        - name: active
+          in: query
+          description: |
+            Filter on the archive flag. Omitting this parameter applies Odoo's
+            default behaviour, which already hides archived templates.
+          schema: { type: string, enum: ['true', 'false', '1', '0', 'yes'] }
+        - name: favorite
+          in: query
+          schema: { type: string, enum: ['true', 'false', '1', '0', 'yes'] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Templates retrieved successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          templates:
+                            type: array
+                            items: { $ref: '#/components/schemas/Template' }
+                      meta: { $ref: '#/components/schemas/PaginationMeta' }
+        '400':
+          description: Invalid `category_id`, `tag_ids` or pagination parameters.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+    post:
+      tags: [Templates]
+      operationId: createTemplate
+      summary: Create a template
+      description: |
+        Creates a template and, optionally, its variables in one call.
+
+        Variable entries missing `name` or `label` are skipped silently. Tag ids
+        that do not exist are dropped (a warning is logged); a non-existent
+        `category_id` is rejected with `400`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TemplateCreate' }
+            examples:
+              contract:
+                summary: Contract template with two variables
+                value:
+                  name: Sales Contract Template
+                  summary: Template for sales contracts
+                  html_content: '<div><p>Dear {{customer_name}},</p><p>Effective {{contract_date}}.</p></div>'
+                  category_id: 1
+                  tag_ids: [1, 2]
+                  print_mode: letterhead
+                  variables:
+                    - name: customer_name
+                      label: Customer Name
+                      variable_type: char
+                      required: true
+                      sequence: 10
+                    - name: contract_date
+                      label: Contract Date
+                      variable_type: date
+                      required: true
+                      sequence: 20
+      responses:
+        '201':
+          description: Template created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TemplateResponse' }
+        '400':
+          description: Missing `name` or `html_content`, bad `print_mode`, bad margin value, or unknown `category_id`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/templates/{template_id}:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    get:
+      tags: [Templates]
+      operationId: getTemplate
+      summary: Get a template
+      parameters:
+        - name: include_variables
+          in: query
+          description: Embed the template's variable definitions.
+          schema: { type: string, default: 'true', enum: ['true', 'false', '1', '0', 'yes'] }
+      responses:
+        '200':
+          description: Template retrieved successfully.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TemplateResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/TemplateNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+    put:
+      tags: [Templates]
+      operationId: replaceTemplate
+      summary: Update a template
+      description: |
+        Applies a partial update. `PUT` and `PATCH` behave identically — only the
+        keys present in the body are written, so `PUT` is *not* a full
+        replacement.
+
+        Variables are not updated here; use the variables endpoints.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TemplateUpdate' }
+      responses:
+        '200':
+          description: Template updated successfully.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TemplateResponse' }
+        '400':
+          description: Empty body, bad `print_mode`, bad margin value, or unknown `category_id`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/TemplateNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+    patch:
+      tags: [Templates]
+      operationId: updateTemplate
+      summary: Update a template (partial)
+      description: Identical to `PUT /api/v1/templates/{template_id}`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TemplateUpdate' }
+      responses:
+        '200':
+          description: Template updated successfully.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TemplateResponse' }
+        '400':
+          description: Empty body or invalid field value.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/TemplateNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+    delete:
+      tags: [Templates]
+      operationId: deleteTemplate
+      summary: Archive or delete a template
+      description: |
+        Archives the template (`active = false`) by default. Pass
+        `hard_delete=true` to unlink the record permanently, which also removes
+        its variables.
+      parameters:
+        - name: hard_delete
+          in: query
+          description: Permanently delete instead of archiving. Irreversible.
+          schema: { type: string, default: 'false', enum: ['true', 'false', '1', '0', 'yes'] }
+      responses:
+        '200':
+          description: Template archived or deleted.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        examples:
+                          - "Template 'Sales Contract Template' archived"
+                          - "Template 'Sales Contract Template' permanently deleted"
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/TemplateNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/templates/{template_id}/variables:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    get:
+      tags: [Variables]
+      operationId: listTemplateVariables
+      summary: List a template's variables
+      responses:
+        '200':
+          description: Variables retrieved successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          template:
+                            type: object
+                            properties:
+                              id: { type: integer }
+                              name: { type: string }
+                          variables:
+                            type: array
+                            items: { $ref: '#/components/schemas/Variable' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/TemplateNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+    post:
+      tags: [Variables]
+      operationId: createTemplateVariable
+      summary: Add a variable to a template
+      description: |
+        The variable `name` is the placeholder key: a variable named
+        `customer_name` is substituted wherever `{{customer_name}}` appears in
+        `html_content`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VariableCreate' }
+            examples:
+              char:
+                value:
+                  name: customer_name
+                  label: Customer Name
+                  variable_type: char
+                  required: true
+                  sequence: 10
+              dropdown:
+                value:
+                  name: contract_type
+                  label: Contract Type
+                  variable_type: selection
+                  selection_options: Fixed,Retainer,Milestone
+                  required: true
+      responses:
+        '201':
+          description: Variable created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VariableResponse' }
+        '400':
+          description: Missing `name` or `label`, or a model constraint rejected the value.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/TemplateNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/templates/{template_id}/variables/{variable_id}:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+      - $ref: '#/components/parameters/VariableId'
+    get:
+      tags: [Variables]
+      operationId: getTemplateVariable
+      summary: Get a variable
+      responses:
+        '200':
+          description: Variable retrieved successfully.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VariableResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/VariableNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+    put:
+      tags: [Variables]
+      operationId: replaceTemplateVariable
+      summary: Update a variable
+      description: |
+        Partial update; `PUT` and `PATCH` behave identically.
+
+        `name` cannot be changed, because renaming it would silently break the
+        `{{placeholder}}` references in the template body. Delete and recreate
+        the variable instead.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VariableUpdate' }
+      responses:
+        '200':
+          description: Variable updated successfully.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VariableResponse' }
+        '400':
+          description: Empty body or invalid field value.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/VariableNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+    patch:
+      tags: [Variables]
+      operationId: updateTemplateVariable
+      summary: Update a variable (partial)
+      description: Identical to `PUT /api/v1/templates/{template_id}/variables/{variable_id}`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VariableUpdate' }
+      responses:
+        '200':
+          description: Variable updated successfully.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VariableResponse' }
+        '400':
+          description: Empty body or invalid field value.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/VariableNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+    delete:
+      tags: [Variables]
+      operationId: deleteTemplateVariable
+      summary: Delete a variable
+      description: |
+        Permanently removes the variable definition. Any `{{name}}` placeholders
+        left in `html_content` will render literally until they are removed or
+        the variable is re-detected.
+      responses:
+        '200':
+          description: Variable deleted.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        examples: ["Variable 'customer_name' deleted successfully"]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/VariableNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/templates/{template_id}/generate-pdf:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    post:
+      tags: [PDF]
+      operationId: generateTemplatePdf
+      summary: Render a template to PDF
+      description: |
+        Substitutes the supplied variable values into `html_content` and renders
+        the result to PDF using the template's print mode, header and margins.
+
+        Every variable flagged `required` must be present in `variables` with a
+        non-blank value, otherwise the request is rejected with `400` and the
+        missing labels listed.
+
+        With `return_type: "url"` the PDF is stored as an `ir.attachment` linked
+        to the template and a `/web/content/...` URL is returned. That URL is
+        served by Odoo's normal web session — it is not covered by this API key.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GeneratePdfRequest' }
+            examples:
+              base64:
+                summary: Return the PDF inline as base64
+                value:
+                  variables:
+                    customer_name: John Doe
+                    contract_date: '2026-02-14'
+                  filename: Contract_JohnDoe.pdf
+                  return_type: base64
+              url:
+                summary: Store as an attachment and return a URL
+                value:
+                  variables:
+                    customer_name: John Doe
+                  return_type: url
+      responses:
+        '201':
+          description: PDF generated.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        oneOf:
+                          - $ref: '#/components/schemas/PdfBase64Payload'
+                          - $ref: '#/components/schemas/PdfUrlPayload'
+        '400':
+          description: Empty body, `variables` not an object, or required variables missing.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              examples:
+                missingVariables:
+                  value:
+                    success: false
+                    message: 'Missing required variables: Customer Name'
+                    timestamp: '2026-02-14T12:00:00.000000Z'
+                    errors:
+                      - field: variables
+                        message: 'Required variables missing: Customer Name'
+                        missing_variables: [Customer Name]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/TemplateNotFound' }
+        '500':
+          description: The PDF renderer failed (for example wkhtmltopdf is unavailable).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /api/v1/templates/{template_id}/download-pdf:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    get:
+      tags: [Template Actions]
+      operationId: downloadTemplatePdf
+      summary: Fetch the last stored PDF
+      description: |
+        Returns the PDF currently held in the template's `pdf_file` field — the
+        one produced by the last in-app generation. This is not the same as
+        `generate-pdf`, which renders on demand and does not update `pdf_file`.
+
+        Responds `404` when the template has never had a PDF generated
+        (`has_pdf` is false).
+      parameters:
+        - name: return_type
+          in: query
+          description: '`base64` embeds the file; `url` returns a `/web/content/...` link.'
+          schema: { type: string, default: base64, enum: [base64, url] }
+      responses:
+        '200':
+          description: PDF retrieved successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        oneOf:
+                          - $ref: '#/components/schemas/PdfBase64Payload'
+                          - type: object
+                            properties:
+                              filename: { type: string }
+                              download_url:
+                                type: string
+                                examples: ['/web/content/document.template/42/pdf_file/My_Template.pdf?download=true']
+                              mimetype: { type: string, const: application/pdf }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: Template not found, or no PDF has been generated for it yet.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/templates/{template_id}/detect-variables:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    post:
+      tags: [Template Actions]
+      operationId: detectTemplateVariables
+      summary: Auto-detect variables from the template body
+      description: |
+        Scans `html_content` for `{{name}}` placeholders and creates a `char`
+        variable, marked required, for each placeholder that has no variable
+        record yet. Labels are derived from the name (`customer_name` →
+        `Customer Name`) and sequences continue from the highest existing one.
+
+        Existing variables are never modified or removed, so the call is safe to
+        repeat.
+      responses:
+        '200':
+          description: Scan completed.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        examples: ['3 new variable(s) detected and added.', 'No new variables found.']
+                      data:
+                        type: object
+                        properties:
+                          new_variable_count: { type: integer }
+                          new_variables:
+                            type: array
+                            items: { type: string }
+                            examples: [['contract_date', 'customer_name', 'salary']]
+                          template: { $ref: '#/components/schemas/Template' }
+        '400':
+          description: The template has no HTML content to scan.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/TemplateNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/templates/{template_id}/duplicate:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    post:
+      tags: [Template Actions]
+      operationId: duplicateTemplate
+      summary: Duplicate a template
+      description: Copies the template together with its variable definitions.
+      responses:
+        '201':
+          description: Template duplicated; `data.template` is the new copy.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TemplateResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/TemplateNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/templates/{template_id}/toggle-favorite:
+    parameters:
+      - $ref: '#/components/parameters/TemplateId'
+    post:
+      tags: [Template Actions]
+      operationId: toggleTemplateFavorite
+      summary: Toggle the favourite flag
+      description: |
+        Flips `favorite` to its opposite value. The call is not idempotent —
+        send it once per intended change and read the resulting state from
+        `data.favorite`.
+      responses:
+        '200':
+          description: Favourite flag toggled.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        examples: ['Template marked as favorite', 'Template removed from favorites']
+                      data:
+                        type: object
+                        properties:
+                          template_id: { type: integer }
+                          favorite: { type: boolean, description: The value after toggling. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/TemplateNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+components:
+
+  securitySchemes:
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Value of the `document_template_manager.api_key` system parameter.
+    BearerToken:
+      type: http
+      scheme: bearer
+      description: |
+        `Authorization: Bearer <key>` — the same static key as `X-API-Key`.
+        This is not a JWT and is not time-limited.
+
+  parameters:
+    TemplateId:
+      name: template_id
+      in: path
+      required: true
+      description: Database id of the `document.template` record.
+      schema: { type: integer, format: int64 }
+      example: 42
+    VariableId:
+      name: variable_id
+      in: path
+      required: true
+      description: Database id of the `document.template.variable` record. Must belong to `template_id`.
+      schema: { type: integer, format: int64 }
+      example: 7
+    Page:
+      name: page
+      in: query
+      description: 1-based page number.
+      schema: { type: integer, minimum: 1, default: 1 }
+    PerPage:
+      name: per_page
+      in: query
+      description: Records per page. Values above 100 are clamped to 100.
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  responses:
+    Unauthorized:
+      description: API key missing or invalid.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+          examples:
+            missing:
+              value:
+                success: false
+                message: 'API key required. Provide X-API-Key header or Authorization: Bearer token'
+                timestamp: '2026-02-14T12:00:00.000000Z'
+    TemplateNotFound:
+      description: No template with that id.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+          examples:
+            notFound:
+              value:
+                success: false
+                message: Template with ID 999 not found
+                timestamp: '2026-02-14T12:00:00.000000Z'
+    VariableNotFound:
+      description: The template does not exist, or the variable does not belong to it.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    ServerError:
+      description: Unhandled server error.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  schemas:
+
+    SuccessEnvelope:
+      type: object
+      required: [success, message, timestamp]
+      properties:
+        success: { type: boolean, const: true }
+        message: { type: string }
+        timestamp:
+          type: string
+          format: date-time
+          description: UTC ISO-8601 timestamp of the response.
+
+    ErrorEnvelope:
+      type: object
+      required: [success, message, timestamp]
+      properties:
+        success: { type: boolean, const: false }
+        message: { type: string }
+        timestamp: { type: string, format: date-time }
+        errors:
+          type: array
+          description: |
+            Field-level details for validation failures, or `{type, details}`
+            entries for exceptions caught by the error handler.
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+              type: { type: string, examples: ['ValidationError'] }
+              details: { type: string }
+
+    PaginationMeta:
+      type: object
+      properties:
+        pagination:
+          type: object
+          properties:
+            current_page: { type: integer }
+            per_page: { type: integer }
+            total_records: { type: integer }
+            total_pages: { type: integer }
+            has_next: { type: boolean }
+            has_prev: { type: boolean }
+
+    PrintMode:
+      type: string
+      enum: [letterhead, digital]
+      description: |
+        `letterhead` uses large margins for pre-printed stationery and renders no
+        digital header. `digital` uses standard margins and renders
+        `header_html` on every page.
+
+    VariableType:
+      type: string
+      enum: [char, text, integer, float, date, selection]
+      description: Text, Long Text, Whole Number, Decimal Number, Date, Dropdown.
+
+    NamedRef:
+      type: [object, 'null']
+      properties:
+        id: { type: integer }
+        name: { type: string }
+
+    Template:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        summary: { type: string }
+        html_content:
+          type: string
+          description: Template body, containing `{{variable}}` placeholders.
+        header_html:
+          type: string
+          description: Page header HTML, rendered only in `digital` print mode.
+        print_mode: { $ref: '#/components/schemas/PrintMode' }
+        show_header: { type: boolean }
+        margin_top: { type: number, description: Millimetres. }
+        margin_bottom: { type: number, description: Millimetres. }
+        margin_left: { type: number, description: Millimetres. }
+        margin_right: { type: number, description: Millimetres. }
+        category_id: { $ref: '#/components/schemas/NamedRef' }
+        tag_ids:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              name: { type: string }
+              color: { type: integer }
+        active: { type: boolean }
+        favorite: { type: boolean }
+        has_pdf:
+          type: boolean
+          description: A PDF is stored on the record and can be fetched via `download-pdf`.
+        pdf_filename: { type: string }
+        variable_count: { type: integer }
+        company_id: { $ref: '#/components/schemas/NamedRef' }
+        create_date: { type: [string, 'null'], format: date-time }
+        write_date: { type: [string, 'null'], format: date-time }
+        variables:
+          type: array
+          description: Present unless `include_variables=false` or the template has none.
+          items: { $ref: '#/components/schemas/Variable' }
+
+    TemplateResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                template: { $ref: '#/components/schemas/Template' }
+
+    TemplateCreate:
+      type: object
+      required: [name, html_content]
+      additionalProperties: false
+      properties:
+        name: { type: string }
+        html_content: { type: string }
+        summary: { type: string, default: '' }
+        category_id: { type: integer, description: '`document.category` id.' }
+        tag_ids:
+          type: array
+          items: { type: integer }
+          description: '`document.tag` ids. Unknown ids are ignored.'
+        active: { type: boolean, default: true }
+        favorite: { type: boolean, default: false }
+        print_mode: { $ref: '#/components/schemas/PrintMode' }
+        show_header: { type: boolean, default: true }
+        header_html: { type: string }
+        margin_top: { type: number, description: Millimetres. }
+        margin_bottom: { type: number, description: Millimetres. }
+        margin_left: { type: number, description: Millimetres. }
+        margin_right: { type: number, description: Millimetres. }
+        variables:
+          type: array
+          description: Variables to create alongside the template.
+          items: { $ref: '#/components/schemas/VariableCreate' }
+
+    TemplateUpdate:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: Only the keys present are written.
+      properties:
+        name: { type: string }
+        html_content: { type: string }
+        header_html: { type: string }
+        summary: { type: string }
+        active: { type: boolean }
+        favorite: { type: boolean }
+        print_mode: { $ref: '#/components/schemas/PrintMode' }
+        show_header: { type: boolean }
+        category_id:
+          type: [integer, 'null']
+          description: Pass `null` to clear the category.
+        tag_ids:
+          type: array
+          items: { type: integer }
+          description: Replaces the whole tag set. Unknown ids are dropped.
+        margin_top: { type: number }
+        margin_bottom: { type: number }
+        margin_left: { type: number }
+        margin_right: { type: number }
+
+    Variable:
+      type: object
+      properties:
+        id: { type: integer }
+        name:
+          type: string
+          description: Placeholder key, used as `{{name}}` in the template body.
+          examples: ['customer_name']
+        label: { type: string }
+        variable_type: { $ref: '#/components/schemas/VariableType' }
+        default_value: { type: string }
+        required: { type: boolean }
+        sequence: { type: integer }
+        selection_options:
+          type: string
+          description: 'Comma-separated choices; only meaningful when `variable_type` is `selection`.'
+        placeholder_tag:
+          type: string
+          description: Computed convenience field.
+          examples: ['{{customer_name}}']
+
+    VariableResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessEnvelope'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                variable: { $ref: '#/components/schemas/Variable' }
+
+    VariableCreate:
+      type: object
+      required: [name, label]
+      additionalProperties: false
+      properties:
+        name: { type: string, examples: ['customer_name'] }
+        label: { type: string, examples: ['Customer Name'] }
+        variable_type: { $ref: '#/components/schemas/VariableType' }
+        default_value: { type: string, default: '' }
+        required: { type: boolean, default: true }
+        sequence: { type: integer, default: 10 }
+        selection_options: { type: string, examples: ['Option1,Option2,Option3'] }
+
+    VariableUpdate:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: '`name` is deliberately not updatable.'
+      properties:
+        label: { type: string }
+        variable_type: { $ref: '#/components/schemas/VariableType' }
+        default_value: { type: string }
+        required: { type: boolean }
+        sequence: { type: integer }
+        selection_options: { type: string }
+
+    GeneratePdfRequest:
+      type: object
+      required: [variables]
+      additionalProperties: false
+      properties:
+        variables:
+          type: object
+          description: |
+            Map of variable name to value. Values are stringified before
+            substitution. Every variable marked `required` on the template must
+            appear here with a non-blank value.
+          additionalProperties:
+            type: [string, number, boolean, 'null']
+          examples:
+            - customer_name: John Doe
+              contract_date: '2026-02-14'
+        filename:
+          type: string
+          description: Output filename. Defaults to the template name; `.pdf` is appended if missing.
+        return_type:
+          type: string
+          default: base64
+          enum: [base64, url]
+
+    PdfBase64Payload:
+      type: object
+      properties:
+        filename: { type: string, examples: ['Contract_JohnDoe.pdf'] }
+        pdf_base64: { type: string, contentEncoding: base64 }
+        mimetype: { type: string, const: application/pdf }
+        size_bytes: { type: integer }
+
+    PdfUrlPayload:
+      type: object
+      properties:
+        filename: { type: string }
+        download_url:
+          type: string
+          examples: ['/web/content/123/Contract_JohnDoe.pdf?download=true']
+        attachment_id: { type: integer }
+        mimetype: { type: string, const: application/pdf }
+        size_bytes: { type: integer }
