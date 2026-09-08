@@ -1,0 +1,237 @@
+# cloudbuild.ci.yaml — the pull-request gates.
+#
+# Trigger: pull requests against main or development.
+#
+# THIS BUILDS NO PRODUCTION IMAGE AND TOUCHES NO VM. That separation is the
+# point: the CI trigger and the CD trigger are controlled by two independent
+# flags in Terraform, so getting pull-request checks does not require accepting
+# a pipeline that can deploy.
+#
+# ── A SHELL-VARIABLE RULE THAT IS NOT OPTIONAL ────────────────────────────────
+#
+# Inside a step's `args`, a dollar sign followed by CAPITALS is read by Cloud
+# Build as a substitution, and the build is REJECTED when the name is not a
+# known one. So every shell variable in this file is lowercase.
+#
+# This applies to comments inside `args` too. YAML comments like this one are
+# stripped by the parser and are safe; anything inside an args string is not —
+# on the CRM pipeline a build failed because a comment in this very file spelled
+# the pattern out literally.
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+serviceAccount: "projects/$PROJECT_ID/serviceAccounts/hrms-cloudbuild@$PROJECT_ID.iam.gserviceaccount.com"
+
+substitutions:
+  _REGION: us-central1
+
+steps:
+  # ── Build the image the tests will actually run against ──────────────────────
+  # Tagged with the short SHA but NEVER pushed by this pipeline. A registry full
+  # of images that never passed a gate makes rollback a guess.
+  - id: build-test-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - "hrms-ci:$SHORT_SHA"
+      - .
+
+  # ── Throwaway database ───────────────────────────────────────────────────────
+  - id: test-db
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["-"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        docker network create hrms-ci-net 2>/dev/null || true
+        docker run -d --name hrms-ci-db --network hrms-ci-net \
+          -e POSTGRES_USER=odoo -e POSTGRES_PASSWORD=odoo \
+          -e POSTGRES_DB=hrms_ci_db postgres:17
+        for i in $(seq 1 60); do
+          docker exec hrms-ci-db pg_isready -U odoo >/dev/null 2>&1 && exit 0
+          sleep 1
+        done
+        echo "postgres never became ready" >&2; exit 1
+
+  # ── Gate: the config is sane and carries no secrets ──────────────────────────
+  - id: config-check
+    name: python:3.12-slim
+    waitFor: ["-"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        python3 - <<'PY'
+        import configparser, sys
+        c = configparser.ConfigParser(); c.read("odoo.prod.conf")
+        o = c["options"]; fail = []
+
+        if o.get("list_db", "True").strip() != "False":
+            fail.append("list_db must be False — otherwise the database manager "
+                        "is served to unauthenticated requests on the internet")
+        if not o.get("dbfilter", "").strip():
+            fail.append("dbfilter must be set, or the selector can enumerate other databases")
+        for k in ("admin_passwd", "db_password"):
+            if "__" not in o.get(k, ""):
+                fail.append(f"{k} must remain a placeholder — never commit a secret")
+
+        # The addons path is load-bearing. The odoo:19.0 base image declares
+        # /mnt/extra-addons as a VOLUME, so anything baked beneath it is hidden
+        # by an anonymous volume at runtime. This is the check that stops that
+        # path coming back.
+        ap = o.get("addons_path", "")
+        if "/opt/cleardeals-addons" not in ap:
+            fail.append("addons_path must include /opt/cleardeals-addons")
+        if "/mnt/extra-addons" in ap:
+            fail.append("addons_path must NOT reference /mnt/extra-addons — the base "
+                        "image declares it as a VOLUME and the addons would vanish")
+
+        # Connection arithmetic. db_maxconn is PER PROCESS and Odoo keeps TWO
+        # pools per process (_Pool and _Pool_readonly; http.py takes a readonly
+        # cursor on every request, and with no replica configured those are
+        # separate physical connections). Process count is
+        # workers + max_cron_threads + 1 gevent.
+        try:
+            procs = int(o["workers"]) + int(o["max_cron_threads"]) + 1
+            ceiling = procs * 2 * int(o["db_maxconn"])
+            if ceiling > 57:   # 60 minus Postgres's 3 reserved superuser slots
+                fail.append(f"db_maxconn oversubscribes Postgres: {procs} procs x 2 pools "
+                            f"x {o['db_maxconn']} = {ceiling}, but max_connections is 60 "
+                            f"(57 usable). Failure is intermittent 'too many clients' "
+                            f"under load, which reads like an application bug.")
+        except (KeyError, ValueError) as e:
+            fail.append(f"cannot verify the connection ceiling: {e}")
+
+        if fail:
+            print("odoo.prod.conf FAILED:"); [print("  -", f) for f in fail]; sys.exit(1)
+        print(f"odoo.prod.conf OK (connection ceiling {ceiling} of 57 usable)")
+        PY
+
+  # ── Gate: the OpenAPI specifications match the controllers ───────────────────
+  #
+  # PORTED FROM .github/workflows/test.yml, which is deleted with the GitHub
+  # Actions deploy. This gate does not exist in the CRM pipeline and would have
+  # been silently lost otherwise.
+  #
+  # Validation alone only proves the documents are well-formed — a specification
+  # describing an API that does not exist validates perfectly. check_route_parity
+  # is the step that catches drift, and it uses only the standard library.
+  - id: api-docs
+    name: python:3.12-slim
+    waitFor: ["-"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        pip install --quiet pyyaml openapi-spec-validator
+        python -m openapi_spec_validator \
+          docs/api/hr_employee_cleardeals.openapi.yaml \
+          docs/api/document_template_manager.openapi.yaml
+        python docs/api/check_route_parity.py
+
+  # ── Gate: every shell script parses ──────────────────────────────────────────
+  # Cheap, and it catches the class of error that only shows up at 3am when
+  # deploy.sh is being run by hand.
+  - id: shell-syntax
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["-"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        rc=0
+        for f in scripts/*.sh infrastructure/*.sh infrastructure/ops-agent/*.sh entrypoint.sh; do
+          [ -f "$f" ] || continue
+          if bash -n "$f"; then echo "ok   $f"; else echo "FAIL $f" >&2; rc=1; fi
+        done
+        exit $rc
+
+  # ── Gate: the image contains exactly the repository's modules ────────────────
+  #
+  # Compares DIRECTORY LISTINGS, which is deliberately not the same as the
+  # install list below. custom_addons/hr_recruitment_cleardeals holds only two
+  # markdown files and is not a module, so it appears here (22 = 22) and is
+  # correctly absent from the 21 installed.
+  - id: image-contents
+    name: gcr.io/cloud-builders/docker
+    waitFor: [build-test-image]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        baked=$(docker run --rm --entrypoint /bin/ls "hrms-ci:$SHORT_SHA" \
+                  /opt/cleardeals-addons | sort)
+        tracked=$(ls custom_addons | sort)
+        [ "$baked" = "$tracked" ] || {
+          echo "image contents do not match the repository" >&2
+          diff <(echo "$tracked") <(echo "$baked") >&2 || true
+          exit 1
+        }
+        echo "image contents verified"
+
+  # ── Gate: the test suite, against the image being tested ─────────────────────
+  #
+  # The module list is DERIVED, not written out. The GitHub Actions workflow this
+  # replaces installed exactly TWO of the twenty-two directories
+  # (hr_employee_cleardeals, document_template_manager), so nineteen modules
+  # shipped to production through a gate that never loaded them.
+  #
+  # Modules marked `installable: False` are skipped — `-i` on one fails the build
+  # outright. Nothing in this repository is currently marked so; the check is
+  # here because the moment one is, this must not break.
+  #
+  # Shell variables are lowercase ON PURPOSE — see the header.
+  #
+  # Note `${d}__manifest__.py`, with the braces. Without them the shell reads
+  # `$d__manifest__` as a single unset variable name, every manifest test fails,
+  # and the derived list silently comes out EMPTY. That mistake was made while
+  # writing this file and caught only because the count was checked.
+  - id: test
+    name: gcr.io/cloud-builders/docker
+    waitFor: [build-test-image, test-db]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+
+        modules=""
+        for dir in custom_addons/*/; do
+          name="$(basename "$dir")"
+          manifest="${dir}__manifest__.py"
+          [ -f "$manifest" ] || { echo "skipping $name (no manifest — not a module)"; continue; }
+          if grep -qE "['\"]installable['\"][[:space:]]*:[[:space:]]*False" "$manifest"; then
+            echo "skipping $name (installable: False)"
+            continue
+          fi
+          modules="${modules:+$modules,}$name"
+        done
+        [ -n "$modules" ] || { echo "no installable modules found" >&2; exit 1; }
+
+        # --test-tags takes /module form; reuse the same list so the two can
+        # never disagree about what is being tested.
+        tags="$(echo "$modules" | sed 's#[^,]*#/&#g')"
+
+        echo "installing: $modules"
+        echo "test tags : $tags"
+
+        docker run --rm --network hrms-ci-net "hrms-ci:$SHORT_SHA" \
+          odoo -d hrms_ci_db \
+            --db_host=hrms-ci-db --db_port=5432 \
+            --db_user=odoo --db_password=odoo \
+            --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/opt/cleardeals-addons \
+            -i "$modules" \
+            --test-enable \
+            --test-tags "$tags" \
+            --stop-after-init --log-level=test
+
+timeout: 3600s

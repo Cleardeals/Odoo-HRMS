@@ -874,6 +874,18 @@ granting a permission to the identity a resource *will* have is not the same as
 granting it to the one it *has*. That gap cost the Odoo migration two failed
 deploys.
 
+**RESULT — done.** `hrms-prod-vm@` and `hrms-cloudbuild@` created with exactly
+the roles listed, plus the two `actAs` grants and the service-agent
+`serviceAccountTokenCreator`. Fourteen resources, zero changes to the instance —
+attaching a different identity needs a stopped VM, so creating them is safe
+outside a window and was done outside one.
+
+**4b pre-flight satisfied early.** The swap is permission-additive, verified
+rather than assumed: the compute default service account holds no project roles
+**and** no resource-level grants — checked individually against the state
+bucket, both secrets, and the Artifact Registry repository. So `hrms-prod-vm@`'s
+four roles are a strict superset and nothing can regress.
+
 #### 4b. The maintenance window — OS Login, IAP, service account, scopes
 
 The only step that stops the VM. See §5.
@@ -1004,9 +1016,53 @@ trigger.** Reduce `test.yml` to whatever is still wanted as a fast pre-Cloud-Bui
 signal, or delete it too — but only once its OpenAPI gate is confirmed running
 in `cloudbuild.ci.yaml`.
 
+**RESULT — code landed and locally exercised; triggers deliberately still off.**
+
+`cloudbuild.ci.yaml`, `cloudbuild.yaml`, `scripts/deploy.sh` and
+`cloudbuild.tf` are committed. Both flags remain `false`, so the Terraform plan
+is empty and no trigger exists yet.
+
+Verified without a trigger, because most of the pipeline can be proven locally:
+
+* **The derived module list resolves to 21 modules**, and
+  `custom_addons/hr_recruitment_cleardeals` is correctly skipped — it holds two
+  markdown files and no manifest, so it is not a module at all. Note this makes
+  the two gates legitimately disagree by one: `image-contents` compares
+  *directory listings* (22 = 22) while the install list is 21.
+* **All 21 install cleanly**, rehearsed against a throwaway Postgres 17 with the
+  real derived list. This mattered: `history_employee` and `hr_employee_shift`
+  are **uninstalled in production**, so a derived list risked putting two
+  never-installed modules into every pull-request gate. They install fine, so
+  the derived list is safe and no exception is needed.
+* **The `config-check` and `api-docs` steps were extracted from the YAML and run
+  verbatim.** config-check passes (`connection ceiling 50 of 57 usable`);
+  api-docs validates both specifications and reports `12 operations` and
+  `17 operations` matching, route parity passed.
+* Both pipelines parse, no step has a dangling `waitFor`, and — checked
+  mechanically — **no `args` string contains a stray uppercase `$VAR`** that
+  Cloud Build would misread as an unknown substitution.
+
+**One real defect surfaced by the rehearsal**, and it is the only Odoo-level
+ERROR in an otherwise clean 21-module install:
+
+```
+ERROR odoo.schema: column "hr_department" of relation "resource_calendar"
+                   contains null values
+```
+
+`custom_addons/hr_employee_shift/models/resource_calendar.py:63` adds a
+`required=True` Many2one to `resource.calendar` — a **core** model that already
+has rows when the module installs. Odoo attempts `SET NOT NULL`, it fails on the
+existing NULLs, Odoo logs the error and continues, so the database constraint is
+**silently absent** and only ORM validation enforces it. Latent rather than live
+(the module is uninstalled in production), but it will print on every CI run
+until fixed, which is how people learn to ignore CI output. Tracked separately;
+it belongs to the module, not the infrastructure.
+
 **Gate:** a green CI run on a real pull request, then one approved end-to-end
 deploy that pushes an image, swaps it, passes both health and edge gates, and
-prunes.
+prunes. **Both still outstanding** — CI needs the GitHub App connection, and CD
+must wait for 4b.
 
 ---
 
@@ -1190,10 +1246,35 @@ docs/infrastructure_migration_plan.md   ← this file
 **Deleted**
 
 ```
-.github/workflows/deploy.yml          (replaced by cloudbuild.yaml)
+.github/workflows/deploy.yml          DELETED — see below, it became dangerous
 .github/workflows/test.yml            (only after its OpenAPI gate is in CI)
 docker-compose.traefik.yml            (if confirmed unused)
 ```
+
+**`deploy.yml` was deleted earlier than this plan originally said**, and the
+reason is a sequencing hazard worth stating plainly. The plan had it going in
+"the same change that enables the CD trigger". That would have been wrong: from
+the moment Phase 3 changed `docker-compose.yml` and the `Dockerfile`, that
+workflow stopped being merely obsolete and became **actively destructive** on
+the next push to `main`:
+
+* it writes `./odoo.conf` from the `ODOO_CONF` secret, but compose now mounts
+  `/dev/shm/odoo.conf`, which the workflow never creates — so Odoo would start
+  on its **built-in defaults, including `list_db = True`**, serving the database
+  manager to unauthenticated requests;
+* the secret's config sets `addons_path = /mnt/extra-addons/custom`, and with
+  the bind mount now gone that path is an empty anonymous volume — so **every
+  custom module would disappear**.
+
+An outage *and* an exposed database manager, triggered by an ordinary merge.
+Leaving it armed "as a fallback" would have been the more dangerous choice, so
+it goes in the commit that makes it dangerous. `test.yml` is kept: it is the
+only pull-request gate until Cloud Build CI is connected, and it touches neither
+the VM nor compose (verified: zero `ssh`/`docker compose`/`VM_IP` references).
+
+The consequence is honest and must not be glossed: **there is no automated
+deploy path between that commit and 4b.** `DEPLOYMENT.md` says so at the top and
+documents the manual route.
 
 ---
 
