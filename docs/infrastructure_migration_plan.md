@@ -541,8 +541,45 @@ verify the stack afterwards rather than assuming. The safe subset below
 (journal + agent logs + apt ≈ 3.4 GB) needs none of that caution and can go
 first.
 
-Reclaiming the safe subset takes free space from 7.4 GB to ~10.8 GB; including
-the containerd store takes it to ~17 GB.
+**RESULT — done. 74% → 44%, free 7.4 GB → 16 GB.** A manual snapshot
+(`odoo-hrms-prod-pre-reclaim-20260908`) was taken first. Measured, in order:
+
+| Step | Reclaimed |
+| --- | --- |
+| `journalctl --vacuum-size=200M` + a `SystemMaxUse=200M` drop-in | 2.7 GB |
+| `apt-get clean` | 304 MB |
+| 5 stale containerd images (`ctr -n moby images rm --sync`) | 0.4 GB |
+| 45 leaked BuildKit leases, then containerd's scheduled GC | ~4.5 GB |
+| **Total** | **~8 GB** |
+
+Two things worth carrying forward:
+
+* **The Ops Agent's 627 MB did not shrink.** `-mtime +7` matched nothing,
+  because the agent rewrites those files continuously — it is *live churn*, not
+  old logs, and it keeps growing until the service-account fix in 4b/6. Do not
+  bother pruning it again before then.
+* **The leases were the real blocker, not the images.** Removing the images
+  freed almost nothing: 47 leases, every one stamped `2026-02-16` between 07:08
+  and 09:26, still pinned the snapshots. 45 were leaked
+  `buildkit/lease.temporary` and orphan build leases — the builds ran at
+  07:08–07:11 and Docker was removed underneath them at 09:23, so they were
+  never cleaned up. Only 2 were Docker's own (`moby-image-*`, matching the
+  current `traefik:v3.2` and `postgres:17` image IDs) and those were left
+  alone. Deleting the 45 and waiting ~2 minutes for containerd's scheduled GC
+  took the store from 6.1 GB to 851 MB.
+
+Verified safe before deleting anything, and verified again after:
+
+* 0 `Active` snapshots (48 `Committed`, 9 `View`) — `Active` is the kind a
+  running container's writable layer takes, so nothing live depended on the
+  snapshotter;
+* all three containers reported `GraphDriver=overlay2`;
+* afterwards, `docker run --rm postgres:17 postgres --version` printed
+  `PostgreSQL 17.8` — Docker can still resolve, instantiate and run containers.
+  (A `docker create` probe "failed" first; the name began with an underscore,
+  which Docker rejects. The probe was wrong, not the cleanup.)
+* stack healthy throughout: 3 containers up, edge 200 with valid TLS, 5 routers,
+  `db_server_status: true`.
 
 **Gate:** the 0b baseline recorded (5 routers, edge 200, `db_server_status:
 true`) — **done**; `df -h /` shows ≥ 10 GB free (≥ 15 GB if the containerd store
@@ -593,14 +630,45 @@ Fields that must match or Terraform will plan a destroy of production:
 * The boot disk as it is: inline, `auto_delete = true`. Change it in the second
   apply, not the import.
 
-**Gate: a completely empty first plan.** Any diff means the code is wrong, not
-production. This gate caught three unintended production destroys during the
+**Gate: a completely empty first plan. PASSED** — `No changes. Your
+infrastructure matches the configuration.` 14 resources under management, state
+in `gs://cleardeals-hrms-tfstate/hrms-prod/`.
+
+It took two corrections to get there, and both were mine rather than
+production's — which is the gate earning its place:
+
+* **Four firewall rules carry descriptions** (`Allow SSH from anywhere`,
+  `Allow RDP from anywhere`, `Allow ICMP from anywhere`, `Allow internal traffic
+  on the default network`). Omitting them planned their removal.
+* **The `goog-ops-agent-policy` label must NOT be declared** — the opposite of
+  what this plan originally said. `gcloud` reports it, so declaring it looks
+  right; but the provider splits `labels` (config-managed) from
+  `effective_labels` (everything present), import populated only the latter, and
+  declaring it planned an ADD. That proved Terraform does not own it. `labels` is
+  non-authoritative, so omitting it leaves the live label alone instead of
+  fighting the OS Config policy every time that policy bumps its template
+  version. The CRM module's reasoning was right and the HRMS-differs note here
+  was wrong.
+
+One residual diff is expected and is not infrastructure drift:
+`allow_stopping_for_update` is a provider-only flag with no GCP API counterpart,
+so it cannot be imported and always plans an update. Applying it wrote it to
+state and made no API call — proven by capturing the instance, metadata and tag
+fingerprints before and after (all three identical, status `RUNNING`,
+`lastStartTimestamp` unchanged). Keep it: Phase 4b needs it. This gate caught three unintended production destroys during the
 Odoo import; treat a non-empty plan as a blocker, never as noise to skim past.
 
-**Second apply, once the plan is empty:** restructure the boot disk to a
-standalone `google_compute_disk` with `auto_delete = false` and
-`ignore_changes = [image, snapshot]`, and attach the snapshot policy via
-`google_compute_disk_resource_policy_attachment`. Online, no stop.
+**Second apply, once the plan is empty: DONE.** The boot disk is a standalone
+`google_compute_disk` with `ignore_changes = [image, snapshot]`, the snapshot
+policy is attached via `google_compute_disk_resource_policy_attachment`, and
+`auto_delete` is flipped `true` → `false`.
+
+Confirmed update-in-place, not replacement (`0 to add, 1 to change, 0 to
+destroy`), and verified on GCP afterwards: `autoDelete: False`, instance
+`RUNNING`, `deletionProtection: True`, plan empty again, site still serving 200.
+The disk now outlives its instance, which also turns a whole-VM recovery into
+re-attaching the disk rather than restoring a snapshot and losing everything
+since.
 
 ---
 
