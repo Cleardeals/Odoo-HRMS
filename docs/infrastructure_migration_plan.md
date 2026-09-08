@@ -219,9 +219,14 @@ docker-compose.yml sets  max_connections = 60
 Checked before reporting: `docker logs odoo-db` over the last 30 days contains
 **zero** `"too many clients"` entries. Pools fill lazily and load is low, so it
 has not bitten. It will present as intermittent `FATAL: sorry, too many clients
-already` under load, which reads like an application bug for weeks. Set
-`db_maxconn = 6` (5 × 2 × 6 = 60) or raise `max_connections`; do it as its own
-reviewed change, with the arithmetic in a comment.
+already` under load, which reads like an application bug for weeks.
+
+**FIXED in Phase 2:** `db_maxconn = 5`, giving 5 × 2 × 5 = **50** against
+`max_connections = 60`. Five rather than six deliberately — Postgres reserves 3
+connections for superusers by default (`superuser_reserved_connections`), so the
+usable ceiling is 57 and 50 leaves real headroom instead of an exact fit. The
+arithmetic and the process count are in a comment in `odoo.prod.conf`, next to
+the value, because the next person to change `workers` needs to see it.
 
 Also checked and **not** a problem: `limit_memory_soft`/`hard` (512 MB / 640 MB)
 look low against Odoo's typical per-worker virtual memory, but
@@ -703,8 +708,65 @@ and drop `POSTGRES_PASSWORD` from the `db` service — it is read only by
 `${DB_PASSWORD:-odoo}` default, which currently means a public repository
 documents `odoo` as the fallback production database password.
 
-**Gate:** `render_odoo_conf.sh` produces a valid config with no placeholder
-surviving, and `odoo.prod.conf` passes the `config-check` build step (§4).
+**RESULT — code landed. Rotation deferred to 4b by dependency, not by choice.**
+
+APIs enabled (`secretmanager`, `artifactregistry`). Both secrets created and
+seeded. `odoo.prod.conf`, `scripts/render_odoo_conf.sh` and
+`infrastructure/rotate_db_password.sh` are committed.
+
+**The live database password is FOUR CHARACTERS.** Read off the VM without
+printing it, and its length settles what it is: the `odoo` default that
+`docker-compose.yml` published as `${DB_PASSWORD:-odoo}` — in a public
+repository, with no `.env` on the host to override it, and in git history
+forever. `odoo-db-password` was seeded with that value as-is, deliberately, so
+the render step can be proven working *before* and separately from the rotation.
+`odoo-admin-passwd` got a fresh 40-character alphanumeric value, since the live
+config had `admin_passwd` commented out and Odoo was falling back to its
+built-in default.
+
+**Rotation cannot run yet, and this is a genuine ordering constraint rather than
+caution.** `rotate_db_password.sh` reads the secret *from the VM*, which needs
+both `roles/secretmanager.secretAccessor` on the attached service account and
+the `cloud-platform` scope on the instance. The VM has neither until 4b. Same
+applies to `render_odoo_conf.sh`. Both are committed before they can succeed so
+the code is reviewed before it is load-bearing.
+
+Three defects fixed while the config became reviewable for the first time,
+and one deliberately left alone:
+
+| | Live | Now |
+| --- | --- | --- |
+| `dbfilter` / `db_name` | `^.*$`, no `db_name` | `^odoo_hrms_db$`, `db_name = odoo_hrms_db` |
+| `admin_passwd` | commented out → built-in default | 40-char value from Secret Manager |
+| `db_maxconn` | `64` → ceiling **640** vs 60 | `5` → ceiling **50** vs 60 |
+| `limit_memory_soft`/`hard` | 512 MB / 640 MB | **unchanged — see below** |
+
+The memory limits look wrong by analogy to the CRM instance, where measured
+per-worker VIRT was 663–727 MB against limits of this shape. They were left
+exactly as they are because this instance's own evidence contradicts the
+analogy: 30 days of `docker logs odoo-app` contain **zero** "virtual memory
+limit reached". Changing a working limit on the strength of another machine's
+numbers is how a working system gets broken. Phase 6 will be the first time
+there is real data to decide on.
+
+**Secrets are declared in Terraform, but only the containers.** No
+`google_secret_manager_secret_version`, ever — Terraform state records every
+managed attribute, so a version resource would write the secret in cleartext
+into the state bucket, making it exactly the thing the secret was meant to
+avoid. Verified rather than asserted: after the apply, the state contains no
+`secret_version` resource, and a direct content match confirms the 40-character
+admin password does not appear anywhere in it. (A `"data"` grep hit turned out to
+be `"mode": "data"` from the `google_project` data source.)
+
+This diverges from the CRM module, which declares its secrets nowhere. That
+reads as an omission rather than a decision — there is no comment defending it —
+and the containers carry no sensitive data, so they are managed here.
+
+**Gate:** `odoo.prod.conf` parses and passes every `config-check` assertion —
+**passed** (`list_db = False`, `dbfilter` set, both secrets still placeholders,
+`addons_path` on `/opt/cleardeals-addons` with no `/mnt/extra-addons`
+reference). `bash -n` clean on all three scripts. `render_odoo_conf.sh` itself
+can only be exercised after 4b.
 
 ---
 
@@ -743,9 +805,41 @@ answering every 30 seconds in the Odoo log. It is not a health check. Use
   reads them; `proxy_mode` belongs in `odoo.conf`, and the base URL is a system
   parameter (see commit `f0f3718c`).
 
-**Gate:** build the image locally, run it with **no** bind mount, and confirm
-`ls /opt/cleardeals-addons` lists all 22 modules and Odoo loads the registry.
-This is the check that would have caught the Odoo outage.
+**RESULT — done, and the trap was demonstrated rather than argued.** Artifact
+Registry repository `hrms` created (`DOCKER`, `us-central1`). Dockerfile,
+`docker-compose.yml` and `entrypoint.sh` all changed.
+
+**Gate: PASSED, four ways.** The image was built locally and run with **no** bind
+mount:
+
+1. `ls /opt/cleardeals-addons` → **22 modules, byte-identical to
+   `ls custom_addons`.** This is the same assertion `cloudbuild.ci.yaml`'s
+   `image-contents` step will make.
+2. **`/mnt/extra-addons` is EMPTY at runtime, with 1 mount over that path.**
+   That is the anonymous volume, and it is the whole mechanism: had the addons
+   stayed where they were, they would have been hidden at container start with no
+   build error. The built image still declares
+   `{"/mnt/extra-addons":{},"/var/lib/odoo":{}}`, inherited from the base — the
+   declaration does not go away, the code just has to live outside it.
+3. A manifest reads correctly from the new path.
+4. **Odoo actually installs from it.** Against a throwaway Postgres 17:
+   `-i hr_employee_cleardeals --stop-after-init` exited 0, and
+   `ir_module_module` reports `hr_employee_cleardeals -> installed`.
+
+On the 143 "ERROR" strings that run produced: **zero** are Odoo log records.
+All 143 are docutils reStructuredText parse errors (`Unexpected indentation`,
+`Undefined substitution referenced`) emitted while rendering the `description`
+fields in the module manifests — pre-existing, cosmetic, and unrelated to this
+change. Counting them without classifying them would have looked like a broken
+build. Separately worth cleaning one day: the manifests' descriptions are
+malformed RST, and the same run surfaced real field-declaration warnings
+(`unknown parameter 'invisible'`, `'tracking'` on several models) that belong to
+the modules rather than to the infrastructure.
+
+One incidental measurement: the freshly built image is **~1.0 GB**, against the
+3.12 GB `odoo-hrms:latest` currently on the VM. Whatever accumulated in that
+older build, the deploy pipeline's images are a third the size, which makes
+`IMAGE_KEEP=3` comfortable on a 30 GB disk rather than tight.
 
 ---
 

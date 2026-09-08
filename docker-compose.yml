@@ -1,21 +1,46 @@
 # ==============================================================================
 # Odoo HRMS - Production Docker Compose
 # ==============================================================================
-# Optimized for e2-medium (2 vCPU, 4GB RAM)
+# e2-medium (2 shared vCPU, 4GB RAM)
 # Stack: Traefik v3.2 + PostgreSQL 17 + Odoo 19
 # ==============================================================================
+
+# Compose derives the project name from the DIRECTORY unless it is pinned here.
+# Pinning it means the Phase 4c move from /home/tech/odoo-project to
+# /opt/odoo-hrms does not rename a single container: without this,
+# odoo-project_* becomes odoo-hrms_*, the old and new projects each own a
+# separate network and set of anonymous volumes, and a rollback has to reason
+# about two identities instead of one.
+#
+# Set to the CURRENT name — confirmed on the box via
+#   docker inspect odoo-app --format '{{index .Config.Labels "com.docker.compose.project"}}'
+# — so applying this is a no-op today and the move changes nothing about
+# container identity.
+name: odoo-project
 
 services:
   # ----------------------------------------------------------------------------
   # Traefik Reverse Proxy
   # ----------------------------------------------------------------------------
   traefik:
+    # v3.2, and this is NOT a version to bump casually. On 2026-02-16 this stack
+    # was broken for about 2.5 hours by exactly that: Docker Engine went to
+    # 29.2.1, which raises the minimum supported Docker API version above the
+    # 1.24 that older Traefik clients speak, the docker provider died, and
+    # Traefik served 404 for every request while Odoo was perfectly healthy
+    # behind it. The resolution was to move Traefik to v3.2 AND pin Docker back
+    # to 28.5.2 with `apt-mark hold`.
+    #
+    # That hold is still in force and is invisible operational state — it is not
+    # in this repo and not in Terraform. `containerd.io` is NOT held. So do not
+    # run `apt upgrade` on this host, and see
+    # docs/infrastructure_migration_plan.md §0b before changing either version.
     image: traefik:v3.2
     container_name: traefik
     restart: unless-stopped
 
     command:
-      # API & Dashboard
+      # API & dashboard, on loopback only — see the ports block below.
       - "--api.insecure=true"
 
       # Docker Provider
@@ -27,12 +52,22 @@ services:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
 
-      # HTTP to HTTPS redirect
+      # HTTP to HTTPS redirect.
+      #
+      # NOTE this is configured on the ENTRYPOINT, so it runs BEFORE routing.
+      # That is why the deploy script's edge gate must speak TLS: a probe on
+      # port 80 returns 301 even for a hostname that matches no router, so it
+      # would pass straight through a total routing outage.
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
 
-      # Let's Encrypt configuration
+      # Let's Encrypt. tlsChallenge needs port 80 reachable from the internet to
+      # renew, which is why default-allow-http stays in firewall.tf.
+      #
+      # The ACME contact below is a personal mailbox outside the company, so a
+      # failed renewal has no route to anybody's attention. That is what Phase
+      # 7's P4 alert exists to cover; moving the address is separate work.
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       - "--certificatesresolvers.myresolver.acme.email=cdgcphub@gmail.com"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
@@ -42,9 +77,31 @@ services:
       - "--accesslog=true"
 
     ports:
-      - "80:80"       # HTTP
-      - "443:443"     # HTTPS
-      - "8080:8080"   # Traefik Dashboard (disable in production or add auth)
+      - "80:80"
+      - "443:443"
+      # The dashboard/API binds to LOOPBACK ONLY. It was previously published as
+      # "8080:8080", which means 0.0.0.0 — and combined with --api.insecure=true
+      # above, that is an unauthenticated admin API of the production reverse
+      # proxy listening on every interface.
+      #
+      # It was never reachable from the internet: no firewall rule allows 8080
+      # inbound. But the VPC's default-allow-internal rule permits ALL TCP
+      # between instances, so any other VM in the project could read it. On the
+      # CRM project that was confirmed rather than assumed — a request from
+      # another instance returned 200 with the full routing configuration.
+      #
+      # Traefik's insecure API is read-only, so this was topology disclosure
+      # (routers, services, internal URLs, certificate state) rather than a way
+      # to change anything. Not an emergency; still not something to leave open.
+      #
+      # Deliberately narrowed rather than removed. The dashboard is genuinely
+      # useful: when the provider died in February, this endpoint would have
+      # shown an empty router table immediately. Keeping it on loopback keeps
+      # that diagnostic, reachable over the IAP SSH tunnel:
+      #
+      #   gcloud compute ssh odoo-hrms-prod --zone=us-central1-c \
+      #     --tunnel-through-iap -- -L 8080:localhost:8080
+      - "127.0.0.1:8080:8080"
 
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -52,6 +109,20 @@ services:
 
     networks:
       - web
+
+    # Docker's default json-file driver has NO size limit, and there is no
+    # /etc/docker/daemon.json on this host — so container logs grew without
+    # bound. Measured before this was added: 534MB across the three containers,
+    # the largest single log 271MB, on a 30GB disk that was 74% full.
+    #
+    # Capping here rather than in the daemon config keeps it in git and needs no
+    # daemon restart; it applies as each container is recreated by a deploy.
+    # 50MB x 5 = 250MB ceiling per container.
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   # ----------------------------------------------------------------------------
   # PostgreSQL Database
@@ -64,9 +135,32 @@ services:
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: odoo
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-odoo}
+      # POSTGRES_PASSWORD is deliberately ABSENT.
+      #
+      # It was `${DB_PASSWORD:-odoo}` — so in the absence of a .env (and there is
+      # no .env on this host) the production database password was the literal
+      # string `odoo`, documented as such in a PUBLIC repository. Confirmed by
+      # reading the live odoo.conf: the value is FOUR CHARACTERS. It is in git
+      # history forever, so removing this line was never the fix; the credential
+      # itself has to change (infrastructure/rotate_db_password.sh).
+      #
+      # It is not replaced with a variable because it is not needed: the variable
+      # is read only by initdb, on an EMPTY data directory. Verified against
+      # postgres:17 — a container restarted on an existing data dir with no
+      # POSTGRES_PASSWORD starts cleanly and authenticates fine. The password
+      # lives in the database, not the environment.
+      #
+      # If this volume is ever lost, Postgres will refuse to initialise without
+      # it. That is the correct failure: better a loud stop than silently
+      # recreating a database with whatever default was lying around.
 
-    # Performance tuning for e2-medium (4GB RAM, ~1GB for Postgres)
+    # Tuning for e2-medium (4GB RAM, ~1GB for Postgres).
+    #
+    # max_connections = 60 is the number odoo.prod.conf's db_maxconn is computed
+    # against: 5 Odoo processes x 2 connection pools x db_maxconn must stay under
+    # it. Changing this without re-reading that comment will oversubscribe
+    # Postgres, and the failure is intermittent "too many clients" under load
+    # rather than a clean error at boot.
     command: >
       postgres
       -c max_connections=60
@@ -92,15 +186,24 @@ services:
       retries: 10
       start_period: 60s
 
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
   # ----------------------------------------------------------------------------
   # Odoo Application
   # ----------------------------------------------------------------------------
   odoo:
-    build:
-
-      context: .
-      dockerfile: Dockerfile
-    image: odoo-hrms:latest
+    # Pinned by commit SHA, written into .env by scripts/deploy.sh. NEVER
+    # :latest — a floating tag makes "what is in production" unanswerable and
+    # rollback impossible, which is exactly the state this replaces: the live
+    # container runs odoo-hrms:latest, built on the VM, with no .env pinning
+    # anything.
+    #
+    # The fallback keeps a local `docker compose up` working for development.
+    image: ${ODOO_IMAGE:-odoo-hrms:latest}
     container_name: odoo-app
     restart: unless-stopped
 
@@ -108,41 +211,48 @@ services:
       db:
         condition: service_healthy
 
-    environment:
-      # Database connection
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: odoo
-      DB_PASSWORD: ${DB_PASSWORD:-odoo}
-
-      # Odoo proxy configuration
-      ODOO_PROXY: "true"
-      WEB_BASE_URL: https://hr.cleardeals.xyz
-
-      # Optional: BigQuery/GCP credentials
-      # GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/gcp_credentials
-
     volumes:
-      # Configuration (read-only for security)
-      - ./odoo.conf:/etc/odoo/odoo.conf:ro
+      # Rendered by scripts/render_odoo_conf.sh from the COMMITTED odoo.prod.conf
+      # plus the two secrets in Secret Manager. /dev/shm is tmpfs, so the only
+      # file containing both the config and the secrets is memory-backed and
+      # never lands on the persistent disk — and therefore never in a disk
+      # snapshot.
+      #
+      # Read-only: the container has no reason to write its own config.
+      #
+      # If this mount is missing, Odoo starts with its built-in defaults, which
+      # include list_db = True. Never let the render step fail silently — which
+      # is why deploy.sh dies rather than continuing if it does.
+      - /dev/shm/odoo.conf:/etc/odoo/odoo.conf:ro
 
-      # Persistent data
       - ./odoo-web-data:/var/lib/odoo
 
-      # Custom addons (mounted for hot-reload)
-      - ./custom_addons:/mnt/extra-addons/custom
-
-      # Optional: GCP credentials
-      # - ./gcp-credentials.json:/run/secrets/gcp_credentials:ro
+      # custom_addons is NO LONGER bind-mounted. It is baked into the image at
+      # /opt/cleardeals-addons (see Dockerfile) so the SHA tag identifies the
+      # running application code.
+      #
+      # DO NOT RE-ADD A MOUNT HERE. Mounting over /mnt/extra-addons was what hid
+      # the fact that the base image declares that path as a VOLUME, and a mount
+      # at the new path would shadow the baked-in copy with whatever the VM has
+      # checked out — silently breaking rollback again.
 
     networks:
       - web
 
+    # ODOO_PROXY and WEB_BASE_URL used to be set here. Both were inert: nothing
+    # in entrypoint.sh or Odoo reads either name. proxy_mode lives in
+    # odoo.prod.conf, and the base URL is the web.base.url system parameter (see
+    # commit f0f3718c, which added the <base> tag from it). Leaving them in place
+    # implied a configuration mechanism that does not exist.
+
     labels:
-      # Enable Traefik
       - "traefik.enable=true"
 
-      # Main Odoo Router (HTTPS)
+      # --- Main Odoo Router (HTTPS) ---
+      # The Host() value here is load-bearing beyond routing: it must match
+      # EDGE_HOST in scripts/deploy.sh and var.public_host in Terraform, because
+      # Traefik routes on it. A value matching no router returns 404, and the
+      # deploy's edge gate exists to catch precisely that.
       - "traefik.http.routers.odoo.rule=Host(`hr.cleardeals.xyz`)"
       - "traefik.http.routers.odoo.entrypoints=websecure"
       - "traefik.http.routers.odoo.tls.certresolver=myresolver"
@@ -150,8 +260,15 @@ services:
       - "traefik.http.routers.odoo.priority=1"
       - "traefik.http.services.odoo-service.loadbalancer.server.port=8069"
 
-      # Longpolling/WebSocket Router (real-time features — must hit gevent port 8072)
-      # Odoo 17+ uses /websocket; older versions use /longpolling — route both
+      # --- Longpolling/WebSocket Router ---
+      # /websocket is the Odoo 17+ bus path; /longpolling is the Odoo 8-era one
+      # kept for any old client. BOTH must reach the gevent process on :8072.
+      #
+      # This is load-bearing TODAY, not a precaution: odoo.prod.conf sets
+      # workers = 3, and with workers > 0 Odoo serves the bus from a separate
+      # gevent process on :8072 rather than in-process on :8069. Without this
+      # route every realtime update in the UI stops — silently, with no error
+      # anywhere in the logs.
       - "traefik.http.routers.odoo-chat.rule=Host(`hr.cleardeals.xyz`) && (PathPrefix(`/websocket`) || PathPrefix(`/longpolling`))"
       - "traefik.http.routers.odoo-chat.entrypoints=websecure"
       - "traefik.http.routers.odoo-chat.tls.certresolver=myresolver"
@@ -159,16 +276,24 @@ services:
       - "traefik.http.routers.odoo-chat.priority=2"
       - "traefik.http.services.odoo-chat-service.loadbalancer.server.port=8072"
 
-      # Security Headers Middleware
+      # --- Security Headers Middleware ---
       - "traefik.http.routers.odoo.middlewares=security-headers@docker"
       - "traefik.http.routers.odoo-chat.middlewares=security-headers@docker"
 
+      # SAMEORIGIN rather than DENY: Odoo's own UI frames content (report
+      # previews, the website builder), so DENY breaks it. See commit 7318ce3c.
       - "traefik.http.middlewares.security-headers.headers.customFrameOptionsValue=SAMEORIGIN"
       - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
       - "traefik.http.middlewares.security-headers.headers.browserXssFilter=true"
       - "traefik.http.middlewares.security-headers.headers.stsSeconds=31536000"
       - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
       - "traefik.http.middlewares.security-headers.headers.stsPreload=true"
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
 # ==============================================================================
 # Networks
@@ -177,4 +302,3 @@ networks:
   web:
     driver: bridge
     name: web
-

@@ -10,7 +10,7 @@ FROM odoo:19.0
 
 LABEL vendor="ClearDeals" \
       version="19.0" \
-      description="Odoo HRMS Production with BigQuery support"
+      description="Odoo HRMS Production"
 
 # Switch to root for system modifications
 USER root
@@ -54,10 +54,30 @@ RUN chown -R odoo:odoo /opt/odoo-venv
 # Copy custom entrypoint script
 COPY --chmod=755 ./entrypoint.sh /usr/local/bin/entrypoint.sh
 
-# Copy custom addons
-# Note: In docker-compose, this is mounted as volume for development
-# But we copy here for standalone image builds
-COPY --chown=odoo:odoo ./custom_addons /mnt/extra-addons/custom
+# ── Bake the application code INTO the image ──────────────────────────────────
+#
+# NOT under /mnt/extra-addons. The odoo:19.0 base image declares
+#   VOLUME ["/mnt/extra-addons", "/var/lib/odoo"]
+# — verified directly with `docker image inspect odoo:19.0`. So at runtime Docker
+# mounts an ANONYMOUS EMPTY VOLUME over that path and silently hides anything
+# baked beneath it.
+#
+# This image previously copied to /mnt/extra-addons/custom, which appeared to
+# work only because docker-compose.yml bind-mounted ./custom_addons over the
+# same path. That mount was the sole thing masking the problem, and on the CRM
+# instance the equivalent mistake took production down: the addons vanished, the
+# modules never loaded, the UI failed on a view controller and crons died on a
+# KeyError.
+#
+# Removing the bind mount is the point. It is what makes an image tag mean
+# something: with the mount, two containers on the same image SHA can run
+# different application code depending on what the VM has checked out, and
+# re-pinning a previous image leaves the new addons on disk, still mounted — so
+# rollback is a fiction.
+#
+# Nothing was ever wrong with COPY. The path was. /opt is not a declared volume,
+# so code baked there survives.
+COPY --chown=odoo:odoo ./custom_addons /opt/cleardeals-addons
 
 # Switch back to non-root user for security
 USER odoo
@@ -68,9 +88,20 @@ WORKDIR /usr/lib/python3/dist-packages/odoo
 # Expose ports
 EXPOSE 8069 8072
 
-# Health check
+# ── Health check ──────────────────────────────────────────────────────────────
+#
+# /web/database/selector WAS NOT A HEALTH CHECK. Read the route in
+# addons/web/controllers/database.py:59 — it renders its template
+# unconditionally and returns 200 without ever touching the database. It was
+# answering every 30 seconds in the Odoo log while proving nothing beyond "the
+# HTTP worker is alive". A gate like that goes green with Postgres down.
+#
+# db_server_status=1 makes the route open a real cursor and return HTTP 500 when
+# it cannot — confirmed in addons/web/controllers/home.py:177, which sets
+# status = 500 on psycopg2.Error. So `curl -f` is a genuine gate here, with no
+# need to parse the body.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
-    CMD curl -f http://localhost:8069/web/database/selector || exit 1
+    CMD curl -f "http://localhost:8069/web/health?db_server_status=1" || exit 1
 
 # Use custom entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
