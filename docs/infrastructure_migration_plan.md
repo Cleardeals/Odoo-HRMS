@@ -1381,13 +1381,73 @@ treated it as suspicious. That was a false alarm — Debian 12 splits it, and
 `google-guest-agent-manager` and `google-guest-compat-manager` are both active.
 OS Login functioning was already proof of it.
 
-**Enabling inventory is a one-line project-level change**
-(`patchAndConfigFeatureSet` → `OSCONFIG_C`), additive and reversible, and it is
-NOT done here because it is project-scoped and outside what this migration was
-asked to change. It is worth doing on its own merits: this host's single largest
-known hazard is package drift — `docker-ce` held at 28.5.2 while
-`containerd.io` is unheld — and central package inventory is exactly the thing
-that would make that drift visible instead of discovered during an outage.
+**ENABLED 2026-09-09**, at the operator's direction, once CRM was found to be
+running `OSCONFIG_C` already — so this is parity, not a new posture.
+
+```
+PATCH osconfig.googleapis.com/v1/projects/<p>/locations/global/projectFeatureSettings
+      ?updateMask=patchAndConfigFeatureSet   {"patchAndConfigFeatureSet":"OSCONFIG_C"}
+OSCONFIG_B -> OSCONFIG_C
+```
+
+**This is an OUT-OF-BAND change and cannot be put in Terraform.** Checked
+against the provider schema rather than assumed: it exposes
+`google_os_config_os_policy_assignment`, `google_os_config_patch_deployment`
+and three `google_os_config_v2_policy_orchestrator*` resources, and **no**
+resource for `projectFeatureSettings`. So this setting is invisible to
+`terraform plan` and will not be restored by it — recorded here for the same
+reason the tfstate bucket bootstrap is.
+
+**A correction to how this was described above.** `OSCONFIG_B` does not stop the
+agent collecting inventory; it refuses the **read**. The proof is the
+timestamp: the first successful read returned data stamped `08:57:00Z`, which
+is *before* the feature was switched on. The agent had been collecting and
+uploading all along, and only retrieval was blocked. So "OS inventory is
+disabled" means the feature is disabled, not the collection.
+
+**`gcloud compute instances os-inventory describe` still fails** even now, with
+the same misleading "Make sure the OS Config agent is running", while the REST
+API returns a complete 400-item inventory for the same instance. It may catch up
+after the agent's next report cycle. **Use the API as the check, not the CLI** —
+this is the third time in this migration that gcloud's presentation of a result
+has been the thing that misled, after the semicolon-delimited permission lists
+and the anchored grep on joined columns.
+
+### What the first inventory read immediately found
+
+The feature paid for itself on the first query. Independently confirmed with
+`dpkg -l` and `apt-mark showhold` on the host:
+
+```
+apt-mark showhold      -> docker-ce, docker-ce-cli          (only these two)
+
+containerd.io              2.2.1     <-- UPDATE AVAILABLE: 2.3.5
+docker-ce                  28.5.2    HELD
+docker-ce-cli              28.5.2    HELD
+docker-ce-rootless-extras  29.2.1    <-- NOT held, NOT rolled back, update to 29.8.0
+docker-buildx-plugin       0.31.1    <-- UPDATE AVAILABLE: 0.37.0
+docker-compose-plugin      5.0.2     <-- UPDATE AVAILABLE: 5.5.1
+docker-model-plugin        1.0.12    <-- UPDATE AVAILABLE: 1.2.6
+```
+
+**`docker-ce-rootless-extras` is still at 29.2.1** — the Docker 29 version from
+the 2026-02-16 incident. The rollback to 28.5.2 was **incomplete**: the engine
+and CLI were downgraded and held, that package was neither. It has sat
+mismatched against the running engine for nearly seven months, and nothing
+would have surfaced it.
+
+It is **inert today**: rootless mode is not in use, `docker.service` runs as
+root, and `docker version` reports 28.5.2 for both client and server. So this is
+not an incident — it is proof that the hold discipline has a hole in it, found
+within minutes of being able to look.
+
+It also puts real numbers behind §0b's "do not run `apt upgrade`". That warning
+was previously general; concretely, an upgrade today would move `containerd.io`
+2.2.1 → 2.3.5 **underneath a pinned 28.5.2 engine**, plus pull rootless-extras
+to 29.8.0 — which is the exact shape of the February break.
+
+Cleaning that up is package hygiene on production, separate from this migration,
+and is tracked separately.
 
 ---
 

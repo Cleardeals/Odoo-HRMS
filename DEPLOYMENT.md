@@ -153,6 +153,34 @@ held at 28.5.2 by `apt-mark hold`, after Docker 29 broke Traefik's provider on
 2026-02-16. `containerd.io` is *not* held, so a blanket upgrade would move it
 underneath a pinned Docker. See the migration plan, §0b.
 
+Concretely, as of 2026-09-09 — these are the pending upgrades an `apt upgrade`
+would apply:
+
+```
+containerd.io              2.2.1   ->  2.3.5     underneath a pinned 28.5.2 engine
+docker-ce-rootless-extras  29.2.1  ->  29.8.0
+docker-buildx-plugin       0.31.1  ->  0.37.0
+docker-compose-plugin      5.0.2   ->  5.5.1
+```
+
+**Note `docker-ce-rootless-extras` is already at 29.2.1** — the Docker 29
+version from the February incident. The rollback downgraded and held the engine
+and CLI but not that package, so it has been mismatched for months. It is inert
+(rootless mode is unused, `docker version` reports 28.5.2 client and server),
+but it shows the hold covers less than it appears to.
+
+**Checking versions without SSH.** Full VM Manager is enabled on this project,
+so the package inventory is queryable centrally:
+
+```bash
+curl -s -H "Authorization: Bearer $(gcloud auth print-access-token)" "https://osconfig.googleapis.com/v1/projects/<project>/locations/us-central1-c/instances/-/inventories?view=FULL"
+```
+
+Use the API, **not** `gcloud compute instances os-inventory describe` — that
+command currently fails here and blames the agent ("Make sure the OS Config
+agent is running") while the API returns a complete inventory for the same
+instance. The agent is fine; the CLI is not a reliable check.
+
 **Health checks that actually mean something:**
 
 ```bash
