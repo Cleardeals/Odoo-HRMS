@@ -1641,6 +1641,44 @@ schedule that silently stops.
 
 ---
 
+### Boot-time config render (added after the pipeline review)
+
+`infrastructure/systemd/odoo-hrms-config.service` + `render-on-boot.sh` +
+`install.sh`.
+
+The pipeline review found that the tmpfs config — which exists so the secrets
+never reach a disk snapshot — would not survive a reboot, because only
+`deploy.sh` ever wrote it. From the first Cloud Build deploy onward, any reboot
+would have left Odoo starting with no configuration: Docker recreates a missing
+bind-mount source as an empty **directory**, Odoo reads it with ConfigParser and
+silently gets nothing, and falls back to defaults where `db_host` is empty — so
+it cannot reach Postgres at all. A hard outage, with nothing in the logs
+pointing at the cause.
+
+**RESULT — proven by a real reboot, 2026-09-09.** Boot at 11:19:43; the journal
+shows the ordering held with 13 ms to spare:
+
+```
+11:19:49.854  Starting odoo-hrms-config.service
+11:19:53.847  render_odoo_conf: wrote /dev/shm/odoo.conf (178 lines, secrets injected)
+11:19:53.848  render-on-boot: config rendered on attempt 1
+11:19:53.849  Finished odoo-hrms-config.service
+11:19:53.862  Starting docker.service
+```
+
+First attempt, no retries. All three containers returned unaided; Postgres
+logged `database system was shut down at 11:19:29` and then
+`ready to accept connections` — recovery of the existing cluster, not an
+`initdb`. `res_users` = 11 before and after. Odoo health 200, public edge 200
+over TLS. About 40 seconds of downtime.
+
+Docker is **ordered** after this unit but does not `Require` it, deliberately: a
+transient Secret Manager failure at boot must not keep Traefik and Postgres down
+as well, and the failure is still detected because Odoo cannot reach its
+database and P1 reports it externally.
+
+---
+
 ## 4. Change manifest
 
 **New**

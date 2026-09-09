@@ -176,6 +176,19 @@ Secret Manager hiccup at boot should not keep Traefik and Postgres down too. If
 the render does fail, the P1 uptime alert reports it. Reinstall or re-verify
 with `infrastructure/systemd/install.sh`.
 
+**Proven by an actual reboot on 2026-09-09**, not just by inspection — the boot
+journal puts the two 13 milliseconds apart, in the right order:
+
+```
+11:19:53.849490  Finished odoo-hrms-config.service   (config written)
+11:19:53.862716  Starting docker.service
+```
+
+Rendered on the first attempt, no retries needed. All three containers came back
+by themselves, Postgres recovered its existing cluster rather than
+re-initialising, `res_users` unchanged, and the public edge served 200. Total
+downtime was about 40 seconds.
+
 **Alerting is live (Phase 7).** Five policies mail the operator: site
 unreachable (P1), disk above 85% (P2), snapshots stopped for over 5h (P2b),
 memory above 85% (P3), TLS expiring within 15 days (P4). The notification path
