@@ -12,18 +12,39 @@
 set -euo pipefail
 
 ZONE="us-central1-c"
-PROJECT="odoo-hrms-487409"
+
+# The project id is deliberately NOT hardcoded: this repository is public.
+# Supply it from the environment, or let gcloud's active configuration provide
+# it:
+#
+#   PROJECT=my-project ./docs/erd/capture_schema.sh
+#
+PROJECT="${PROJECT:-$(gcloud config get-value project 2>/dev/null)}"
+[[ -n "${PROJECT}" && "${PROJECT}" != "(unset)" ]] || {
+  echo "capture_schema: set PROJECT, or run 'gcloud config set project <id>'" >&2
+  exit 1
+}
+
 INSTANCE="odoo-hrms-prod"
-SSH_USER="tech"          # instance metadata carries keys for this user, not the local one
+
+# Resolved by OS Login now rather than being a fixed local account. Note that
+# since Phase 5 the ONLY route to this VM is IAP, so the gcloud ssh calls below
+# need --tunnel-through-iap; a plain SSH to the public address is refused.
+SSH_USER="${SSH_USER:-tech}"
 CONTAINER="odoo-db"
 DB="odoo_hrms_db"
 
 OUT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 run_sql() {
+  # --tunnel-through-iap is REQUIRED since Phase 5 of the infrastructure
+  # migration. default-allow-ssh was deleted, so there is no route to port 22
+  # from the internet at all and a plain gcloud compute ssh now times out.
+  #
+  # sudo, because Docker is not accessible to the login user under OS Login.
   gcloud compute ssh "${SSH_USER}@${INSTANCE}" \
-    --zone "$ZONE" --project "$PROJECT" \
-    --command "docker exec -i ${CONTAINER} psql -U odoo -d ${DB} -c \"$1\""
+    --zone "$ZONE" --project "$PROJECT" --tunnel-through-iap \
+    --command "sudo docker exec -i ${CONTAINER} psql -U odoo -d ${DB} -c \"$1\""
 }
 
 echo "==> columns.csv"
