@@ -141,6 +141,26 @@ gcloud compute ssh tech@odoo-hrms-prod --zone=us-central1-c --tunnel-through-iap
 
 A healthy stack reports **5** routers.
 
+**The config is re-rendered at boot.** `/dev/shm/odoo.conf` is tmpfs, so it is
+empty after a reboot, and `deploy.sh` only writes it on a deploy. The
+`odoo-hrms-config` systemd unit closes that gap — it runs
+`scripts/render_odoo_conf.sh` at boot, ordered **before** `docker.service` so
+the file exists before Docker looks for it:
+
+```bash
+systemctl status odoo-hrms-config      # expect: active (exited)
+```
+
+Without it, a reboot recreates the missing mount source as an empty *directory*,
+Odoo reads it with ConfigParser and silently gets nothing, and starts on
+built-in defaults — `db_host` empty, so it cannot reach Postgres at all. The
+site goes down with nothing in the logs pointing at the cause.
+
+Docker is only *ordered* after this unit, not dependent on it: a transient
+Secret Manager hiccup at boot should not keep Traefik and Postgres down too. If
+the render does fail, the P1 uptime alert reports it. Reinstall or re-verify
+with `infrastructure/systemd/install.sh`.
+
 **Alerting is live (Phase 7).** Five policies mail the operator: site
 unreachable (P1), disk above 85% (P2), snapshots stopped for over 5h (P2b),
 memory above 85% (P3), TLS expiring within 15 days (P4). The notification path
