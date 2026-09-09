@@ -180,7 +180,21 @@ services:
       - web
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U odoo"]
+      # -d odoo_hrms_db is not optional noise-tidying. Without it, pg_isready
+      # defaults dbname to the username, so it asks for a database called
+      # "odoo" — which does not exist here; the database is odoo_hrms_db.
+      #
+      # pg_isready still reports success (a FATAL response proves the server is
+      # accepting connections, which is all it checks), so the container is
+      # marked healthy and nothing appears broken. Postgres, meanwhile, logs
+      # `FATAL: database "odoo" does not exist` every 10 seconds — 8,640 lines a
+      # day, observed live during the Phase 4c window.
+      #
+      # That was harmless while nothing read the logs. From Phase 6 it is not:
+      # the Ops Agent ships container logs to Cloud Logging, so this becomes a
+      # recurring paid FATAL that will also be the loudest thing in the log
+      # whenever someone goes looking for a real fault.
+      test: ["CMD-SHELL", "pg_isready -U odoo -d odoo_hrms_db"]
       interval: 10s
       timeout: 5s
       retries: 10

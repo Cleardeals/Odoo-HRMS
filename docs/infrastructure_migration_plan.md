@@ -371,8 +371,22 @@ Granted and confirmed: `iam.serviceAccounts.create`, `storage.buckets.create`,
 > Owner action to leave empty.
 
 So everything in this plan can be applied by the current operator **except
-project-level IAM bindings**. Project Owners are `tech@cleardeals.in` and
-`solutionanalysts@cleardeals.in`.
+project-level IAM bindings**.
+
+**Corrected 2026-09-09.** This said "Project Owners are `tech@` and
+`solutionanalysts@`". Measured against the API, the two are not equivalent:
+
+* `roles/owner` **on this project**: `tech@` only.
+* `solutionanalysts@` holds `roles/owner` at the **organization**
+  (`464381047742`), which is inherited by this project and by CRM — and by every
+  other project in the org. `director1@` holds it the same way. `tech@` also
+  holds `resourcemanager.organizationAdmin` at the org, which does **not**
+  include `compute.instances.osAdminLogin` (0 occurrences), so `tech@`'s sudo on
+  the VM comes from the project Owner binding and would disappear with it.
+
+The distinction matters for the retirement of `tech@`: removing its project
+binding removes the only *project-scoped* human Owner, leaving two org-level
+Owners who are not the developer.
 
 Owner action is needed for every `google_project_iam_member` — concretely:
 
@@ -890,6 +904,67 @@ four roles are a strict superset and nothing can regress.
 
 The only step that stops the VM. See §5.
 
+**RESULT — done 2026-09-09. Window 05:24:39Z → 05:52Z, ~27 minutes.**
+
+Snapshot `odoo-hrms-prod-pre-4b-20260909-0357` (READY, 30 GB) plus a logical
+`pg_dump` (8.9 MB gzipped, `gzip -t` clean, pg_dump trailer present) taken
+first. The stack was stopped cleanly rather than letting the provider's stop
+crash-halt Postgres — the log shows `checkpoint complete` then `database system
+is shut down`, and on the way back up `database system was shut down at
+2026-09-09 05:24:47`, which is the proof it recovered the existing cluster and
+did not `initdb` a new one.
+
+One `terraform apply`, 1m39s, `0 added, 1 changed, 0 destroyed`. After:
+
+```
+status=RUNNING  sa=hrms-prod-vm@  scopes=cloud-platform  enable-oslogin=TRUE
+ssh -> tech_cleardeals_in, sudo OK
+metadata server confirms both the SA and the single cloud-platform scope
+```
+
+The capability this window existed for, verified from the VM rather than
+assumed: `gcloud secrets versions access latest` succeeds for **both** secrets
+(lengths 4 and 40 — values never printed, identified by a 12-char sha256
+prefix), and the Artifact Registry repo is now listable. So the Phase 4d
+prerequisite is satisfied and `cloudbuild_cd_enabled` is no longer blocked on
+this.
+
+The Ops Agent's `PermissionDenied` flood stopped **immediately**: 2 entries
+appeared in a 3-minute window, but at 05:25:19–05:25:56 under the old PID 1783,
+and the VM booted at 05:26:48 — so they predate the cutover. Since boot: zero,
+and the collector logs `Everything is ready. Begin running and processing data.`
+Reading the timestamps rather than the count is what distinguished "the fix
+worked" from "the fix half-worked".
+
+**Access, as it now stands.** The pre-flight found the SSH keys were in
+**project** metadata with `block-project-ssh-keys` unset, so they applied to
+every VM in the project. Five never-expiring keys, each passwordless root via
+`google-sudoers`: two named for individual people, one for a shared laptop, and
+`tech` twice. (The usernames are deliberately not reproduced here — this
+repository is public.) All are now
+inert **on this instance** and still live on every other VM in the project —
+which is a project-level cleanup, not this migration's to make.
+
+`tech@` holds `roles/owner` on the project and is the only human with sudo.
+`developer1@`, `developer2@` and `solutionanalysts@` hold `roles/compute.osLogin`
+— login, no sudo — verified by expanding all seven of `developer2@`'s roles and
+finding `compute.instances.osAdminLogin` in none of them.
+
+This matches CRM exactly, which was the deciding argument. An earlier draft of
+this section claimed CRM had no project Owner at all; that was **wrong** — an
+anchored `grep 'roles/(owner|editor)$'` against tab-joined `role<TAB>member`
+output can never match. `tech@` holds `roles/owner` on CRM too. The lesson is
+the same one as the semicolon trap in §4: a filter that returns nothing is not
+evidence of absence until a positive control says the filter works.
+
+**Known consequence, deliberately accepted:** `tech@` is slated to be retired or
+handed to a non-technical holder, and `developer2@` — the sole developer on this
+project — currently holds 5 of the 39 permissions this Terraform needs, missing
+even `storage.objects.get` on the state bucket, so it cannot run `terraform
+plan`. Migration work continues as `tech@`; the standing/JIT role design is
+tracked separately and is a prerequisite for anyone but `tech@` operating this
+infrastructure.
+
 #### 4c. Move the application out of a personal home directory
 
 `/home/tech/odoo-project` → `/opt/odoo-hrms`. Port `scripts/phase4c_move.sh`.
@@ -911,6 +986,52 @@ ownership/mode/git HEAD/size before, and verify them after.
 
 Run with the stack **down**. Rollback is `mv` back; the pipeline resolves either
 path so it keeps working both ways.
+
+**RESULT — done 2026-09-09, in the same window as 4b.**
+
+`scripts/phase4c_move.sh` ported and run. Ownership, modes, git HEAD, size and
+path count all identical across the move (65,747 paths, 2,494,564 blocks;
+`odoo-db-data` 999:0 mode 700, `odoo-web-data` 100:101 mode 755).
+
+**One claim in this section was wrong and is corrected.** `/home/tech` is mode
+**755**, not 750, so `tech_cleardeals_in` could always traverse it. The CRM
+failure of "the OS Login user cannot even `cd` into the app directory" does
+**not** apply to this host, and the plan should not have asserted it did. The
+justification here rests on the other two reasons — `git` dubious-ownership,
+which is live (every git call in `deploy.sh` needs `-c safe.directory='*'`
+because the checkout is owned by `tech`), and removing the reason the addons
+were bind-mounted. Worth doing; not the emergency this section implied.
+
+**Two hazards found during execution that the plan had not anticipated.** Both
+would have caused an outage, and neither is in the CRM script:
+
+1. **Compose project identity.** The name is derived from the directory unless
+   pinned, so the move would silently rename the project `odoo-project` →
+   `odoo-hrms`. Because the services set `container_name` explicitly, compose
+   would then try to create new containers using names already taken and fail
+   with "name is already in use" — after the point of no return. The VM was
+   still on the old checkout, so the live `docker-compose.yml` was patched with
+   `name: odoo-project` first (verified against the live
+   `com.docker.compose.project` label) and the script now **refuses to move**
+   unless that pin is present.
+
+2. **`docker compose start` after the move would have created an empty
+   database.** Docker resolves bind mounts to absolute paths at container
+   creation and stores them; the stopped containers still pointed at
+   `/home/tech/odoo-project/...`. Docker **creates a missing bind source as an
+   empty root-owned directory** rather than failing, so Postgres would have
+   found an empty `PGDATA` and initialised a fresh, empty cluster while the real
+   data sat untouched at the new path — with the tempting wrong fix being "restore
+   from backup". The containers must be **recreated**
+   (`docker compose up -d --force-recreate`), which rebuilds the mount table
+   from the compose file's new location. The script's closing instruction said
+   `start`; it was corrected to `--force-recreate` with the reasoning inline.
+
+Verified after: mounts resolve to `/opt/odoo-hrms`, all three containers
+healthy, `/web/health?db_server_status=1` **200**, `/web/login` **200**, edge
+`https://hr.cleardeals.xyz/web/login` **200** with `ssl_verify_result=0`, 5
+Traefik routers, `res_users` = 11 (unchanged), zero errors in the Odoo log, and
+all 22 addon directories still present.
 
 #### 4d. The pipelines
 
@@ -1135,6 +1256,56 @@ snap squashfs mounts pinned at 100% forever, which a naive `disk > 85%` alert
 would have matched on day one and never cleared. Debian 12 has no snaps, so
 HRMS probably reports only `/dev/sda1` — **probably is not good enough**. Look
 at the real labels and write the filter against them.
+
+**RESULT — done 2026-09-09, immediately after 4b.**
+
+`install.sh` passed every one of its own gates: candidate config validated by
+the agent engine, timestamped backup taken
+(`config.yaml.20260909-055409.bak`), agent active, and `PermissionDenied == 0`.
+
+Shipping, verified rather than assumed:
+
+* **syslog** was already arriving *before* the new config was installed — 4b
+  alone fixed that, which is independent confirmation the service-account swap
+  was the whole cause.
+* **container logs** arrive under `logName:"docker_containers"` and are
+  **parsed**, not opaque: `jsonPayload` keys are `['log','time']`, so the
+  `parse_json` processor works and the lines are searchable.
+* **agent metrics** are live: `disk/percent_used` 6 series,
+  `memory/percent_used` 5, `cpu/utilization` 8.
+
+**The device labels, which Phase 7 must be written against:**
+
+```
+agent.googleapis.com/disk/percent_used  — 6 series
+  device=/dev/sda1   state={free, reserved, used}
+  device=/dev/sda15  state={free, reserved, used}
+```
+
+No `/dev/loopN` — Debian 12 has no snaps, as expected. But the guess of "only
+`/dev/sda1`" was still wrong in two ways that both matter to the alert:
+
+1. **`/dev/sda15` is the EFI system partition.** Small, and its utilisation has
+   nothing to do with the disk pressure this alert is for.
+2. **`state` is a label, and `free` is one of its values.** An alert on
+   `disk/percent_used > 85` with no `state` filter matches the *free* series and
+   fires while the disk is nearly empty — the inverse of the intended condition.
+
+So the Phase 7 filter must pin **both** labels:
+
+```
+metric.type="agent.googleapis.com/disk/percent_used"
+metric.label.device="/dev/sda1"
+metric.label.state="used"
+```
+
+This is the same class of trap as CRM's eight loop devices, and it would have
+been missed by reading the metric name alone.
+
+**Still outstanding from this phase's gate:** `os-inventory describe` was not
+re-checked after the agent restart. OS Config inventory is reported on its own
+schedule, so it is worth re-running before Phase 7 rather than treating it as
+verified.
 
 ---
 

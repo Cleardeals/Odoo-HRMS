@@ -8,6 +8,12 @@
 > **There is currently no automated deploy path.** The GitHub Actions workflow
 > that used to deploy has been removed, and the Cloud Build trigger that
 > replaces it is not enabled yet. Read "Deploying right now", below.
+>
+> **Phase 4b and 4c are done (2026-09-09).** The application now lives at
+> `/opt/odoo-hrms`, **not** `/home/tech/odoo-project`. OS Login is on, so SSH
+> lands as `tech_cleardeals_in` and the old metadata SSH keys no longer work on
+> this VM. Secret Manager is reachable from the box, so the only thing still
+> blocking Cloud Build CD is the one-time GitHub App install.
 
 ---
 
@@ -45,12 +51,11 @@ Two things must happen before the pipeline can run, and neither is optional:
    `Cleardeals/Odoo-HRMS`, once, at
    <https://console.cloud.google.com/cloud-build/triggers/connect>. Terraform
    cannot do this. Then set `cloudbuild_github_connected = true`.
-2. **The Phase 4b maintenance window.** `scripts/deploy.sh` calls
-   `render_odoo_conf.sh`, which reads Secret Manager *from the VM*. That needs
-   `roles/secretmanager.secretAccessor` on the attached service account **and**
-   the `cloud-platform` OAuth scope on the instance. The VM has neither, and
-   changing either requires the instance to be **stopped**. Only then set
-   `cloudbuild_cd_enabled = true`.
+2. ~~**The Phase 4b maintenance window.**~~ **DONE 2026-09-09.**
+   `hrms-prod-vm@` is attached with the `cloud-platform` scope, and
+   `gcloud secrets versions access latest` was verified working from the VM for
+   both `odoo-db-password` and `odoo-admin-passwd`. So `cloudbuild_cd_enabled`
+   can be set to `true` as soon as item 1 is done.
 
 Until both are done, deploy by hand, on the VM:
 
@@ -60,13 +65,18 @@ gcloud compute ssh tech@odoo-hrms-prod \
 ```
 
 ```bash
-cd /home/tech/odoo-project && sudo git -c safe.directory='*' fetch --depth 1 origin main && sudo git -c safe.directory='*' reset --hard FETCH_HEAD
+cd /opt/odoo-hrms && sudo git -c safe.directory='*' fetch --depth 1 origin main && sudo git -c safe.directory='*' reset --hard FETCH_HEAD
 ```
 
-then follow `scripts/deploy.sh` by hand — **but note it will fail at the render
-step until 4b**, by design, because Odoo must never start without a config: its
-built-in defaults include `list_db = True`, which serves the database manager to
-unauthenticated requests.
+then follow `scripts/deploy.sh` by hand. The render step now works — 4b is
+done. Odoo must still never be started without a config: its built-in defaults
+include `list_db = True`, which serves the database manager to unauthenticated
+requests.
+
+Note that the VM's checkout is still on the pre-migration commit and the running
+container is still the old `odoo-hrms:latest` with addons **bind-mounted**. The
+first real deploy is what moves it onto the SHA-tagged image with addons baked
+in.
 
 ### Why the old workflow was removed rather than left as a fallback
 
@@ -93,7 +103,18 @@ Leaving it in place "just in case" would have been the more dangerous choice.
 
 ## Operating notes
 
-**SSH is via IAP, as user `tech`.** The local username does not resolve.
+**SSH is via IAP, under OS Login.** Pass `tech@` and gcloud maps it to the OS
+Login account — it prints `Using OS Login user [tech_cleardeals_in] instead of
+requested user [tech]`, which is expected, not a warning to fix. Your local
+username does not resolve.
+
+Access is IAM now, not metadata keys: `tech@` has sudo (`osAdminLogin`);
+`developer1@`, `developer2@` and `solutionanalysts@` can log in without sudo
+(`compute.osLogin`). The old project-metadata SSH keys are inert on this VM.
+
+The Linux user `tech` still exists and still owns the checkout, which is why
+every git command against `/opt/odoo-hrms` needs `-c safe.directory='*'`.
+
 Phase 5 removes the world-open `default-allow-ssh` rule, after which IAP is the
 only path.
 

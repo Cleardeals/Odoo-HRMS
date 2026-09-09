@@ -56,3 +56,6 @@ package.json
 /letsencrypt
 /odoo-web-data
 odoo.conf.production
+
+# Saved plans: binary, and can embed sensitive attribute values.
+*.tfplan

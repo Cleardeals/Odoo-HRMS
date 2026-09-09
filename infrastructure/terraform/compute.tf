@@ -162,13 +162,38 @@ resource "google_compute_instance" "prod" {
     # quietly detach the VM from that policy.
     enable-osconfig = "TRUE"
 
-    # enable-oslogin is DELIBERATELY ABSENT. OS Login is off today, and the five
-    # never-expiring keys in project metadata are how everyone reaches this box.
+    # ── PHASE 4B: OS LOGIN, ENABLED ───────────────────────────────────────────
     #
-    # It is enabled in the Phase 4b window, not here, because it is a HARD
-    # CUTOVER: the moment it is on, those metadata keys stop working on this
-    # machine and anyone relying on them loses access until granted
-    # roles/compute.osLogin or osAdminLogin.
+    # Set on the INSTANCE, not project-wide, so the blast radius is this one VM.
+    #
+    # This is a hard cutover, and what it revoked is worth recording precisely,
+    # because it is the security result of the whole phase. Before it, SSH keys
+    # lived in PROJECT metadata with `block-project-ssh-keys` unset, so they
+    # applied to every VM in the project:
+    #
+    #   two named for individual people, one for a shared laptop, tech (twice)
+    #
+    # The usernames themselves are not reproduced here: this repository is
+    # public, and naming whose laptop holds a production root key in a public
+    # file is its own disclosure. `gcloud compute project-info describe` has
+    # them.
+    #
+    # Five entries, no expiry on any of them. The guest agent adds
+    # metadata-key users to google-sudoers, so each of those keys was
+    # PASSWORDLESS ROOT on production, held on unknown laptops, revocable only
+    # by editing project metadata. Two are named for people, not roles.
+    #
+    # After this flag, none of them can log in here. Access is IAM: tech@ holds
+    # osAdminLogin (via roles/owner, confirmed by testIamPermissions before the
+    # window, not assumed); developer1@, developer2@ and solutionanalysts@ hold
+    # roles/compute.osLogin, which is login WITHOUT sudo.
+    #
+    # ROLLBACK, if someone is locked out: remove this one line and apply. It is
+    # a setMetadata call and does NOT require a stop — which is why the serial
+    # console was not enabled as a backstop. A lockout here is a two-minute
+    # metadata edit, and enabling the console would have added a second
+    # permanent root path to close later.
+    enable-oslogin = "TRUE"
   }
 
   boot_disk {
@@ -226,16 +251,30 @@ resource "google_compute_instance" "prod" {
   # stop it, change it, and start it again. This is the one unavoidable stop in
   # the migration, and the reason Phase 4b is a maintenance window even though
   # no machine-type or disk change is wanted.
+  #
+  # ── APPLIED IN THE PHASE 4B WINDOW ─────────────────────────────────────────
+  #
+  # hrms-prod-vm@ replaces the compute default, and the scopes become
+  # cloud-platform. Both in the same stop, because both need one.
+  #
+  # WHY cloud-platform IS NOT AN OVER-GRANT HERE. It looks like the widest
+  # possible setting, and in isolation it is — but scopes are a CEILING, not a
+  # grant. The effective access is the intersection of scope and IAM, and
+  # hrms-prod-vm@ holds exactly four roles: logging.logWriter,
+  # monitoring.metricWriter, artifactregistry.reader,
+  # secretmanager.secretAccessor. The alternative — enumerating a narrower scope
+  # list — buys nothing, because there is no scope that admits Secret Manager
+  # but not the rest, and it costs a second stopped-instance window every time a
+  # later phase needs one more API. The restriction that matters is the IAM
+  # policy, and that is where it is expressed.
+  #
+  # Proven permission-additive before the window: the compute default held ZERO
+  # project roles, and also no resource-level grants — checked individually
+  # against the state bucket, both secrets, and the Artifact Registry repo. So
+  # this is a strict superset and nothing can regress.
   service_account {
-    email = "${data.google_project.this.number}-compute@developer.gserviceaccount.com"
-    scopes = [
-      "https://www.googleapis.com/auth/devstorage.read_only",
-      "https://www.googleapis.com/auth/logging.write",
-      "https://www.googleapis.com/auth/monitoring.write",
-      "https://www.googleapis.com/auth/service.management.readonly",
-      "https://www.googleapis.com/auth/servicecontrol",
-      "https://www.googleapis.com/auth/trace.append",
-    ]
+    email  = google_service_account.prod_vm.email
+    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
   scheduling {
