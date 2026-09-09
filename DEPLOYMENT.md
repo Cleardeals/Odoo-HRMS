@@ -5,11 +5,12 @@
 > [docs/infrastructure_migration_plan.md](docs/infrastructure_migration_plan.md)
 > for the phases, the gates, and what has already been done.
 >
-> **CI is live; CD is not.** The Cloud Build CI trigger
-> (`hrms-ci-pull-request`) runs on every pull request to `main` or
-> `development` and is green. The deploy trigger is still disabled
-> (`cloudbuild_cd_enabled = false`), so **there is no automated deploy path
-> yet** — read "Deploying right now", below.
+> **CI and CD are both live, and the first deploy is done (2026-09-09).**
+> `hrms-ci-pull-request` gates every pull request to `main` or `development`;
+> `hrms-cd-main` builds and deploys on merge to `main` and **holds for manual
+> approval** first. Production runs a SHA-tagged image from Artifact Registry
+> with the addons baked in, and its config is rendered from Secret Manager into
+> tmpfs.
 >
 > **Phases 4b, 4c, 5, 6, 7 and 8 are done (2026-09-09).** In short:
 >
@@ -56,9 +57,19 @@ in production" and makes rollback real.
 
 ## Deploying right now (before Cloud Build CD is enabled)
 
-### The first deploy
+### The first deploy — DONE 2026-09-09
 
-Both original prerequisites are now met:
+Build `7040bb38`, all 8 steps green, deployed commit `03372670`. Verified after:
+SHA-tagged image running, config mounted read-only from `/dev/shm/odoo.conf`,
+22 addon directories baked at `/opt/cleardeals-addons` with no bind mount, 116
+modules installed, `res_users` unchanged at 11, zero errors in the Odoo log, 5
+Traefik routers, health and public edge both 200.
+
+As predicted by `compose --dry-run`, it recreated `odoo-app` **and** `odoo-db`
+while leaving Traefik running — Postgres came back on its existing bind-mounted
+data directory, not a new cluster.
+
+Both original prerequisites were met first:
 
 1. ~~**GitHub App install.**~~ **DONE** — `cloudbuild_github_connected = true`,
    and `hrms-ci-pull-request` has run green.
@@ -248,6 +259,33 @@ curl -fsS -o /dev/null -w '%{http_code}\n' --resolve hr.cleardeals.xyz:443:127.0
 It must speak TLS. A probe on port 80 returns 301 even for a hostname matching
 no router, because the redirect is on the entrypoint and runs before routing —
 so a port-80 check passes straight through a total routing outage.
+
+## The database password
+
+**Rotated 2026-09-09.** It had been the four-character `odoo` default that
+`docker-compose.yml` published as `${DB_PASSWORD:-odoo}` in this public
+repository — so it is in git history permanently, and only changing the
+credential fixed it. Removing the line never would have.
+
+Now a 40-character random value, held as version 2 of the `odoo-db-password`
+secret. Proven rather than assumed, from the Odoo container over the network
+(the only path that exercises `scram-sha-256`; a check inside the db container
+passes with *any* password because `pg_hba` trusts loopback):
+
+```
+version 1 (public in git history)  -> REFUSED
+latest                             -> ACCEPTED
+control: a deliberately wrong one  -> REFUSED
+```
+
+To rotate again: store a new version from a workstation, then run
+`infrastructure/rotate_db_password.sh <current-password>` as root on the VM. The
+VM holds `secretAccessor` only — it can read secrets, not create versions — which
+is why the new value is generated off-host.
+
+**Version 1 is deliberately left enabled.** Snapshots taken before this deploy
+contain a database whose role still expects the old password, so restoring one
+of those needs that value. It is worthless against current production.
 
 ## Backups
 
