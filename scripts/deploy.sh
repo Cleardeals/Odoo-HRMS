@@ -155,8 +155,29 @@ log "configuring the Artifact Registry credential helper"
 gcloud auth configure-docker "${REGISTRY}" --quiet >/dev/null 2>&1 \
   || die "could not configure the docker credential helper for ${REGISTRY}"
 
+# ── Pull the image BY NAME, not through compose ───────────────────────────────
+#
+# This was `docker compose pull odoo`, and it was a bug that would have failed
+# the very first deploy.
+#
+# compose resolves `image: ${ODOO_IMAGE:-odoo-hrms:latest}` from .env — and .env
+# is not written until set_env_image() below, twenty lines further on. So:
+#
+#   * FIRST deploy, no .env on the host (confirmed: there is none): compose
+#     resolved `odoo-hrms:latest`, an unqualified name, and tried to pull it
+#     from Docker Hub. That fails, and `die "cannot pull $NEW"` then reports the
+#     SHA image — naming an image it never actually attempted.
+#   * EVERY LATER deploy: it pulled the PREVIOUS sha out of .env, succeeded, and
+#     logged "pulling <new sha>". `docker compose up -d` then pulled the real
+#     image implicitly because it was absent. So the deploy worked by accident
+#     and this gate never guarded the new image at all — the one job it had.
+#
+# Pulling by explicit name removes the indirection: it fetches exactly the image
+# that was built, the failure message is true, and .env is not touched until the
+# pull has actually succeeded — so a failed pull cannot leave .env pointing at an
+# image that is not on the host.
 log "pulling ${NEW}"
-docker compose pull odoo || die "cannot pull $NEW"
+docker pull "${NEW}" || die "cannot pull ${NEW}"
 
 # Rewrite ONLY the ODOO_IMAGE line, preserving every other key.
 #

@@ -235,10 +235,17 @@ steps:
         # safe.directory uses a literal wildcard: this runs as root while the
         # checkout is owned by another user, and git refuses to operate on it
         # otherwise ("detected dubious ownership").
+        #
+        # The backslash matters. Unquoted, that `*` is a glob to the REMOTE
+        # bash, evaluated in the app directory. It survived only because no file
+        # there matches the pattern `safe.directory=*`, so bash left the word
+        # alone — create one file with that name and git silently receives a
+        # filename instead of the wildcard. Escaped, it is a literal `*` and git
+        # gets what it was meant to get.
         for attempt in 1 2 3; do
           if gcloud compute ssh "${_INSTANCE}" \
                --zone="${_ZONE}" --tunnel-through-iap --quiet \
-               --command="sudo bash -c 'set -euo pipefail; cd /opt/odoo-hrms 2>/dev/null || cd /home/tech/odoo-project; git -c safe.directory=* remote set-url origin https://github.com/Cleardeals/Odoo-HRMS.git; git -c safe.directory=* fetch --depth 1 --quiet origin $BRANCH_NAME; git -c safe.directory=* reset --hard --quiet FETCH_HEAD; exec bash scripts/deploy.sh $COMMIT_SHA'"; then
+               --command="sudo bash -c 'set -euo pipefail; cd /opt/odoo-hrms 2>/dev/null || cd /home/tech/odoo-project; git -c safe.directory=\* remote set-url origin https://github.com/Cleardeals/Odoo-HRMS.git; git -c safe.directory=\* fetch --depth 1 --quiet origin $BRANCH_NAME; git -c safe.directory=\* reset --hard --quiet FETCH_HEAD; exec bash scripts/deploy.sh $COMMIT_SHA'"; then
             exit 0
           fi
           echo "ssh attempt ${attempt} failed; retrying in 15s" >&2
