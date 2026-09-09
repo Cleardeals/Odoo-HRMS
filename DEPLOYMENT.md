@@ -9,11 +9,18 @@
 > that used to deploy has been removed, and the Cloud Build trigger that
 > replaces it is not enabled yet. Read "Deploying right now", below.
 >
-> **Phase 4b and 4c are done (2026-09-09).** The application now lives at
-> `/opt/odoo-hrms`, **not** `/home/tech/odoo-project`. OS Login is on, so SSH
-> lands as `tech_cleardeals_in` and the old metadata SSH keys no longer work on
-> this VM. Secret Manager is reachable from the box, so the only thing still
-> blocking Cloud Build CD is the one-time GitHub App install.
+> **Phases 4b, 4c, 5, 6 and 7 are done (2026-09-09).** In short:
+>
+> * the application lives at `/opt/odoo-hrms`, **not** `/home/tech/odoo-project`;
+> * OS Login is on — SSH lands as `tech_cleardeals_in`, and the old metadata SSH
+>   keys no longer work on this VM;
+> * **IAP is the only route to port 22**; the world-open SSH and RDP rules are gone;
+> * logs and metrics reach Cloud Logging and Monitoring, and five alert policies
+>   are live and confirmed to deliver;
+> * snapshots run 4-hourly with 30-day retention.
+>
+> Secret Manager is reachable from the box, so the only thing still blocking
+> Cloud Build CD is the one-time GitHub App install.
 
 ---
 
@@ -103,6 +110,11 @@ Leaving it in place "just in case" would have been the more dangerous choice.
 
 ## Operating notes
 
+**IAP is now the only way in (Phase 5).** `default-allow-ssh`,
+`default-allow-rdp` and both health-check rules were deleted; `allow-iap-ssh`
+permits port 22 only from `35.235.240.0/20`. Ports 80 and 443 remain open, and
+port 80 must stay open or Traefik's ACME renewal breaks.
+
 **SSH is via IAP, under OS Login.** Pass `tech@` and gcloud maps it to the OS
 Login account — it prints `Using OS Login user [tech_cleardeals_in] instead of
 requested user [tech]`, which is expected, not a warning to fix. Your local
@@ -114,9 +126,6 @@ Access is IAM now, not metadata keys: `tech@` has sudo (`osAdminLogin`);
 
 The Linux user `tech` still exists and still owns the checkout, which is why
 every git command against `/opt/odoo-hrms` needs `-c safe.directory='*'`.
-
-Phase 5 removes the world-open `default-allow-ssh` rule, after which IAP is the
-only path.
 
 ```bash
 gcloud compute ssh tech@odoo-hrms-prod --project=<project-id> --zone=us-central1-c --tunnel-through-iap
@@ -130,6 +139,13 @@ gcloud compute ssh tech@odoo-hrms-prod --zone=us-central1-c --tunnel-through-iap
 ```
 
 A healthy stack reports **5** routers.
+
+**Alerting is live (Phase 7).** Five policies mail the operator: site
+unreachable (P1), disk above 85% (P2), snapshots stopped for over 5h (P2b),
+memory above 85% (P3), TLS expiring within 15 days (P4). The notification path
+was proven end to end by deliberately tripping an alert — a policy attached to
+an *unverified* channel looks perfectly healthy in the console and pages nobody,
+so if you ever recreate the channel, prove delivery rather than assuming it.
 
 **Do not run `apt upgrade` on this VM.** `docker-ce` and `docker-ce-cli` are
 held at 28.5.2 by `apt-mark hold`, after Docker 29 broke Traefik's provider on
@@ -158,12 +174,14 @@ so a port-80 check passes straight through a total routing outage.
 
 ## Backups
 
-Automated disk snapshots run daily at 12:00 UTC with 14-day retention
-(`default-schedule-1`, attached to the boot disk, managed in
-`infrastructure/terraform/compute.tf`). Phase 7 moves this to 4-hourly with
-30-day retention — which is also what makes a "snapshots have stopped" alert
-possible at all, since Cloud Monitoring refuses an absence window longer than
-23h30m.
+Automated disk snapshots run **every 4 hours from 02:00 UTC with 30-day
+retention** (`hrms-prod-4h`, attached to the boot disk, managed in
+`infrastructure/terraform/compute.tf`). The old `default-schedule-1` — daily at
+12:00, 14 days — is still defined but **detached**.
+
+The 4-hourly cadence is also what makes the "snapshots have stopped" alert
+possible at all: Cloud Monitoring refuses an absence window longer than 23h30m,
+so against a daily schedule there was no usable window.
 
 Snapshots are **crash-consistent, not application-consistent**. A logical dump
 is what makes a clean restore certain:

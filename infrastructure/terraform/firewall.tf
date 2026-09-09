@@ -108,34 +108,55 @@ resource "google_compute_firewall" "default_allow_internal" {
   }
 }
 
-# ── TO BE DELETED IN PHASE 5 ───────────────────────────────────────────────────
-# Imported so that the current state is recorded and the deletion is a reviewable
-# diff rather than an undocumented console action.
-
-# tcp:22 from 0.0.0.0/0 at the default-ish priority, UNTAGGED, so it applies to
-# every VM in the project, present and future.
+# ── PHASE 5: THE REPLACEMENT PATH ─────────────────────────────────────────────
 #
-# SUPERSEDED IN PHASE 5 by an allow-iap-ssh rule scoped to 35.235.240.0/20 —
-# Google's fixed IAP TCP-forwarding range. That is the whole point: SSH stops
-# being reachable from the internet at all, every connection is brokered by IAP
-# which authenticates the caller against IAM BEFORE a packet reaches sshd, and
-# access is granted and revoked purely through IAM. There is then no key on the
-# host to forget to remove when somebody leaves.
+# Applied FIRST, on its own, and verified before anything is deleted. Adding the
+# new path and removing the old one in a single apply would mean discovering any
+# mistake with no way back in — so this is deliberately two applies.
 #
-# Already verified working on this project, which is why the plan can commit to
-# it: developer1@ and developer2@ hold roles/iap.tunnelResourceAccessor and
-# roles/compute.osLogin, and an IAP-tunnelled session to this VM succeeds today.
-resource "google_compute_firewall" "default_allow_ssh" {
-  name    = "default-allow-ssh"
+# 35.235.240.0/20 is Google's fixed IAP TCP-forwarding range. It is not a range
+# an attacker can source from: traffic only leaves it after IAP has authenticated
+# the caller against IAM, so reaching sshd at all now requires
+# roles/iap.tunnelResourceAccessor plus an OS Login role. Authorisation happens
+# before the first packet, rather than being sshd's problem.
+#
+# EVIDENCE THIS IS SAFE, gathered from /var/log/auth.log before the change
+# (74 real successful logins across ~3 weeks of retained logs):
+#
+#   * 59 arrived from the IAP range — all recent and ongoing.
+#   * 15 arrived directly, from one ISP address, ALL within a 15-minute window on
+#     2026-08-20, and nothing since. Direct SSH has been unused for 20 days.
+#   * 45,540 failed attempts from 1,291 distinct source addresses. That is what
+#     the world-open rule was actually serving.
+#
+# The count above needed a second pass to be trustworthy: grepping for
+# "Accepted" also matches "PubkeyAcceptedAlgorithms", which inflated the
+# non-IAP figure roughly tenfold and would have made direct SSH look actively
+# used. Anchor on "Accepted publickey for ".
+#
+# Both consumers were proven over IAP before the deletion, not assumed:
+#   * the operator, interactively, throughout this migration;
+#   * hrms-cloudbuild@, by impersonation — it lands as POSIX user
+#     sa_115156691799848533571 and has working sudo. Worth knowing for that
+#     test: roles/owner does NOT include iam.serviceAccounts.getAccessToken
+#     (actAs yes; getAccessToken, signBlob and implicitDelegation are all
+#     absent from the basic roles), so a temporary resource-scoped
+#     serviceAccountTokenCreator binding was needed, and IAM took 60 seconds to
+#     propagate — the first three attempts failed misleadingly.
+resource "google_compute_firewall" "allow_iap_ssh" {
+  name    = "allow-iap-ssh"
   project = var.project_id
   network = "default"
 
-  # Live value. Omitting it plans its removal.
-  description = "Allow SSH from anywhere"
+  description = "Allow SSH only from Google's IAP TCP forwarding range"
 
   direction     = "INGRESS"
-  priority      = 65534
-  source_ranges = ["0.0.0.0/0"]
+  priority      = 1000
+  source_ranges = ["35.235.240.0/20"]
+
+  # Untagged, matching the rule it replaces, so a future instance in this
+  # project is reachable by the operator without remembering to tag it. The
+  # range itself is the restriction.
 
   allow {
     protocol = "tcp"
@@ -143,74 +164,43 @@ resource "google_compute_firewall" "default_allow_ssh" {
   }
 }
 
-# tcp:3389 from 0.0.0.0/0. Nothing in this project runs Windows and nothing
-# listens on 3389. Deleted outright in Phase 5.
-resource "google_compute_firewall" "default_allow_rdp" {
-  name    = "default-allow-rdp"
-  project = var.project_id
-  network = "default"
-
-  # Live value. Omitting it plans its removal.
-  description = "Allow RDP from anywhere"
-
-  direction     = "INGRESS"
-  priority      = 65534
-  source_ranges = ["0.0.0.0/0"]
-
-  allow {
-    protocol = "tcp"
-    ports    = ["3389"]
-  }
-}
-
-# ── The two health-check rules: ALL TCP, for a load balancer that never existed ─
+# ── DELETED IN PHASE 5, 2026-09-09 ────────────────────────────────────────────
 #
-# These permit EVERY TCP PORT from Google's health-check ranges to any instance
-# tagged lb-health-check — and odoo-hrms-prod carries that tag (compute.tf).
+# Four rules removed. They are recorded here rather than silently dropped,
+# because "why is there no SSH rule" is a question someone will ask, and the
+# answer is above: allow-iap-ssh replaced it.
 #
-# Verified before calling them dead: the project has ZERO forwarding rules and
-# ZERO target pools. There is no load balancer, so there is nothing performing
-# these health checks.
+#   default-allow-ssh               tcp:22   from 0.0.0.0/0, UNTAGGED
+#   default-allow-rdp               tcp:3389 from 0.0.0.0/0, UNTAGGED
+#   default-allow-health-check      ALL TCP  from Google LB ranges, tag lb-health-check
+#   default-allow-health-check-ipv6 ALL TCP  from Google LB v6 ranges, same tag
 #
-# This is not world-open, so it is not an emergency. It is a live, unnecessary
-# path to every port on the box — including Postgres and the Traefik admin API —
-# and a rule that grants nothing needed is worse than useless: it is read as
-# load-bearing by the next person to touch it. Deleted in Phase 5 along with the
-# instance tag, in one change.
-resource "google_compute_firewall" "default_allow_health_check" {
-  name    = "default-allow-health-check"
-  project = var.project_id
-  network = "default"
-
-  direction = "INGRESS"
-  priority  = 1000
-  source_ranges = [
-    "35.191.0.0/16",
-    "130.211.0.0/22",
-    "209.85.152.0/22",
-    "209.85.204.0/22",
-  ]
-  target_tags = ["lb-health-check"]
-
-  allow {
-    protocol = "tcp"
-  }
-}
-
-resource "google_compute_firewall" "default_allow_health_check_ipv6" {
-  name    = "default-allow-health-check-ipv6"
-  project = var.project_id
-  network = "default"
-
-  direction = "INGRESS"
-  priority  = 1000
-  source_ranges = [
-    "2600:1901:8001::/48",
-    "2600:2d00:1:b029::/64",
-  ]
-  target_tags = ["lb-health-check"]
-
-  allow {
-    protocol = "tcp"
-  }
-}
+# WHY EACH ONE WENT.
+#
+# default-allow-ssh — replaced by allow-iap-ssh. It was untagged, so it applied
+# to every VM in the project, present and future, and it was carrying 45,540
+# failed authentication attempts from 1,291 distinct addresses. Removing it does
+# not remove access; it moves access from "anyone who can reach port 22 and
+# holds a key" to "anyone IAM says may connect".
+#
+# default-allow-rdp — nothing in this project runs Windows and `ss -tlnp`
+# confirmed nothing listens on 3389. A rule that admits traffic to a port
+# nothing serves is pure attack surface with no compensating function.
+#
+# The two health-check rules — these permitted EVERY TCP PORT from Google's
+# health-check ranges to anything tagged lb-health-check, and odoo-hrms-prod
+# carried that tag. Every port includes Postgres on 5432 and Traefik's admin API
+# on 8080, both of which are otherwise bound to loopback or the internal network.
+#
+# Verified dead before deleting, not assumed: the project has ZERO forwarding
+# rules and ZERO target pools. There is no load balancer, so nothing was
+# performing these checks and nothing depended on them.
+#
+# A rule that grants nothing needed is worse than useless, because the next
+# person to look at it reads it as load-bearing and leaves it alone. The
+# lb-health-check tag was removed from the instance in compute.tf in the same
+# change, so no orphan tag is left implying a load balancer exists.
+#
+# ROLLBACK: firewall rules are Compute API calls with no state of their own. Any
+# of these can be recreated from an authenticated machine in under a minute, and
+# losing SSH does not mean losing the instance.

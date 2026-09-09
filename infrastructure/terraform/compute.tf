@@ -58,8 +58,13 @@ resource "google_compute_disk" "prod" {
 # disk, matching the CRM module. Keeping the attachment separate is also what
 # makes the Phase 7 swap to a 4-hourly schedule a two-line change rather than a
 # disk modification.
+#
+# PHASE 7: this now points at the 4-hourly policy. A disk accepts only one
+# snapshot schedule, so this is a replace — Terraform detaches the old policy
+# and attaches the new one. Nothing about the disk or its data is touched, and
+# snapshots already taken are unaffected.
 resource "google_compute_disk_resource_policy_attachment" "prod_snapshot" {
-  name    = google_compute_resource_policy.daily_snapshot.name
+  name    = google_compute_resource_policy.four_hourly_snapshot.name
   disk    = google_compute_disk.prod.name
   project = var.project_id
   zone    = var.zone
@@ -112,6 +117,64 @@ resource "google_compute_resource_policy" "daily_snapshot" {
   }
 }
 
+# ── Phase 7: the 4-hourly schedule that replaces it ───────────────────────────
+#
+# Applied 2026-09-09. default-schedule-1 above is left DEFINED but DETACHED —
+# the attachment now points here. Keeping it defined preserves the record of
+# what production ran on, and detaching rather than deleting means the 14 days
+# of snapshots it already took are still governed by their own retention and
+# are not orphaned.
+#
+# Two changes, and the second is the reason for the first:
+#
+#   1. Recovery point moves from 24 h to 4 h. On its own this would be a
+#      judgement call about how much HR data is acceptable to lose.
+#
+#   2. IT IS WHAT MAKES A "BACKUPS HAVE STOPPED" ALERT POSSIBLE AT ALL. Cloud
+#      Monitoring refuses an absence duration above 23h30m. Against a DAILY
+#      schedule there is no usable window: consecutive snapshots are 24 h apart
+#      to within a second, so every window short enough to be accepted also
+#      fires shortly before every healthy snapshot. At 4-hourly, a 5 h window
+#      is comfortably inside the limit and tolerates one late run.
+#
+# Retention goes 14 -> 30 days. Storage is incremental and this disk is 30 GB
+# with ~12 GB used, so the cost of the extra fortnight is small against being
+# able to recover from a problem noticed three weeks late — which is the
+# realistic detection time for silent data corruption in an HR system where
+# most records are read rarely.
+#
+# start_time is 02:00, deliberately offset from the old 12:00 slot, so the first
+# new snapshot is visibly distinguishable from the last old one when verifying
+# the swap actually took effect.
+#
+# NOTE: no snapshot_properties block, and that is not an oversight — see the
+# comment on the imported policy above. GCP does not persist that block when
+# every value in it is the default, so declaring it on a policy Terraform
+# CREATES plans a change on every apply, forever.
+resource "google_compute_resource_policy" "four_hourly_snapshot" {
+  name    = "hrms-prod-4h"
+  project = var.project_id
+  region  = var.region
+
+  snapshot_schedule_policy {
+    schedule {
+      hourly_schedule {
+        hours_in_cycle = 4
+        start_time     = "02:00"
+      }
+    }
+
+    retention_policy {
+      max_retention_days = 30
+
+      # KEEP_AUTO_SNAPSHOTS, not APPLY_RETENTION_POLICY. If the disk is ever
+      # deleted, the snapshots must outlive it — deleting the disk is precisely
+      # the event that makes them matter.
+      on_source_disk_delete = "KEEP_AUTO_SNAPSHOTS"
+    }
+  }
+}
+
 # ── The instance ───────────────────────────────────────────────────────────────
 
 resource "google_compute_instance" "prod" {
@@ -125,17 +188,20 @@ resource "google_compute_instance" "prod" {
   deletion_protection = true
   description         = ""
 
-  # lb-health-check is REAL and is on the live instance, so it is imported. It
-  # should not be: the project has ZERO forwarding rules and zero target pools,
-  # while default-allow-health-check permits ALL TCP PORTS from Google's health
-  # check ranges to anything carrying this tag. That is a live, unnecessary path
-  # to every port on the box — Postgres and the Traefik API included — existing
-  # to serve a load balancer that was never built.
+  # lb-health-check was REMOVED here in Phase 5 (2026-09-09), in the same change
+  # as the two firewall rules that referenced it — the tag and the rules had to
+  # go together rather than leaving one half live.
   #
-  # Removed in Phase 5, together with the two firewall rules that reference it.
-  # Not here: this file's job is to record what is, and the tag and the rules
-  # must go in one reviewed change rather than leaving one half live.
-  tags = ["http-server", "https-server", "lb-health-check"]
+  # What it was: the project has ZERO forwarding rules and zero target pools,
+  # while default-allow-health-check permitted ALL TCP PORTS from Google's
+  # health-check ranges to anything carrying this tag. A live, unnecessary path
+  # to every port on the box — Postgres on 5432 and the Traefik admin API on
+  # 8080 included — existing to serve a load balancer that was never built.
+  #
+  # The two that remain are load-bearing: they are how default-allow-http and
+  # default-allow-https reach this instance. Removing either closes the site,
+  # and removing http-server also breaks Traefik's ACME renewal.
+  tags = ["http-server", "https-server"]
 
   # No `labels` block, deliberately — the same call the CRM module makes, and for
   # the same reason.

@@ -1211,6 +1211,54 @@ as a backstop.
 **Gate:** `gcloud compute ssh … --tunnel-through-iap` works for the operator and
 for Cloud Build; plain `ssh <public-ip>` is refused; the site still serves.
 
+**RESULT — done 2026-09-09. All four gates passed.**
+
+Done as **two separate applies**, deliberately: `allow-iap-ssh` added and
+verified first, the four open rules deleted second. A single apply would have
+meant discovering any mistake with no way back in.
+
+The auth-log evidence the plan demanded, and it did change the picture — 74 real
+successful logins across ~3 weeks of retained logs:
+
+* **59 from the IAP range**, recent and ongoing.
+* **15 direct**, from one ISP address, all inside a 15-minute window on
+  2026-08-20 and nothing since. Direct SSH had been unused for 20 days.
+* **45,540 failed attempts from 1,291 distinct addresses** — what the
+  world-open rule was actually serving.
+
+**A measurement trap, caught by a second pass.** Grepping for `Accepted` also
+matches **`PubkeyAcceptedAlgorithms`**, which inflated the non-IAP figure about
+tenfold (158 vs the real 15) and would have made direct SSH look actively used —
+i.e. would have argued against doing this phase at all. Anchor on
+`Accepted publickey for `. Third instance in this migration of a string filter
+producing a confident wrong answer.
+
+**The Cloud Build half of the gate could not be satisfied by observation**,
+because Cloud Build has never run on this project (0 triggers, 0 builds, 0
+images). It was proven by **impersonation** instead: `hrms-cloudbuild@` connects
+over IAP as POSIX user `sa_115156691799848533571` with working sudo.
+
+Two facts worth keeping from that test:
+
+* **`roles/owner` cannot impersonate a service account.** It holds
+  `iam.serviceAccounts.actAs` but **not** `getAccessToken`, `signBlob` or
+  `implicitDelegation` — the basic roles deliberately exclude them. A temporary
+  resource-scoped `serviceAccountTokenCreator` binding was needed, and was
+  revoked in the same command.
+* **IAM took 60 seconds to propagate.** The first three attempts at 15 s
+  intervals failed with `PERMISSION_DENIED`, which reads exactly like a missing
+  role rather than a slow one.
+
+Also removed: `default-allow-rdp` (nothing listens on 3389, confirmed with
+`ss -tlnp`) and both health-check rules plus the `lb-health-check` instance tag
+(the project has **zero** forwarding rules, so they served a load balancer that
+was never built, while permitting **all TCP** — Postgres and the Traefik admin
+API included — from Google's ranges).
+
+Final gates: port 22 unreachable from the internet; IAP works with sudo; edge
+`200` over TLS; ports 80 and 443 still open — which is also the positive control
+proving the port-22 check was capable of detecting an open port.
+
 ---
 
 ### Phase 6 — The Ops Agent actually shipping
@@ -1310,6 +1358,46 @@ verified.
 ---
 
 ### Phase 7 — Snapshots and alerting
+
+**RESULT — done 2026-09-09.** 10 resources added, 1 replaced (the policy
+attachment). Terraform: 38 resources, plan empty.
+
+`hrms-prod-4h` created — 4-hourly from 02:00, 30-day retention,
+`KEEP_AUTO_SNAPSHOTS` — and attached to the disk. `default-schedule-1` is left
+**defined but detached**, so the record of what production ran on survives and
+its existing snapshots are not orphaned.
+
+Five policies live, all enabled, each with the channel attached: P1 uptime, P2
+disk, P2b snapshot absence, P3 memory, P4 TLS.
+
+**The thresholds were validated against real data, and that mattered.**
+Measured after the agent started shipping:
+
+```
+disk/percent_used   /dev/sda1  used 39.93  free 55.60  reserved 4.47
+                    /dev/sda15 used  9.52  free 90.48  reserved 0.00
+memory/percent_used used 37.57  free 40.42  cached 19.06  slab 2.47
+```
+
+`state` is the load-bearing filter, and this is the proof: an unfiltered
+`disk > 85%` alert matches **`/dev/sda15` state=free at 90.48%** and fires
+immediately and permanently **while the disk is 90% empty** — the condition
+exactly inverted. `/dev/sda15` is the EFI partition and is included on purpose
+by `starts_with("/dev/sd")`; a filling `/boot/efi` breaks kernel updates.
+
+**The notification channel could not be verified through the API.**
+`verificationStatus` is absent from the response even with an explicit field
+mask — so it is `VERIFICATION_STATUS_UNSPECIFIED`, and **the CRM channel reads
+identically**, meaning that project's alerting was never confirmed to deliver
+either.
+
+Settled by tripping a real alert: a temporary policy (`memory used > 1%`,
+guaranteed true) attached to the same channel, which **delivered mail to the
+operator's inbox**, confirmed by the operator. Deleted immediately afterwards
+and confirmed gone — 5 policies remain. So the path is proven end to end:
+metric → condition → policy → channel → inbox. Google's own logs were no help
+here; the `notification_channel` log stream is not populated in this project, so
+the mailbox is the only authority.
 
 **Snapshot schedule first.** Create `hrms-prod-4h` — 4-hourly, `start_time`
 offset from the current 12:00 slot so the first new snapshot is visibly
