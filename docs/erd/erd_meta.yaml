@@ -22,7 +22,7 @@ subtitle: >-
 
 # Recorded at capture time; regenerating against a newer snapshot updates these.
 source:
-  host: odoo-hrms-prod (us-central1-c, project odoo-hrms-487409)
+  host: odoo-hrms-prod (us-central1-c, project <project-id>)
   database: odoo_hrms_db
   access: read-only (SELECT and information_schema only)
 

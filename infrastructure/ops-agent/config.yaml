@@ -1,0 +1,90 @@
+# infrastructure/ops-agent/config.yaml
+#
+# Google Cloud Ops Agent configuration for odoo-hrms-prod.
+# Installed to /etc/google-cloud-ops-agent/config.yaml — see install.sh.
+#
+# ── BACKGROUND: THE AGENT HAS NEVER SHIPPED ANYTHING ─────────────────────────
+#
+# The agent is installed, `active` and `enabled` on this VM, and has been
+# dropping everything it collects. It could not do otherwise: the attached
+# service account is the COMPUTE DEFAULT, which holds ZERO project IAM roles.
+# Measured before this file was written:
+#
+#   * agent.googleapis.com/memory/percent_used  -> 0 time series
+#   * agent.googleapis.com/disk/percent_used    -> 0 time series
+#   * Cloud Logging holds ONLY cloudaudit activity/system_event and
+#     networkanalyzer reports. No syslog. No agent logs. No container logs. Ever.
+#   * the collector journal carries ~120 PermissionDenied entries per 20 minutes,
+#     with dropped_items in the hundreds per batch
+#   * (this list originally included `os-inventory describe` returning "OS
+#     inventory data was not found" as further evidence of the same problem. IT
+#     IS NOT. Re-checked after the fix: it still fails, because VM Manager is on
+#     the BASIC feature set — patchAndConfigFeatureSet = OSCONFIG_B — which
+#     disables OS inventory PROJECT-WIDE, and the osconfig API returns
+#     FAILED_PRECONDITION saying exactly that. It has nothing to do with the
+#     service account or with this agent, and grouping it here made one problem
+#     look bigger than it was while hiding a second, separate one.)
+#   * and it has written 627 MB of its own failure messages onto a 30 GB disk
+#
+# Phase 4b attaches hrms-prod-vm@, which holds logging.logWriter and
+# monitoring.metricWriter, and the errors should stop immediately.
+#
+# So this file is the SECOND half of that fix: the agent will then be
+# authorised, but by default it collects only syslog and host metrics. Container
+# logs — which is where Odoo, Postgres and Traefik actually write — are not
+# collected unless asked for.
+#
+# WHY THAT MATTERS BEYOND CONVENIENCE. Docker's json-file logs live on the
+# instance disk, and a deploy recreates the Odoo container every time. Every
+# diagnosis of a production problem on this box has needed `docker logs` over
+# SSH, which means the evidence disappears the next time anything is deployed.
+
+logging:
+  receivers:
+    # Docker writes one JSON-per-line file per container.
+    docker_containers:
+      type: files
+      include_paths:
+        - /var/lib/docker/containers/*/*-json.log
+      # Rotation is handled by the json-file driver limits set in
+      # docker-compose.yml (50MB x 5 per container). The agent follows rotated
+      # files. Those limits were added in Phase 3 — before them these files were
+      # uncapped and held 534 MB, the largest single log 271 MB.
+
+  processors:
+    # Each line is {"log":"...","stream":"stdout","time":"..."}; without this
+    # the whole JSON blob lands in Cloud Logging as an opaque string and is
+    # unsearchable.
+    parse_docker_json:
+      type: parse_json
+      time_key: time
+      time_format: "%Y-%m-%dT%H:%M:%S.%NZ"
+
+    # NOTE: a parse_regex processor to promote Odoo's own log level into
+    # severity was considered and rejected. Ops Agent's parse_regex DROPS
+    # records that do not match, and this pipeline carries Postgres and Traefik
+    # lines too — an Odoo-shaped regex would silently discard both. Phase 7's
+    # alerting can match on text instead; severity promotion, if wanted, needs a
+    # per-container split first.
+
+  service:
+    pipelines:
+      docker:
+        receivers: [docker_containers]
+        processors: [parse_docker_json]
+
+# Metrics are left at the agent defaults deliberately. The defaults already
+# include what Phase 7 needs — and disk utilisation is the highest-value alert
+# on this machine, because the Postgres data directory, the filestore and every
+# Docker image share one 30 GB disk.
+#
+# ── READ THE REAL DEVICE LABELS BEFORE WRITING THE DISK ALERT ────────────────
+#
+# On the CRM host, disk/percent_used had ELEVEN series and eight sat at exactly
+# 100% forever: /dev/loopN snap squashfs mounts, read-only and full by
+# definition. A plain "disk > 85%" alert fires immediately, on eight series, and
+# never clears.
+#
+# This host is Debian 12, which has no snaps, so it probably reports only
+# /dev/sda1. PROBABLY IS NOT GOOD ENOUGH — once this agent is shipping, list the
+# actual device labels and write monitoring.tf's filter against what is there.

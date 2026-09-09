@@ -1,0 +1,20 @@
+# Copy to terraform.tfvars (gitignored) and fill in.
+#
+# Nothing here is committed with a real value: this repository is PUBLIC, so a
+# project id, a GitHub path and an alert address would all be scraped from it.
+
+project_id = "your-project-id"
+github_repo = "Cleardeals/Odoo-HRMS"
+
+# Phase 7. The channel sends a verification email and DELIVERS NOTHING until
+# somebody clicks the link in it.
+alert_email = "you@example.com"
+
+# Phase 4. Both false until a GitHub org admin has installed the Cloud Build
+# GitHub App and granted it the repository above.
+cloudbuild_github_connected = false
+cloudbuild_cd_enabled       = false
+
+# Optional. Approve rights already ride on roles/editor (see cloudbuild.tf);
+# this is only for granting approval to somebody who is NOT an editor.
+cloudbuild_approvers = []

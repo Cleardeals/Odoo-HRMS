@@ -1,0 +1,10 @@
+# Real values live here. This repository is PUBLIC.
+terraform.tfvars
+
+# Local state and provider plugins. State lives in GCS (see versions.tf); a
+# stray local copy is a second source of truth and a credential leak.
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log

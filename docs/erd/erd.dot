@@ -7,7 +7,7 @@
    docs/erd/*.csv; presentation comes from docs/erd/erd_meta.yaml.
    Regenerate with:  python3 docs/erd/generate_erd.py
 
-   Source: odoo_hrms_db on odoo-hrms-prod (us-central1-c, project odoo-hrms-487409)
+   Source: odoo_hrms_db on odoo-hrms-prod (us-central1-c, project <project-id>)
    Access: read-only (SELECT and information_schema only)
    =========================================================================== */
 digraph odoo_hrms_erd {

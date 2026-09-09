@@ -27,9 +27,20 @@ echo "Python: $(which python3)"
 echo "Python Version: $(python3 --version)"
 
 # Validate critical imports
+#
+# The BigQuery probe that used to sit here has been removed. It has ALWAYS
+# printed "✗ BigQuery not available" on this image and always will: there is no
+# google-cloud-* package in requirements.txt and no custom addon imports
+# bigquery. It was harmless — `|| echo` rather than a failure — but a startup
+# banner that reports a missing dependency nobody needs teaches whoever reads
+# the logs to ignore the banner.
+#
+# HRMS genuinely has no BigQuery dependency, unlike the CRM instance where 22
+# files across lead_suggestor and leads/models/lead_score.py query it. That is
+# why no BigQuery service account or cross-project IAM grant appears anywhere in
+# infrastructure/terraform.
 echo "-----------------------------------"
 echo "Validating dependencies..."
-python3 -c "from google.cloud import bigquery; print('✓ BigQuery import successful')" 2>/dev/null || echo "✗ BigQuery not available"
 python3 -c "import odoo; print('✓ Odoo import successful')" 2>/dev/null || echo "✗ Odoo not available"
 echo "-----------------------------------"
 
