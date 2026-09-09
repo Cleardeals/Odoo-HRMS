@@ -1473,6 +1473,47 @@ Disk snapshots are crash-consistent, not application-consistent. A logical
 `pg_dump` to this bucket is what makes a clean restore possible, and matters
 more here than on Odoo — the filestore is 759 MB of HR documents.
 
+**RESULT — done 2026-09-09.** 3 resources added. Terraform: 41 resources, plan
+empty.
+
+`cleardeals-hrms-backups` — US-CENTRAL1, uniform access, public access
+**enforced**, versioning on, no lifecycle rule, `prevent_destroy`.
+
+**The creator+viewer property was proven from the VM, under the VM's own
+identity, not asserted:**
+
+```
+1. WRITE   gcloud storage cp        -> succeeded
+2. READ    gcloud storage cat       -> succeeded  (this is why objectViewer is needed)
+3. DELETE  gcloud storage rm        -> HTTPError 403
+           "hrms-prod-vm@ does not have storage.objects.delete access"
+4. object still present after the failed delete
+```
+
+So a root compromise of the host cannot destroy the backups from the host.
+
+**And the recorded gap was demonstrated too**, rather than left as a caveat: the
+same object deleted successfully as `tech@`, and the live bucket policy shows
+`roles/storage.legacyObjectOwner` → `projectEditor` + `projectOwner`. The
+no-delete property holds against the VM, **not** against a project-level
+principal.
+
+Simpler than the CRM module by one construction: that one needed
+`for_each` + `locals` + `depends_on` because two service accounts were involved
+and one did not exist at import time, which fails a whole `terraform import` run
+with "Invalid for_each argument". HRMS has one writer, already created, so the
+resource attribute is referenced directly — simpler, and it yields a real
+dependency edge instead of a declared one.
+
+**STILL MISSING, and this is the important part: nothing writes to this bucket.**
+Creating it does not create backups, and an empty backups bucket is worse than
+none because it reads as solved. There is no scheduled `pg_dump` on this host —
+the only logical dump that exists was taken by hand before the 4b window. Until
+something writes here on a schedule *and* an alert fires when the newest object
+gets too old (the same shape as P2b), recovery for anything finer than a
+whole-disk rollback is still "somebody remembered". Phase 8 as scoped is
+complete; the backup *story* is not.
+
 ---
 
 ## 4. Change manifest

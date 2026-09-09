@@ -9,7 +9,7 @@
 > that used to deploy has been removed, and the Cloud Build trigger that
 > replaces it is not enabled yet. Read "Deploying right now", below.
 >
-> **Phases 4b, 4c, 5, 6 and 7 are done (2026-09-09).** In short:
+> **Phases 4b, 4c, 5, 6, 7 and 8 are done (2026-09-09).** In short:
 >
 > * the application lives at `/opt/odoo-hrms`, **not** `/home/tech/odoo-project`;
 > * OS Login is on — SSH lands as `tech_cleardeals_in`, and the old metadata SSH
@@ -17,7 +17,8 @@
 > * **IAP is the only route to port 22**; the world-open SSH and RDP rules are gone;
 > * logs and metrics reach Cloud Logging and Monitoring, and five alert policies
 >   are live and confirmed to deliver;
-> * snapshots run 4-hourly with 30-day retention.
+> * snapshots run 4-hourly with 30-day retention, and `gs://cleardeals-hrms-backups`
+>   exists for logical dumps — though **nothing writes to it on a schedule yet**.
 >
 > Secret Manager is reachable from the box, so the only thing still blocking
 > Cloud Build CD is the one-time GitHub App install.
@@ -184,11 +185,27 @@ possible at all: Cloud Monitoring refuses an absence window longer than 23h30m,
 so against a daily schedule there was no usable window.
 
 Snapshots are **crash-consistent, not application-consistent**. A logical dump
-is what makes a clean restore certain:
+is what makes a clean restore certain, and there is now a bucket for it —
+`gs://cleardeals-hrms-backups`:
 
 ```bash
-sudo docker exec odoo-db pg_dump -U odoo odoo_hrms_db > backup_$(date +%Y%m%d).sql
+sudo docker exec odoo-db pg_dump -U odoo odoo_hrms_db | gzip > /tmp/odoo_hrms_$(date -u +%Y%m%d).sql.gz
 ```
+
+```bash
+gcloud storage cp /tmp/odoo_hrms_*.sql.gz gs://cleardeals-hrms-backups/
+```
+
+**Nothing does this automatically yet.** The bucket exists and the VM can write
+to it, but no schedule writes anything, so the only logical dumps are the ones
+somebody takes by hand.
+
+The VM holds `objectCreator` + `objectViewer` on that bucket and deliberately
+**not** `objectAdmin`: it can write and verify its own backups but cannot delete
+them, so a compromise of this host cannot destroy them. (`objectViewer` is not
+optional — `gcloud storage cp` issues a GET before writing and 403s without it.)
+Note this does not protect against a project Editor or Owner, who still hold
+`legacyObjectOwner`.
 
 The boot disk now has `auto_delete = false`, so it survives deletion of the
 instance and a whole-VM recovery is a matter of attaching it to a new one.
