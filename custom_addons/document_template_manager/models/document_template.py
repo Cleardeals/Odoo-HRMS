@@ -1,6 +1,8 @@
 import base64
 import re
 
+from lxml import html as lxml_html
+
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
@@ -165,13 +167,70 @@ class DocumentTemplate(models.Model):
             self.show_header = True
 
     # ── Validation ────────────────────────────────────────────────────
+    @api.model
+    def _strip_img_presentational_attrs(self, html):
+        """Remove bare ``width``/``height`` HTML attributes from every
+        ``<img>`` element in *html* and convert them to inline CSS when no
+        ``style`` width/height is already set.
+
+        Pasted images often carry ``width="800" height="600"`` from their
+        source.  These presentational attributes override the ``style``
+        attribute set by the editor's resize handles, causing the image to
+        snap back to its original dimensions after every save/reload cycle.
+
+        The rule applied per attribute:
+        - If the element's ``style`` already contains ``width:`` / ``height:``,
+          just drop the attribute (the CSS value governs).
+        - Otherwise, convert the attribute value (px or bare number) to an
+          inline ``style`` entry so the image keeps its intended size.
+        """
+        if not html:
+            return html
+        try:
+            root = lxml_html.fragment_fromstring(html, create_parent="div")
+        except Exception:
+            return html
+
+        changed = False
+        for img in root.iter("img"):
+            for attr in ("width", "height"):
+                val = img.get(attr)
+                if val is None:
+                    continue
+                # Normalise to a pixel value string, e.g. "250" → "250px"
+                px = val if val.endswith("px") else f"{val}px"
+                style = img.get("style") or ""
+                css_prop = attr + ":"  # "width:" or "height:"
+                if css_prop not in style.replace(" ", ""):
+                    # Append the value to the existing style string
+                    style = style.rstrip("; ") + f"; {attr}: {px};"
+                    img.set("style", style.lstrip("; "))
+                del img.attrib[attr]
+                changed = True
+
+        if not changed:
+            return html
+        # Serialise back — strip the wrapper <div> we added via create_parent
+        return "".join(
+            lxml_html.tostring(child, encoding="unicode") for child in root
+        ) or lxml_html.tostring(root, encoding="unicode")
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
             name = vals.get("name")
             if not name or not str(name).strip():
                 raise ValidationError(_("Template name is required."))
+            for field in ("html_content", "header_html"):
+                if vals.get(field):
+                    vals[field] = self._strip_img_presentational_attrs(vals[field])
         return super().create(vals_list)
+
+    def write(self, vals):
+        for field in ("html_content", "header_html"):
+            if vals.get(field):
+                vals[field] = self._strip_img_presentational_attrs(vals[field])
+        return super().write(vals)
 
     # ── Actions ───────────────────────────────────────────────────────
     def action_export_pdf(self):

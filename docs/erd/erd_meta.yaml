@@ -1,0 +1,222 @@
+# =============================================================================
+#  Presentation metadata for the Odoo HRMS ER diagram.
+#
+#  This is the ONLY hand-edited ERD input.  It carries what the database cannot
+#  tell you: which tables are in scope, how they group into subsystems, what
+#  each one is for, and which columns are Odoo soft references (no FK).
+#
+#  Structure — tables, columns, types, keys, constraints — is introspected from
+#  the production schema snapshot by generate_erd.py.  Nothing structural is
+#  typed by hand here.
+#
+#  Scope rule: a table earns a place only if a module we run is installed in
+#  production AND the table participates in a workflow we actually operate.
+#  Installed-but-empty tables are kept only where their absence would misrepresent
+#  the model, and are flagged `empty: true` so the diagram says so out loud.
+# =============================================================================
+
+title: Cleardeals Odoo HRMS — Entity Relationship Diagram
+subtitle: >-
+  PostgreSQL 17 · database odoo_hrms_db · Odoo 19 · employee master, document
+  vault, document templates and recruitment
+
+# Recorded at capture time; regenerating against a newer snapshot updates these.
+source:
+  host: odoo-hrms-prod (us-central1-c, project <project-id>)
+  database: odoo_hrms_db
+  access: read-only (SELECT and information_schema only)
+
+# ── Subsystem colours ────────────────────────────────────────────────────────
+#   color  = entity header background
+#   accent = subtitle text on that header
+#   edge   = colour of relationships pointing INTO this subsystem
+groups:
+  core:
+    label: employee master & org structure
+    color: "#1e3a5f"
+    accent: "#c7d7ea"
+    edge: "#5b6470"
+  vault:
+    label: employee document vault
+    color: "#7c2d12"
+    accent: "#f3d9cc"
+    edge: "#7c5a3a"
+  templates:
+    label: document template manager
+    color: "#065f46"
+    accent: "#c9e7dc"
+    edge: "#2f6f5e"
+  recruitment:
+    label: recruitment pipeline
+    color: "#4c1d95"
+    accent: "#ded3f5"
+    edge: "#6d3f7a"
+  framework:
+    label: Odoo framework (boundary)
+    color: "#475569"
+    accent: "#d4dbe4"
+    edge: "#8a949f"
+
+# ── Module ownership colours ────────────────────────────────────────────────
+#   Columns are tinted by the module that declared the field, so the diagram
+#   shows at a glance how much of hr_employee is ours rather than Odoo's.
+module_colors:
+  hr_employee_cleardeals: "#fff4e5"      # our employee customization
+  document_template_manager: "#e8f5ef"   # our template engine
+  oh_employee_documents_expiry: "#fdeee8"
+  hr_employee_updation: "#fdf6e8"
+  custom_recruitment_fix: "#f3ecfb"
+
+# ── Detail tables: every stored column is drawn ─────────────────────────────
+tables:
+
+  hr_employee:
+    group: core
+    subtitle: employee master · 63 of its columns come from hr_employee_cleardeals
+    detail: true
+
+  hr_version:
+    group: core
+    subtitle: contract / job version history · Odoo 19 replaces hr.contract with this
+    detail: true
+
+  hr_department:
+    group: core
+    subtitle: org unit · parent_path materialised hierarchy
+    detail: true
+
+  hr_job:
+    group: core
+    subtitle: job position · shared by employee master and recruitment
+    detail: true
+
+  hr_employee_family:
+    group: core
+    subtitle: dependant / family member records
+    detail: true
+    empty: true
+    note: >-
+      hr_employee_updation is installed and this table exists, but it holds no
+      rows in production. Drawn so the diagram does not imply family data is
+      captured elsewhere.
+
+  hr_employee_document:
+    group: vault
+    subtitle: document vault record · one row per issued document, with expiry
+    detail: true
+
+  document_type:
+    group: vault
+    subtitle: vault document classification
+    detail: true
+
+  document_template:
+    group: templates
+    subtitle: HTML template with {{variable}} placeholders · renders to PDF
+    detail: true
+
+  document_template_variable:
+    group: templates
+    subtitle: typed placeholder definition · one row per {{variable}}
+    detail: true
+
+  document_category:
+    group: templates
+    subtitle: template category · self-parenting hierarchy
+    detail: true
+
+  document_tag:
+    group: templates
+    subtitle: free-form template label
+    detail: true
+
+  hr_applicant:
+    group: recruitment
+    subtitle: job application · the busiest table in scope
+    detail: true
+
+  hr_recruitment_stage:
+    group: recruitment
+    subtitle: pipeline stage
+    detail: true
+
+  hr_applicant_refuse_reason:
+    group: recruitment
+    subtitle: rejection reason · drives the refusal mail that custom_recruitment_fix patches
+    detail: true
+
+# ── Link tables: many-to-many join tables, drawn compactly ──────────────────
+link_tables:
+
+  doc_attach_rel:
+    group: vault
+    subtitle: vault record ⇄ attachment
+    left: [hr_employee_document, doc_id]
+    right: [ir_attachment, attach_id3]
+
+  document_tag_document_template_rel:
+    group: templates
+    subtitle: template ⇄ tag
+    left: [document_template, document_template_id]
+    right: [document_tag, document_tag_id]
+
+# ── Boundary tables: Odoo framework, identity + referenced columns only ─────
+#   Drawn greyed and abbreviated. They are context, not subject matter; showing
+#   all 131 columns of res_company would bury the diagram.
+boundary_tables:
+
+  res_company:
+    group: framework
+    subtitle: company · multi-company boundary (2 rows)
+    columns: [id, name, partner_id, parent_id, currency_id]
+
+  res_users:
+    group: framework
+    subtitle: login user · create_uid / write_uid on every table
+    columns: [id, login, partner_id, company_id, active]
+
+  res_partner:
+    group: framework
+    subtitle: contact record · backs employees, companies and applicants
+    columns: [id, name, email, phone, company_id, parent_id]
+
+  ir_attachment:
+    group: framework
+    subtitle: binary store · files behind vault documents and generated PDFs
+    columns: [id, name, res_model, res_id, mimetype, file_size, store_fname]
+
+# ── Audit columns ───────────────────────────────────────────────────────────
+#   Every Odoo table carries these four. They are drawn as columns (so the
+#   diagram stays complete) but their FK edges into res_users are suppressed —
+#   20 tables x 2 edges into one node produces a hairball that hides the
+#   relationships that actually matter.
+audit_columns: [create_uid, write_uid, create_date, write_date]
+
+# ── Ubiquitous columns ──────────────────────────────────────────────────────
+#   Present on almost every table and pointing at a single framework node.
+#   Drawn as columns; their edges are suppressed for the same reason as the
+#   audit columns. Stated in the legend instead.
+ubiquitous_columns: [company_id, message_main_attachment_id]
+
+# ── Wide tables ─────────────────────────────────────────────────────────────
+#   Tables above this many columns are laid out in two side-by-side column
+#   lists so the entity box stays a sane height.
+wide_table_threshold: 40
+
+# ── Soft references: integer columns that point at Odoo records with no FK ──
+#   None currently identified in scope. Entries added here are drawn dashed
+#   with an fk* marker, matching the WhatsApp platform ERD convention.
+soft_references: []
+
+# ── Notes rendered onto the diagram ─────────────────────────────────────────
+diagram_notes:
+  - >-
+    Column tint marks the module that declared the field. Untinted columns are
+    stock Odoo 19.
+  - >-
+    hr.employee carries 63 columns declared by hr_employee_cleardeals — Indian
+    statutory identifiers, banking detail, issued assets and the onboarding
+    document slots exposed by the HR API.
+  - >-
+    Odoo 19 has no hr_contract table. Contract and salary data live on
+    hr_version, which versions a single employee over time.

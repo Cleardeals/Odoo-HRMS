@@ -1,0 +1,281 @@
+# cloudbuild.yaml — the production deploy pipeline.
+#
+# Trigger: push to main, with approval_required. A merge QUEUES this build; it
+# waits for a human before anything is pushed or deployed.
+#
+# ── WHAT IT REPLACES ──────────────────────────────────────────────────────────
+#
+# .github/workflows/deploy.yml, which:
+#   * SSHed into production with a long-lived private key held in a repository
+#     secret;
+#   * wrote odoo.conf from a GitHub Actions secret, so the production config was
+#     unreviewable;
+#   * ran `docker compose build odoo` ON the production VM, competing with Odoo
+#     and Postgres for two shared vCPUs and a disk that was 74% full;
+#   * ran `docker system prune -f`, which removes only DANGLING images;
+#   * and reported success whether or not Odoo came back up.
+#
+# ── THE SHELL-VARIABLE RULE ───────────────────────────────────────────────────
+#
+# Inside `args`, a dollar sign followed by CAPITALS is read as a Cloud Build
+# substitution and the build is REJECTED if the name is unknown. Every shell
+# variable here is lowercase. See cloudbuild.ci.yaml's header.
+#
+# The gates below are the same ones cloudbuild.ci.yaml runs on pull requests.
+# They are repeated rather than assumed: a merge can contain something no pull
+# request ever tested.
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+serviceAccount: "projects/$PROJECT_ID/serviceAccounts/hrms-cloudbuild@$PROJECT_ID.iam.gserviceaccount.com"
+
+substitutions:
+  _ZONE: us-central1-c
+  _INSTANCE: odoo-hrms-prod
+  _REGION: us-central1
+
+steps:
+  # ── Gate: build the image that will actually ship ────────────────────────────
+  # Tagged twice, with the short and the full commit SHA, so the running image
+  # can be traced back to a commit either way.
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/hrms/odoo-hrms:$SHORT_SHA"
+      - -t
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/hrms/odoo-hrms:$COMMIT_SHA"
+      - .
+
+  # ── Gate: the image contains exactly the repository's modules ────────────────
+  - id: image-contents
+    name: gcr.io/cloud-builders/docker
+    waitFor: [build]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        baked=$(docker run --rm --entrypoint /bin/ls \
+                  "${_REGION}-docker.pkg.dev/$PROJECT_ID/hrms/odoo-hrms:$SHORT_SHA" \
+                  /opt/cleardeals-addons | sort)
+        tracked=$(ls custom_addons | sort)
+        [ "$baked" = "$tracked" ] || {
+          echo "image contents do not match the repository" >&2
+          diff <(echo "$tracked") <(echo "$baked") >&2 || true
+          exit 1
+        }
+        echo "image contents verified"
+
+  # ── Gate: config is sane and carries no secrets ──────────────────────────────
+  - id: config-check
+    name: python:3.12-slim
+    waitFor: ["-"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        python3 - <<'PY'
+        import configparser, sys
+        c = configparser.ConfigParser(); c.read("odoo.prod.conf")
+        o = c["options"]; fail = []
+        if o.get("list_db", "True").strip() != "False":
+            fail.append("list_db must be False")
+        if not o.get("dbfilter", "").strip():
+            fail.append("dbfilter must be set")
+        for k in ("admin_passwd", "db_password"):
+            if "__" not in o.get(k, ""):
+                fail.append(f"{k} must remain a placeholder — never commit a secret")
+        ap = o.get("addons_path", "")
+        if "/opt/cleardeals-addons" not in ap:
+            fail.append("addons_path must include /opt/cleardeals-addons")
+        if "/mnt/extra-addons" in ap:
+            fail.append("addons_path must NOT reference /mnt/extra-addons (declared VOLUME)")
+        try:
+            procs = int(o["workers"]) + int(o["max_cron_threads"]) + 1
+            ceiling = procs * 2 * int(o["db_maxconn"])
+            if ceiling > 57:
+                fail.append(f"db_maxconn oversubscribes Postgres: {ceiling} > 57 usable")
+        except (KeyError, ValueError) as e:
+            fail.append(f"cannot verify the connection ceiling: {e}")
+        if fail:
+            print("odoo.prod.conf FAILED:"); [print("  -", f) for f in fail]; sys.exit(1)
+        print("odoo.prod.conf OK")
+        PY
+
+  # ── Gate: the OpenAPI specifications match the controllers ───────────────────
+  - id: api-docs
+    name: python:3.12-slim
+    waitFor: ["-"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        pip install --quiet pyyaml openapi-spec-validator
+        python -m openapi_spec_validator \
+          docs/api/hr_employee_cleardeals.openapi.yaml \
+          docs/api/document_template_manager.openapi.yaml
+        python docs/api/check_route_parity.py
+
+  # ── Gate: throwaway database for the test suite ──────────────────────────────
+  - id: test-db
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["-"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        docker network create hrms-cd-net 2>/dev/null || true
+        docker run -d --name hrms-cd-db --network hrms-cd-net \
+          -e POSTGRES_USER=odoo -e POSTGRES_PASSWORD=odoo \
+          -e POSTGRES_DB=hrms_cd_db postgres:17
+        for i in $(seq 1 60); do
+          docker exec hrms-cd-db pg_isready -U odoo >/dev/null 2>&1 && exit 0
+          sleep 1
+        done
+        echo "postgres never became ready" >&2; exit 1
+
+  # ── Gate: the test suite, against the image being shipped ────────────────────
+  # Derived module list — see cloudbuild.ci.yaml for why, and note the braces in
+  # ${dir}__manifest__.py.
+  - id: test
+    name: gcr.io/cloud-builders/docker
+    waitFor: [build, test-db]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+
+        modules=""
+        for dir in custom_addons/*/; do
+          name="$(basename "$dir")"
+          manifest="${dir}__manifest__.py"
+          [ -f "$manifest" ] || { echo "skipping $name (no manifest — not a module)"; continue; }
+          if grep -qE "['\"]installable['\"][[:space:]]*:[[:space:]]*False" "$manifest"; then
+            echo "skipping $name (installable: False)"
+            continue
+          fi
+          modules="${modules:+$modules,}$name"
+        done
+        [ -n "$modules" ] || { echo "no installable modules found" >&2; exit 1; }
+
+        # Two gates, matching cloudbuild.ci.yaml — see the long comment there.
+        # Gate 1 installs EVERY module (the broad check a deploy actually
+        # performs). Gate 2 runs tests only for the first-party modules, which
+        # is what .github/workflows/test.yml gated on, because the vendored
+        # third-party test files cannot be imported on Odoo 19 at all:
+        #
+        #   hr_payroll_account_community: from odoo.modules.module import
+        #   get_module_resource -> ImportError (removed from Odoo)
+        #
+        # --test-tags does not help: Odoo imports a module's tests package
+        # while collecting, before tags are filtered.
+        test_modules="hr_employee_cleardeals,document_template_manager"
+        tags="$(echo "$test_modules" | sed 's#[^,]*#/&#g')"
+        img="${_REGION}-docker.pkg.dev/$PROJECT_ID/hrms/odoo-hrms:$SHORT_SHA"
+
+        echo "GATE 1 — install every module: $modules"
+        docker run --rm --network hrms-cd-net "$img" \
+          odoo -d hrms_cd_db \
+            --db_host=hrms-cd-db --db_port=5432 \
+            --db_user=odoo --db_password=odoo \
+            --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/opt/cleardeals-addons \
+            -i "$modules" \
+            --stop-after-init --log-level=warn
+
+        echo "GATE 2 — run tests for: $test_modules  (tags: $tags)"
+        docker run --rm --network hrms-cd-net "$img" \
+          odoo -d hrms_cd_tests \
+            --db_host=hrms-cd-db --db_port=5432 \
+            --db_user=odoo --db_password=odoo \
+            --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/opt/cleardeals-addons \
+            -i "$test_modules" \
+            --test-enable \
+            --test-tags "$tags" \
+            --stop-after-init --log-level=test
+
+  # ── Push only after every gate is green ──────────────────────────────────────
+  # Nothing reaches the registry until the image has been proven. A registry full
+  # of images that never passed a test makes rollback a guess.
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    waitFor: [image-contents, config-check, api-docs, test]
+    args: ["push", "--all-tags", "${_REGION}-docker.pkg.dev/$PROJECT_ID/hrms/odoo-hrms"]
+
+  # ── Deploy ───────────────────────────────────────────────────────────────────
+  # All the logic lives in scripts/deploy.sh on the VM: image swap, health gate,
+  # edge gate and rollback. Keeping it out of this YAML avoids passing a shell
+  # script through Cloud Build substitution, then bash, then ssh.
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: [push]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        # gcloud mints an ephemeral OS Login key per invocation and needs a
+        # writable HOME to put it in.
+        export HOME=/workspace
+        # The first connection after an IAM change can race OS Login key
+        # propagation. Retry briefly rather than failing a deploy over it.
+        #
+        # The remote command is written INLINE, with no intermediate shell
+        # variable. Deliberate, after two failures on exactly that in the CRM
+        # pipeline:
+        #
+        #   1. A variable named REMOTE was parsed by Cloud Build as a
+        #      substitution ("not a valid built-in substitution"), and the build
+        #      was rejected at approval.
+        #   2. Escaping it as a doubled dollar fixed the REFERENCE but also
+        #      rewrote the ASSIGNMENT, which bash then read as expanding an
+        #      unset variable rather than assigning one — so the deploy step
+        #      died with "REMOTE: unbound variable".
+        #
+        # Cloud Build substitution and shell expansion both act on the same
+        # dollar sign. Having no such variable is simpler than escaping right.
+        #
+        # The fetch+reset runs BEFORE deploy.sh because on a first run that
+        # script is not yet on the VM — the pipeline bootstraps itself instead
+        # of depending on a hand-placed file.
+        #
+        # `cd /opt/odoo-hrms || cd /home/tech/odoo-project` resolves either path,
+        # so this works on BOTH sides of the Phase 4c move. Pinning one would
+        # break the deploy for the window between the directory moving and the
+        # code that knows about it being deployed — and the only way to deploy
+        # that code is the deploy that is broken.
+        #
+        # safe.directory uses a literal wildcard: this runs as root while the
+        # checkout is owned by another user, and git refuses to operate on it
+        # otherwise ("detected dubious ownership").
+        #
+        # The backslash matters. Unquoted, that `*` is a glob to the REMOTE
+        # bash, evaluated in the app directory. It survived only because no file
+        # there matches the pattern `safe.directory=*`, so bash left the word
+        # alone — create one file with that name and git silently receives a
+        # filename instead of the wildcard. Escaped, it is a literal `*` and git
+        # gets what it was meant to get.
+        for attempt in 1 2 3; do
+          if gcloud compute ssh "${_INSTANCE}" \
+               --zone="${_ZONE}" --tunnel-through-iap --quiet \
+               --command="sudo bash -c 'set -euo pipefail; cd /opt/odoo-hrms 2>/dev/null || cd /home/tech/odoo-project; git -c safe.directory=\* remote set-url origin https://github.com/Cleardeals/Odoo-HRMS.git; git -c safe.directory=\* fetch --depth 1 --quiet origin $BRANCH_NAME; git -c safe.directory=\* reset --hard --quiet FETCH_HEAD; exec bash scripts/deploy.sh $COMMIT_SHA'"; then
+            exit 0
+          fi
+          echo "ssh attempt ${attempt} failed; retrying in 15s" >&2
+          sleep 15
+        done
+        echo "could not reach ${_INSTANCE} after 3 attempts" >&2
+        exit 1
+
+images:
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/hrms/odoo-hrms:$SHORT_SHA"
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/hrms/odoo-hrms:$COMMIT_SHA"
+
+timeout: 3600s

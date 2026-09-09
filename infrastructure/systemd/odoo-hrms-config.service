@@ -1,0 +1,84 @@
+# infrastructure/systemd/odoo-hrms-config.service
+#
+# Re-creates /dev/shm/odoo.conf on every boot.
+#
+# ── WHY THIS UNIT EXISTS ──────────────────────────────────────────────────────
+#
+# The Odoo config holds two secrets, so it is rendered into /dev/shm — tmpfs,
+# memory-backed — and therefore never lands on the disk and never appears in a
+# snapshot. Snapshots run 4-hourly with 30-day retention, so a config on disk
+# would mean ~180 copies of the production passwords in the snapshot archive.
+#
+# tmpfs is empty after a reboot, and the only thing that wrote that file was
+# scripts/deploy.sh — which runs on a deploy, not at boot. So without this unit,
+# every reboot after the first Cloud Build deploy leaves the config missing while
+# the containers come back anyway (all three are restart: unless-stopped).
+#
+# What then happens is silent, which is the dangerous part. Verified rather than
+# assumed:
+#
+#   1. Docker does not fail on a missing bind-mount source — it CREATES it, and
+#      because it cannot know a file was meant, it creates a DIRECTORY.
+#   2. Odoo finds /etc/odoo/odoo.conf via ODOO_RC (set by the base image), reads
+#      the directory with ConfigParser, and gets nothing. No error is raised.
+#   3. It proceeds on built-in defaults: db_host empty (so libpq tries a local
+#      unix socket that does not exist in that container), addons_path empty,
+#      workers 0, proxy_mode off, list_db TRUE.
+#
+# The practical result is a hard outage — Odoo cannot reach Postgres at all —
+# and nothing in the logs points at the cause.
+#
+# ── ORDERING IS THE WHOLE POINT ───────────────────────────────────────────────
+#
+# Before=docker.service, so the file exists before Docker looks for it. If this
+# ran after Docker, Docker would already have created the empty directory and
+# the unit would fix nothing until the next deploy.
+#
+# ── WHY docker.service DOES NOT *REQUIRE* THIS ────────────────────────────────
+#
+# Ordering only, deliberately. Making Docker require this unit would mean a
+# transient Secret Manager or metadata hiccup at boot keeps the ENTIRE stack
+# down — including Traefik and Postgres, neither of which needs this file.
+# Trading a likely partial failure for a guaranteed total one is the wrong way
+# round.
+#
+# The failure is not silent either way: if the render fails, Odoo cannot reach
+# its database, the site does not serve, and Phase 7's P1 uptime alert reports
+# it from outside. That is a real detection path, which is what makes ordering
+# without a hard dependency acceptable.
+
+[Unit]
+Description=Render the Odoo HRMS config from Secret Manager into tmpfs
+Documentation=https://github.com/Cleardeals/Odoo-HRMS/blob/main/DEPLOYMENT.md
+
+# The render calls Secret Manager, so it needs more than "an interface exists".
+Wants=network-online.target
+After=network-online.target
+
+# Must complete before any container is started.
+Before=docker.service
+
+# Skip cleanly rather than fail when the VM's checkout predates the scripts.
+# The unit is installed BEFORE the first deploy on purpose, so the protection is
+# already in place by the time the deploy makes tmpfs the only config source.
+ConditionPathExists=/opt/odoo-hrms/scripts/render_odoo_conf.sh
+
+[Service]
+Type=oneshot
+
+# So `systemctl status` reads "active (exited)" rather than "inactive (dead)",
+# which otherwise looks like the unit never ran.
+RemainAfterExit=yes
+
+# systemd gives units a minimal PATH; the render script calls gcloud, which is
+# at /usr/bin/gcloud on this host.
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+ExecStart=/usr/local/sbin/render-on-boot.sh
+
+# The wrapper already retries for about a minute; this is a backstop so a hung
+# metadata call cannot delay boot indefinitely.
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

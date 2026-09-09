@@ -1,0 +1,512 @@
+/* ===========================================================================
+   Cleardeals Odoo HRMS — Entity Relationship Diagram
+   Notation: IE / Crow's Foot   |   Engine: Graphviz (dot)
+
+   GENERATED FILE - DO NOT EDIT BY HAND.
+   Structure is introspected from the production schema snapshot in
+   docs/erd/*.csv; presentation comes from docs/erd/erd_meta.yaml.
+   Regenerate with:  python3 docs/erd/generate_erd.py
+
+   Source: odoo_hrms_db on odoo-hrms-prod (us-central1-c, project <project-id>)
+   Access: read-only (SELECT and information_schema only)
+   =========================================================================== */
+digraph odoo_hrms_erd {
+    graph [
+        rankdir    = LR,
+        splines    = spline,
+        newrank    = false,
+        compound   = true,
+        nodesep    = 0.55,
+        ranksep    = "1.9 equally",
+        pad        = 0.5,
+        bgcolor    = "#ffffff",
+        fontname   = "Helvetica",
+        labelloc   = t,
+        labeljust  = l,
+        label      = <<FONT POINT-SIZE="26"><B>Cleardeals Odoo HRMS — Entity Relationship Diagram</B></FONT><BR/><BR/><FONT POINT-SIZE="13" COLOR="#555555">PostgreSQL 17 · database odoo_hrms_db · Odoo 19 · employee master, document vault, document templates and recruitment &#183; 20 tables &#183; 616 columns &#183; IE (Crow&#8217;s Foot) notation<BR ALIGN="LEFT"/>Generated from the live production schema &#183; PK = primary key, FK = foreign key, U = unique, N = nullable<BR ALIGN="LEFT"/></FONT><BR/>>
+    ];
+    node [shape = plaintext, fontname = "Helvetica"];
+    edge [fontname = "Helvetica", fontsize = 9.5, color = "#5b6470", penwidth = 1.4,
+          dir = both, arrowhead = crowodot];
+
+    /* --- Entities, clustered by subsystem ------------------------ */
+
+    subgraph cluster_core {
+        label = <<FONT POINT-SIZE="15" COLOR="#1e3a5f"><B>employee master &amp; org structure</B></FONT>>;
+        labelloc = t; labeljust = l;
+        style = "rounded"; color = "#1e3a5f"; penwidth = 1.6;
+        bgcolor = "#fbfcfd"; margin = 22;
+        hr_employee [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#1e3a5f" COLSPAN="6"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>hr_employee</B></FONT><BR/><FONT COLOR="#c7d7ea" POINT-SIZE="9">employee master · 63 of its columns come from hr_employee_cleardeals</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD><TD ALIGN="LEFT" PORT="l_saturday_location_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">saturday_location_id</TD><TD ALIGN="LEFT" PORT="r_saturday_location_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_resource_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">resource_id</TD><TD ALIGN="LEFT" PORT="r_resource_id" BGCOLOR="#fdf6e8">integer</TD><TD ALIGN="LEFT" PORT="l_sunday_location_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">sunday_location_id</TD><TD ALIGN="LEFT" PORT="r_sunday_location_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_company_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">company_id</TD><TD ALIGN="LEFT" PORT="r_company_id" BGCOLOR="#fdf6e8">integer</TD><TD ALIGN="LEFT" PORT="l_today_location_name"></TD><TD ALIGN="LEFT">today_location_name</TD><TD ALIGN="LEFT" PORT="r_today_location_name">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_message_main_attachment_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">message_main_attachment_id</TD><TD ALIGN="LEFT" PORT="r_message_main_attachment_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_hourly_cost"></TD><TD ALIGN="LEFT">hourly_cost</TD><TD ALIGN="LEFT" PORT="r_hourly_cost">numeric N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_current_version_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">current_version_id</TD><TD ALIGN="LEFT" PORT="r_current_version_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_personal_mobile" BGCOLOR="#fdf6e8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">personal_mobile</TD><TD ALIGN="LEFT" PORT="r_personal_mobile" BGCOLOR="#fdf6e8">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_user_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">user_id</TD><TD ALIGN="LEFT" PORT="r_user_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_joining_date" BGCOLOR="#fdf6e8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">joining_date</TD><TD ALIGN="LEFT" PORT="r_joining_date" BGCOLOR="#fdf6e8">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_work_contact_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">work_contact_id</TD><TD ALIGN="LEFT" PORT="r_work_contact_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_id_expiry_date" BGCOLOR="#fdf6e8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">id_expiry_date</TD><TD ALIGN="LEFT" PORT="r_id_expiry_date" BGCOLOR="#fdf6e8">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_country_of_birth" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">country_of_birth</TD><TD ALIGN="LEFT" PORT="r_country_of_birth" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_passport_expiry_date" BGCOLOR="#fdf6e8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">passport_expiry_date</TD><TD ALIGN="LEFT" PORT="r_passport_expiry_date" BGCOLOR="#fdf6e8">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_parent_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">parent_id</TD><TD ALIGN="LEFT" PORT="r_parent_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_resign_date"></TD><TD ALIGN="LEFT">resign_date</TD><TD ALIGN="LEFT" PORT="r_resign_date">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_coach_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">coach_id</TD><TD ALIGN="LEFT" PORT="r_coach_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_resigned"></TD><TD ALIGN="LEFT">resigned</TD><TD ALIGN="LEFT" PORT="r_resigned">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_color"></TD><TD ALIGN="LEFT">color</TD><TD ALIGN="LEFT" PORT="r_color">integer N</TD><TD ALIGN="LEFT" PORT="l_fired"></TD><TD ALIGN="LEFT">fired</TD><TD ALIGN="LEFT" PORT="r_fired">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_cibil_score" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">cibil_score</TD><TD ALIGN="LEFT" PORT="r_cibil_score" BGCOLOR="#fff4e5">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_employee_id" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">employee_id</TD><TD ALIGN="LEFT" PORT="r_employee_id" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name"></TD><TD ALIGN="LEFT">name</TD><TD ALIGN="LEFT" PORT="r_name">varchar N</TD><TD ALIGN="LEFT" PORT="l_employee_status" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">employee_status</TD><TD ALIGN="LEFT" PORT="r_employee_status" BGCOLOR="#fff4e5">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_work_phone"></TD><TD ALIGN="LEFT">work_phone</TD><TD ALIGN="LEFT" PORT="r_work_phone">varchar N</TD><TD ALIGN="LEFT" PORT="l_blood_group" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">blood_group</TD><TD ALIGN="LEFT" PORT="r_blood_group" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_mobile_phone"></TD><TD ALIGN="LEFT">mobile_phone</TD><TD ALIGN="LEFT" PORT="r_mobile_phone">varchar N</TD><TD ALIGN="LEFT" PORT="l_emergency_contact_relationship" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">emergency_contact_relationship</TD><TD ALIGN="LEFT" PORT="r_emergency_contact_relationship" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_work_email"></TD><TD ALIGN="LEFT">work_email</TD><TD ALIGN="LEFT" PORT="r_work_email">varchar N</TD><TD ALIGN="LEFT" PORT="l_pan_number" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">pan_number</TD><TD ALIGN="LEFT" PORT="r_pan_number" BGCOLOR="#fff4e5">varchar(10) N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_legal_name"></TD><TD ALIGN="LEFT">legal_name</TD><TD ALIGN="LEFT" PORT="r_legal_name">varchar N</TD><TD ALIGN="LEFT" PORT="l_passport_photo_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">passport_photo_filename</TD><TD ALIGN="LEFT" PORT="r_passport_photo_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_private_phone"></TD><TD ALIGN="LEFT">private_phone</TD><TD ALIGN="LEFT" PORT="r_private_phone">varchar N</TD><TD ALIGN="LEFT" PORT="l_bank_name" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">bank_name</TD><TD ALIGN="LEFT" PORT="r_bank_name" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_private_email"></TD><TD ALIGN="LEFT">private_email</TD><TD ALIGN="LEFT" PORT="r_private_email">varchar N</TD><TD ALIGN="LEFT" PORT="l_bank_acc_number" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">bank_acc_number</TD><TD ALIGN="LEFT" PORT="r_bank_acc_number" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_lang"></TD><TD ALIGN="LEFT">lang</TD><TD ALIGN="LEFT" PORT="r_lang">varchar N</TD><TD ALIGN="LEFT" PORT="l_ifsc_code" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">ifsc_code</TD><TD ALIGN="LEFT" PORT="r_ifsc_code" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_place_of_birth"></TD><TD ALIGN="LEFT">place_of_birth</TD><TD ALIGN="LEFT" PORT="r_place_of_birth">varchar N</TD><TD ALIGN="LEFT" PORT="l_account_type" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">account_type</TD><TD ALIGN="LEFT" PORT="r_account_type" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_permit_no"></TD><TD ALIGN="LEFT">permit_no</TD><TD ALIGN="LEFT" PORT="r_permit_no">varchar N</TD><TD ALIGN="LEFT" PORT="l_name_as_per_bank" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">name_as_per_bank</TD><TD ALIGN="LEFT" PORT="r_name_as_per_bank" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_visa_no"></TD><TD ALIGN="LEFT">visa_no</TD><TD ALIGN="LEFT" PORT="r_visa_no">varchar N</TD><TD ALIGN="LEFT" PORT="l_bank_document_type" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">bank_document_type</TD><TD ALIGN="LEFT" PORT="r_bank_document_type" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_certificate"></TD><TD ALIGN="LEFT">certificate</TD><TD ALIGN="LEFT" PORT="r_certificate">varchar N</TD><TD ALIGN="LEFT" PORT="l_bank_document_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">bank_document_filename</TD><TD ALIGN="LEFT" PORT="r_bank_document_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_study_field"></TD><TD ALIGN="LEFT">study_field</TD><TD ALIGN="LEFT" PORT="r_study_field">varchar N</TD><TD ALIGN="LEFT" PORT="l_relieving_letter_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">relieving_letter_filename</TD><TD ALIGN="LEFT" PORT="r_relieving_letter_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_study_school"></TD><TD ALIGN="LEFT">study_school</TD><TD ALIGN="LEFT" PORT="r_study_school">varchar N</TD><TD ALIGN="LEFT" PORT="l_experience_letter_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">experience_letter_filename</TD><TD ALIGN="LEFT" PORT="r_experience_letter_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_emergency_contact"></TD><TD ALIGN="LEFT">emergency_contact</TD><TD ALIGN="LEFT" PORT="r_emergency_contact">varchar N</TD><TD ALIGN="LEFT" PORT="l_salary_slip_1_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">salary_slip_1_filename</TD><TD ALIGN="LEFT" PORT="r_salary_slip_1_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_emergency_phone"></TD><TD ALIGN="LEFT">emergency_phone</TD><TD ALIGN="LEFT" PORT="r_emergency_phone">varchar N</TD><TD ALIGN="LEFT" PORT="l_salary_slip_2_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">salary_slip_2_filename</TD><TD ALIGN="LEFT" PORT="r_salary_slip_2_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_barcode"></TD><TD ALIGN="LEFT">barcode</TD><TD ALIGN="LEFT" PORT="r_barcode">varchar N</TD><TD ALIGN="LEFT" PORT="l_salary_slip_3_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">salary_slip_3_filename</TD><TD ALIGN="LEFT" PORT="r_salary_slip_3_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_pin"></TD><TD ALIGN="LEFT">pin</TD><TD ALIGN="LEFT" PORT="r_pin">varchar N</TD><TD ALIGN="LEFT" PORT="l_resume_doc_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">resume_doc_filename</TD><TD ALIGN="LEFT" PORT="r_resume_doc_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_private_car_plate"></TD><TD ALIGN="LEFT">private_car_plate</TD><TD ALIGN="LEFT" PORT="r_private_car_plate">varchar N</TD><TD ALIGN="LEFT" PORT="l_offer_letter_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">offer_letter_filename</TD><TD ALIGN="LEFT" PORT="r_offer_letter_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_birthday"></TD><TD ALIGN="LEFT">birthday</TD><TD ALIGN="LEFT" PORT="r_birthday">date N</TD><TD ALIGN="LEFT" PORT="l_appointment_letter_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">appointment_letter_filename</TD><TD ALIGN="LEFT" PORT="r_appointment_letter_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_visa_expire"></TD><TD ALIGN="LEFT">visa_expire</TD><TD ALIGN="LEFT" PORT="r_visa_expire">date N</TD><TD ALIGN="LEFT" PORT="l_bond_document_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">bond_document_filename</TD><TD ALIGN="LEFT" PORT="r_bond_document_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_work_permit_expiration_date"></TD><TD ALIGN="LEFT">work_permit_expiration_date</TD><TD ALIGN="LEFT" PORT="r_work_permit_expiration_date">date N</TD><TD ALIGN="LEFT" PORT="l_contract_document_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">contract_document_filename</TD><TD ALIGN="LEFT" PORT="r_contract_document_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_salary_distribution"></TD><TD ALIGN="LEFT">salary_distribution</TD><TD ALIGN="LEFT" PORT="r_salary_distribution">jsonb N</TD><TD ALIGN="LEFT" PORT="l_nda_document_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">nda_document_filename</TD><TD ALIGN="LEFT" PORT="r_nda_document_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_employee_properties"></TD><TD ALIGN="LEFT">employee_properties</TD><TD ALIGN="LEFT" PORT="r_employee_properties">jsonb N</TD><TD ALIGN="LEFT" PORT="l_address_proof_type" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">address_proof_type</TD><TD ALIGN="LEFT" PORT="r_address_proof_type" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_active"></TD><TD ALIGN="LEFT">active</TD><TD ALIGN="LEFT" PORT="r_active">boolean N</TD><TD ALIGN="LEFT" PORT="l_address_proof_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">address_proof_filename</TD><TD ALIGN="LEFT" PORT="r_address_proof_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_birthday_public_display"></TD><TD ALIGN="LEFT">birthday_public_display</TD><TD ALIGN="LEFT" PORT="r_birthday_public_display">boolean N</TD><TD ALIGN="LEFT" PORT="l_passport_doc_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">passport_doc_filename</TD><TD ALIGN="LEFT" PORT="r_passport_doc_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_work_permit_scheduled_activity"></TD><TD ALIGN="LEFT">work_permit_scheduled_activity</TD><TD ALIGN="LEFT" PORT="r_work_permit_scheduled_activity">boolean N</TD><TD ALIGN="LEFT" PORT="l_pan_card_doc_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">pan_card_doc_filename</TD><TD ALIGN="LEFT" PORT="r_pan_card_doc_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_date"></TD><TD ALIGN="LEFT">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date">timestamp N</TD><TD ALIGN="LEFT" PORT="l_appraisal_doc_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">appraisal_doc_filename</TD><TD ALIGN="LEFT" PORT="r_appraisal_doc_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_date"></TD><TD ALIGN="LEFT">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date">timestamp N</TD><TD ALIGN="LEFT" PORT="l_increment_letter_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">increment_letter_filename</TD><TD ALIGN="LEFT" PORT="r_increment_letter_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_attendance_manager_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">attendance_manager_id</TD><TD ALIGN="LEFT" PORT="r_attendance_manager_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_notice_period_doc_filename" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">notice_period_doc_filename</TD><TD ALIGN="LEFT" PORT="r_notice_period_doc_filename" BGCOLOR="#fff4e5">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_last_attendance_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">last_attendance_id</TD><TD ALIGN="LEFT" PORT="r_last_attendance_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_date_of_joining" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">date_of_joining</TD><TD ALIGN="LEFT" PORT="r_date_of_joining" BGCOLOR="#fff4e5">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_last_check_in"></TD><TD ALIGN="LEFT">last_check_in</TD><TD ALIGN="LEFT" PORT="r_last_check_in">timestamp N</TD><TD ALIGN="LEFT" PORT="l_current_address" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">current_address</TD><TD ALIGN="LEFT" PORT="r_current_address" BGCOLOR="#fff4e5">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_last_check_out"></TD><TD ALIGN="LEFT">last_check_out</TD><TD ALIGN="LEFT" PORT="r_last_check_out">timestamp N</TD><TD ALIGN="LEFT" PORT="l_education_background" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">education_background</TD><TD ALIGN="LEFT" PORT="r_education_background" BGCOLOR="#fff4e5">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_expense_manager_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">expense_manager_id</TD><TD ALIGN="LEFT" PORT="r_expense_manager_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_skill_set_summary" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">skill_set_summary</TD><TD ALIGN="LEFT" PORT="r_skill_set_summary" BGCOLOR="#fff4e5">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_leave_manager_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">leave_manager_id</TD><TD ALIGN="LEFT" PORT="r_leave_manager_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_asset_laptop" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">asset_laptop</TD><TD ALIGN="LEFT" PORT="r_asset_laptop" BGCOLOR="#fff4e5">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_monday_location_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">monday_location_id</TD><TD ALIGN="LEFT" PORT="r_monday_location_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_asset_sim" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">asset_sim</TD><TD ALIGN="LEFT" PORT="r_asset_sim" BGCOLOR="#fff4e5">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_tuesday_location_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">tuesday_location_id</TD><TD ALIGN="LEFT" PORT="r_tuesday_location_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_asset_phone" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">asset_phone</TD><TD ALIGN="LEFT" PORT="r_asset_phone" BGCOLOR="#fff4e5">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_wednesday_location_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">wednesday_location_id</TD><TD ALIGN="LEFT" PORT="r_wednesday_location_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_asset_pc" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">asset_pc</TD><TD ALIGN="LEFT" PORT="r_asset_pc" BGCOLOR="#fff4e5">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_thursday_location_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">thursday_location_id</TD><TD ALIGN="LEFT" PORT="r_thursday_location_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_asset_physical_id" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">asset_physical_id</TD><TD ALIGN="LEFT" PORT="r_asset_physical_id" BGCOLOR="#fff4e5">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_friday_location_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">friday_location_id</TD><TD ALIGN="LEFT" PORT="r_friday_location_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_same_as_permanent" BGCOLOR="#fff4e5"></TD><TD ALIGN="LEFT" BGCOLOR="#fff4e5">same_as_permanent</TD><TD ALIGN="LEFT" PORT="r_same_as_permanent" BGCOLOR="#fff4e5">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" COLSPAN="6" BGCOLOR="#f6f8fa"><FONT POINT-SIZE="9" COLOR="#444444">U (barcode)<BR ALIGN="LEFT"/>U (user_id, company_id)<BR ALIGN="LEFT"/></FONT></TD></TR>
+      </TABLE>>];
+        hr_version [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#1e3a5f" COLSPAN="6"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>hr_version</B></FONT><BR/><FONT COLOR="#c7d7ea" POINT-SIZE="9">contract / job version history · Odoo 19 replaces hr.contract with this</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD><TD ALIGN="LEFT" PORT="l_marital"></TD><TD ALIGN="LEFT">marital</TD><TD ALIGN="LEFT" PORT="r_marital">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_company_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">company_id</TD><TD ALIGN="LEFT" PORT="r_company_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_spouse_complete_name"></TD><TD ALIGN="LEFT">spouse_complete_name</TD><TD ALIGN="LEFT" PORT="r_spouse_complete_name">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_employee_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">employee_id</TD><TD ALIGN="LEFT" PORT="r_employee_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_employee_type"></TD><TD ALIGN="LEFT">employee_type</TD><TD ALIGN="LEFT" PORT="r_employee_type">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_last_modified_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">last_modified_uid</TD><TD ALIGN="LEFT" PORT="r_last_modified_uid" BGCOLOR="#fdf6e8">integer</TD><TD ALIGN="LEFT" PORT="l_job_title"></TD><TD ALIGN="LEFT">job_title</TD><TD ALIGN="LEFT" PORT="r_job_title">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_country_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">country_id</TD><TD ALIGN="LEFT" PORT="r_country_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_date_version"></TD><TD ALIGN="LEFT">date_version</TD><TD ALIGN="LEFT" PORT="r_date_version">date</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_private_state_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">private_state_id</TD><TD ALIGN="LEFT" PORT="r_private_state_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_passport_expiration_date"></TD><TD ALIGN="LEFT">passport_expiration_date</TD><TD ALIGN="LEFT" PORT="r_passport_expiration_date">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_private_country_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">private_country_id</TD><TD ALIGN="LEFT" PORT="r_private_country_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_spouse_birthdate"></TD><TD ALIGN="LEFT">spouse_birthdate</TD><TD ALIGN="LEFT" PORT="r_spouse_birthdate">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_distance_home_work"></TD><TD ALIGN="LEFT">distance_home_work</TD><TD ALIGN="LEFT" PORT="r_distance_home_work">integer N</TD><TD ALIGN="LEFT" PORT="l_departure_date"></TD><TD ALIGN="LEFT">departure_date</TD><TD ALIGN="LEFT" PORT="r_departure_date">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_km_home_work"></TD><TD ALIGN="LEFT">km_home_work</TD><TD ALIGN="LEFT" PORT="r_km_home_work">integer N</TD><TD ALIGN="LEFT" PORT="l_contract_date_start"></TD><TD ALIGN="LEFT">contract_date_start</TD><TD ALIGN="LEFT" PORT="r_contract_date_start">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_children"></TD><TD ALIGN="LEFT">children</TD><TD ALIGN="LEFT" PORT="r_children">integer N</TD><TD ALIGN="LEFT" PORT="l_contract_date_end"></TD><TD ALIGN="LEFT">contract_date_end</TD><TD ALIGN="LEFT" PORT="r_contract_date_end">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_department_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">department_id</TD><TD ALIGN="LEFT" PORT="r_department_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_trial_date_end"></TD><TD ALIGN="LEFT">trial_date_end</TD><TD ALIGN="LEFT" PORT="r_trial_date_end">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_job_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">job_id</TD><TD ALIGN="LEFT" PORT="r_job_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_departure_description"></TD><TD ALIGN="LEFT">departure_description</TD><TD ALIGN="LEFT" PORT="r_departure_description">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_address_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">address_id</TD><TD ALIGN="LEFT" PORT="r_address_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_additional_note"></TD><TD ALIGN="LEFT">additional_note</TD><TD ALIGN="LEFT" PORT="r_additional_note">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_work_location_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">work_location_id</TD><TD ALIGN="LEFT" PORT="r_work_location_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_wage"></TD><TD ALIGN="LEFT">wage</TD><TD ALIGN="LEFT" PORT="r_wage">numeric N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_departure_reason_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">departure_reason_id</TD><TD ALIGN="LEFT" PORT="r_departure_reason_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_active"></TD><TD ALIGN="LEFT">active</TD><TD ALIGN="LEFT" PORT="r_active">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_resource_calendar_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">resource_calendar_id</TD><TD ALIGN="LEFT" PORT="r_resource_calendar_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_is_custom_job_title"></TD><TD ALIGN="LEFT">is_custom_job_title</TD><TD ALIGN="LEFT" PORT="r_is_custom_job_title">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_contract_template_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">contract_template_id</TD><TD ALIGN="LEFT" PORT="r_contract_template_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_is_flexible"></TD><TD ALIGN="LEFT">is_flexible</TD><TD ALIGN="LEFT" PORT="r_is_flexible">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_structure_type_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">structure_type_id</TD><TD ALIGN="LEFT" PORT="r_structure_type_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_is_fully_flexible"></TD><TD ALIGN="LEFT">is_fully_flexible</TD><TD ALIGN="LEFT" PORT="r_is_fully_flexible">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_contract_type_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">contract_type_id</TD><TD ALIGN="LEFT" PORT="r_contract_type_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_last_modified_date"></TD><TD ALIGN="LEFT">last_modified_date</TD><TD ALIGN="LEFT" PORT="r_last_modified_date">timestamp</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_hr_responsible_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">hr_responsible_id</TD><TD ALIGN="LEFT" PORT="r_hr_responsible_id" BGCOLOR="#fdf6e8">integer</TD><TD ALIGN="LEFT" PORT="l_create_date"></TD><TD ALIGN="LEFT">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_write_date"></TD><TD ALIGN="LEFT">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_ruleset_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">ruleset_id</TD><TD ALIGN="LEFT" PORT="r_ruleset_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name"></TD><TD ALIGN="LEFT">name</TD><TD ALIGN="LEFT" PORT="r_name">varchar N</TD><TD ALIGN="LEFT" PORT="l_struct_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">struct_id</TD><TD ALIGN="LEFT" PORT="r_struct_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_identification_id"></TD><TD ALIGN="LEFT">identification_id</TD><TD ALIGN="LEFT" PORT="r_identification_id">varchar N</TD><TD ALIGN="LEFT" PORT="l_schedule_pay"></TD><TD ALIGN="LEFT">schedule_pay</TD><TD ALIGN="LEFT" PORT="r_schedule_pay">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_ssnid"></TD><TD ALIGN="LEFT">ssnid</TD><TD ALIGN="LEFT" PORT="r_ssnid">varchar N</TD><TD ALIGN="LEFT" PORT="l_hra"></TD><TD ALIGN="LEFT">hra</TD><TD ALIGN="LEFT" PORT="r_hra">numeric N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_passport_id"></TD><TD ALIGN="LEFT">passport_id</TD><TD ALIGN="LEFT" PORT="r_passport_id">varchar N</TD><TD ALIGN="LEFT" PORT="l_travel_allowance"></TD><TD ALIGN="LEFT">travel_allowance</TD><TD ALIGN="LEFT" PORT="r_travel_allowance">numeric N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_sex"></TD><TD ALIGN="LEFT">sex</TD><TD ALIGN="LEFT" PORT="r_sex">varchar N</TD><TD ALIGN="LEFT" PORT="l_da"></TD><TD ALIGN="LEFT">da</TD><TD ALIGN="LEFT" PORT="r_da">numeric N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_private_street"></TD><TD ALIGN="LEFT">private_street</TD><TD ALIGN="LEFT" PORT="r_private_street">varchar N</TD><TD ALIGN="LEFT" PORT="l_meal_allowance"></TD><TD ALIGN="LEFT">meal_allowance</TD><TD ALIGN="LEFT" PORT="r_meal_allowance">numeric N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_private_street2"></TD><TD ALIGN="LEFT">private_street2</TD><TD ALIGN="LEFT" PORT="r_private_street2">varchar N</TD><TD ALIGN="LEFT" PORT="l_medical_allowance"></TD><TD ALIGN="LEFT">medical_allowance</TD><TD ALIGN="LEFT" PORT="r_medical_allowance">numeric N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_private_city"></TD><TD ALIGN="LEFT">private_city</TD><TD ALIGN="LEFT" PORT="r_private_city">varchar N</TD><TD ALIGN="LEFT" PORT="l_other_allowance"></TD><TD ALIGN="LEFT">other_allowance</TD><TD ALIGN="LEFT" PORT="r_other_allowance">numeric N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_private_zip"></TD><TD ALIGN="LEFT">private_zip</TD><TD ALIGN="LEFT" PORT="r_private_zip">varchar N</TD><TD ALIGN="LEFT" PORT="l_analytic_account_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">analytic_account_id</TD><TD ALIGN="LEFT" PORT="r_analytic_account_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_distance_home_work_unit"></TD><TD ALIGN="LEFT">distance_home_work_unit</TD><TD ALIGN="LEFT" PORT="r_distance_home_work_unit">varchar</TD><TD ALIGN="LEFT" PORT="l_journal_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">journal_id</TD><TD ALIGN="LEFT" PORT="r_journal_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+      </TABLE>>];
+        hr_department [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#1e3a5f" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>hr_department</B></FONT><BR/><FONT COLOR="#c7d7ea" POINT-SIZE="9">org unit · parent_path materialised hierarchy</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_company_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">company_id</TD><TD ALIGN="LEFT" PORT="r_company_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_parent_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">parent_id</TD><TD ALIGN="LEFT" PORT="r_parent_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_manager_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">manager_id</TD><TD ALIGN="LEFT" PORT="r_manager_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_color"></TD><TD ALIGN="LEFT">color</TD><TD ALIGN="LEFT" PORT="r_color">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_master_department_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">master_department_id</TD><TD ALIGN="LEFT" PORT="r_master_department_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_parent_path"></TD><TD ALIGN="LEFT">parent_path</TD><TD ALIGN="LEFT" PORT="r_parent_path">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name"></TD><TD ALIGN="LEFT">name</TD><TD ALIGN="LEFT" PORT="r_name">jsonb</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_note"></TD><TD ALIGN="LEFT">note</TD><TD ALIGN="LEFT" PORT="r_note">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_active"></TD><TD ALIGN="LEFT">active</TD><TD ALIGN="LEFT" PORT="r_active">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_date"></TD><TD ALIGN="LEFT">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_date"></TD><TD ALIGN="LEFT">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date">timestamp N</TD></TR>
+      </TABLE>>];
+        hr_job [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#1e3a5f" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>hr_job</B></FONT><BR/><FONT COLOR="#c7d7ea" POINT-SIZE="9">job position · shared by employee master and recruitment</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_sequence"></TD><TD ALIGN="LEFT">sequence</TD><TD ALIGN="LEFT" PORT="r_sequence">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_no_of_recruitment"></TD><TD ALIGN="LEFT">no_of_recruitment</TD><TD ALIGN="LEFT" PORT="r_no_of_recruitment">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_user_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">user_id</TD><TD ALIGN="LEFT" PORT="r_user_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_department_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">department_id</TD><TD ALIGN="LEFT" PORT="r_department_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_company_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">company_id</TD><TD ALIGN="LEFT" PORT="r_company_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_contract_type_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">contract_type_id</TD><TD ALIGN="LEFT" PORT="r_contract_type_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name"></TD><TD ALIGN="LEFT">name</TD><TD ALIGN="LEFT" PORT="r_name">jsonb</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_description"></TD><TD ALIGN="LEFT">description</TD><TD ALIGN="LEFT" PORT="r_description">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_requirements"></TD><TD ALIGN="LEFT">requirements</TD><TD ALIGN="LEFT" PORT="r_requirements">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_active"></TD><TD ALIGN="LEFT">active</TD><TD ALIGN="LEFT" PORT="r_active">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_date"></TD><TD ALIGN="LEFT">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_date"></TD><TD ALIGN="LEFT">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_alias_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">alias_id</TD><TD ALIGN="LEFT" PORT="r_alias_id" BGCOLOR="#fdf6e8">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_address_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">address_id</TD><TD ALIGN="LEFT" PORT="r_address_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_manager_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">manager_id</TD><TD ALIGN="LEFT" PORT="r_manager_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_color"></TD><TD ALIGN="LEFT">color</TD><TD ALIGN="LEFT" PORT="r_color">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_industry_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">industry_id</TD><TD ALIGN="LEFT" PORT="r_industry_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_expected_degree" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">expected_degree</TD><TD ALIGN="LEFT" PORT="r_expected_degree" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_no_of_hired_employee"></TD><TD ALIGN="LEFT">no_of_hired_employee</TD><TD ALIGN="LEFT" PORT="r_no_of_hired_employee">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_job_properties"></TD><TD ALIGN="LEFT">job_properties</TD><TD ALIGN="LEFT" PORT="r_job_properties">jsonb N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_applicant_properties_definition"></TD><TD ALIGN="LEFT">applicant_properties_definition</TD><TD ALIGN="LEFT" PORT="r_applicant_properties_definition">jsonb N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_survey_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">survey_id</TD><TD ALIGN="LEFT" PORT="r_survey_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" COLSPAN="3" BGCOLOR="#f6f8fa"><FONT POINT-SIZE="9" COLOR="#444444">U (name, company_id, department_id)<BR ALIGN="LEFT"/></FONT></TD></TR>
+      </TABLE>>];
+        hr_employee_family [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#1e3a5f" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>hr_employee_family</B></FONT><BR/><FONT COLOR="#c7d7ea" POINT-SIZE="9">dependant / family member records · EMPTY IN PRODUCTION</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_employee_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">employee_id</TD><TD ALIGN="LEFT" PORT="r_employee_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_relation_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">relation_id</TD><TD ALIGN="LEFT" PORT="r_relation_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_member_name" BGCOLOR="#fdf6e8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">member_name</TD><TD ALIGN="LEFT" PORT="r_member_name" BGCOLOR="#fdf6e8">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_member_contact" BGCOLOR="#fdf6e8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">member_contact</TD><TD ALIGN="LEFT" PORT="r_member_contact" BGCOLOR="#fdf6e8">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_birth_date" BGCOLOR="#fdf6e8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">birth_date</TD><TD ALIGN="LEFT" PORT="r_birth_date" BGCOLOR="#fdf6e8">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_date" BGCOLOR="#fdf6e8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date" BGCOLOR="#fdf6e8">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_date" BGCOLOR="#fdf6e8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date" BGCOLOR="#fdf6e8">timestamp N</TD></TR>
+      </TABLE>>];
+    }
+
+    subgraph cluster_vault {
+        label = <<FONT POINT-SIZE="15" COLOR="#7c2d12"><B>employee document vault</B></FONT>>;
+        labelloc = t; labeljust = l;
+        style = "rounded"; color = "#7c2d12"; penwidth = 1.6;
+        bgcolor = "#fbfcfd"; margin = 22;
+        hr_employee_document [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#7c2d12" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>hr_employee_document</B></FONT><BR/><FONT COLOR="#f3d9cc" POINT-SIZE="9">document vault record · one row per issued document, with expiry</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_employee_ref_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">employee_ref_id</TD><TD ALIGN="LEFT" PORT="r_employee_ref_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_document_type_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">document_type_id</TD><TD ALIGN="LEFT" PORT="r_document_type_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_before_days" BGCOLOR="#fdeee8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdeee8">before_days</TD><TD ALIGN="LEFT" PORT="r_before_days" BGCOLOR="#fdeee8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name" BGCOLOR="#fdeee8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdeee8">name</TD><TD ALIGN="LEFT" PORT="r_name" BGCOLOR="#fdeee8">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_notification_type" BGCOLOR="#fdeee8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdeee8">notification_type</TD><TD ALIGN="LEFT" PORT="r_notification_type" BGCOLOR="#fdeee8">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_expiry_date" BGCOLOR="#fdeee8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdeee8">expiry_date</TD><TD ALIGN="LEFT" PORT="r_expiry_date" BGCOLOR="#fdeee8">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_issue_date" BGCOLOR="#fdeee8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdeee8">issue_date</TD><TD ALIGN="LEFT" PORT="r_issue_date" BGCOLOR="#fdeee8">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_description" BGCOLOR="#fdeee8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdeee8">description</TD><TD ALIGN="LEFT" PORT="r_description" BGCOLOR="#fdeee8">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_date" BGCOLOR="#fdeee8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdeee8">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date" BGCOLOR="#fdeee8">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_date" BGCOLOR="#fdeee8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdeee8">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date" BGCOLOR="#fdeee8">timestamp N</TD></TR>
+      </TABLE>>];
+        document_type [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#7c2d12" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>document_type</B></FONT><BR/><FONT COLOR="#f3d9cc" POINT-SIZE="9">vault document classification</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name" BGCOLOR="#fdeee8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdeee8">name</TD><TD ALIGN="LEFT" PORT="r_name" BGCOLOR="#fdeee8">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_date" BGCOLOR="#fdeee8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdeee8">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date" BGCOLOR="#fdeee8">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_date" BGCOLOR="#fdeee8"></TD><TD ALIGN="LEFT" BGCOLOR="#fdeee8">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date" BGCOLOR="#fdeee8">timestamp N</TD></TR>
+      </TABLE>>];
+        doc_attach_rel [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#7c2d12" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>doc_attach_rel</B></FONT><BR/><FONT COLOR="#f3d9cc" POINT-SIZE="9">vault record ⇄ attachment</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_doc_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>doc_id</B></TD><TD ALIGN="LEFT" PORT="r_doc_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_attach_id3" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>attach_id3</B></TD><TD ALIGN="LEFT" PORT="r_attach_id3" BGCOLOR="#eef4fb">integer</TD></TR>
+      </TABLE>>];
+    }
+
+    subgraph cluster_templates {
+        label = <<FONT POINT-SIZE="15" COLOR="#065f46"><B>document template manager</B></FONT>>;
+        labelloc = t; labeljust = l;
+        style = "rounded"; color = "#065f46"; penwidth = 1.6;
+        bgcolor = "#fbfcfd"; margin = 22;
+        document_template [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#065f46" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>document_template</B></FONT><BR/><FONT COLOR="#c9e7dc" POINT-SIZE="9">HTML template with {{variable}} placeholders · renders to PDF</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_category_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">category_id</TD><TD ALIGN="LEFT" PORT="r_category_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_variable_count" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">variable_count</TD><TD ALIGN="LEFT" PORT="r_variable_count" BGCOLOR="#e8f5ef">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_company_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">company_id</TD><TD ALIGN="LEFT" PORT="r_company_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">name</TD><TD ALIGN="LEFT" PORT="r_name" BGCOLOR="#e8f5ef">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_summary" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">summary</TD><TD ALIGN="LEFT" PORT="r_summary" BGCOLOR="#e8f5ef">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_html_content" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">html_content</TD><TD ALIGN="LEFT" PORT="r_html_content" BGCOLOR="#e8f5ef">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_has_pdf" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">has_pdf</TD><TD ALIGN="LEFT" PORT="r_has_pdf" BGCOLOR="#e8f5ef">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_active" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">active</TD><TD ALIGN="LEFT" PORT="r_active" BGCOLOR="#e8f5ef">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_favorite" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">favorite</TD><TD ALIGN="LEFT" PORT="r_favorite" BGCOLOR="#e8f5ef">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_date" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date" BGCOLOR="#e8f5ef">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_date" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date" BGCOLOR="#e8f5ef">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_print_mode" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">print_mode</TD><TD ALIGN="LEFT" PORT="r_print_mode" BGCOLOR="#e8f5ef">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_header_html" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">header_html</TD><TD ALIGN="LEFT" PORT="r_header_html" BGCOLOR="#e8f5ef">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_show_header" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">show_header</TD><TD ALIGN="LEFT" PORT="r_show_header" BGCOLOR="#e8f5ef">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_margin_top" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">margin_top</TD><TD ALIGN="LEFT" PORT="r_margin_top" BGCOLOR="#e8f5ef">float8 N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_margin_bottom" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">margin_bottom</TD><TD ALIGN="LEFT" PORT="r_margin_bottom" BGCOLOR="#e8f5ef">float8 N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_margin_left" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">margin_left</TD><TD ALIGN="LEFT" PORT="r_margin_left" BGCOLOR="#e8f5ef">float8 N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_margin_right" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">margin_right</TD><TD ALIGN="LEFT" PORT="r_margin_right" BGCOLOR="#e8f5ef">float8 N</TD></TR>
+      </TABLE>>];
+        document_template_variable [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#065f46" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>document_template_variable</B></FONT><BR/><FONT COLOR="#c9e7dc" POINT-SIZE="9">typed placeholder definition · one row per {{variable}}</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_template_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">template_id</TD><TD ALIGN="LEFT" PORT="r_template_id" BGCOLOR="#fdf6e8">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_sequence" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">sequence</TD><TD ALIGN="LEFT" PORT="r_sequence" BGCOLOR="#e8f5ef">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">name</TD><TD ALIGN="LEFT" PORT="r_name" BGCOLOR="#e8f5ef">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_label" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">label</TD><TD ALIGN="LEFT" PORT="r_label" BGCOLOR="#e8f5ef">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_variable_type" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">variable_type</TD><TD ALIGN="LEFT" PORT="r_variable_type" BGCOLOR="#e8f5ef">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_default_value" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">default_value</TD><TD ALIGN="LEFT" PORT="r_default_value" BGCOLOR="#e8f5ef">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_selection_options" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">selection_options</TD><TD ALIGN="LEFT" PORT="r_selection_options" BGCOLOR="#e8f5ef">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_required" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">required</TD><TD ALIGN="LEFT" PORT="r_required" BGCOLOR="#e8f5ef">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_date" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date" BGCOLOR="#e8f5ef">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_date" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date" BGCOLOR="#e8f5ef">timestamp N</TD></TR>
+      </TABLE>>];
+        document_category [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#065f46" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>document_category</B></FONT><BR/><FONT COLOR="#c9e7dc" POINT-SIZE="9">template category · self-parenting hierarchy</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_sequence" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">sequence</TD><TD ALIGN="LEFT" PORT="r_sequence" BGCOLOR="#e8f5ef">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_color" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">color</TD><TD ALIGN="LEFT" PORT="r_color" BGCOLOR="#e8f5ef">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_parent_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">parent_id</TD><TD ALIGN="LEFT" PORT="r_parent_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">name</TD><TD ALIGN="LEFT" PORT="r_name" BGCOLOR="#e8f5ef">jsonb</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_date" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date" BGCOLOR="#e8f5ef">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_date" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date" BGCOLOR="#e8f5ef">timestamp N</TD></TR>
+      </TABLE>>];
+        document_tag [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#065f46" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>document_tag</B></FONT><BR/><FONT COLOR="#c9e7dc" POINT-SIZE="9">free-form template label</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_color" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">color</TD><TD ALIGN="LEFT" PORT="r_color" BGCOLOR="#e8f5ef">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">name</TD><TD ALIGN="LEFT" PORT="r_name" BGCOLOR="#e8f5ef">jsonb</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_date" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date" BGCOLOR="#e8f5ef">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_date" BGCOLOR="#e8f5ef"></TD><TD ALIGN="LEFT" BGCOLOR="#e8f5ef">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date" BGCOLOR="#e8f5ef">timestamp N</TD></TR>
+      </TABLE>>];
+        document_tag_document_template_rel [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#065f46" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>document_tag_document_template_rel</B></FONT><BR/><FONT COLOR="#c9e7dc" POINT-SIZE="9">template ⇄ tag</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_document_template_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>document_template_id</B></TD><TD ALIGN="LEFT" PORT="r_document_template_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_document_tag_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>document_tag_id</B></TD><TD ALIGN="LEFT" PORT="r_document_tag_id" BGCOLOR="#eef4fb">integer</TD></TR>
+      </TABLE>>];
+    }
+
+    subgraph cluster_recruitment {
+        label = <<FONT POINT-SIZE="15" COLOR="#4c1d95"><B>recruitment pipeline</B></FONT>>;
+        labelloc = t; labeljust = l;
+        style = "rounded"; color = "#4c1d95"; penwidth = 1.6;
+        bgcolor = "#fbfcfd"; margin = 22;
+        hr_applicant [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#4c1d95" COLSPAN="6"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>hr_applicant</B></FONT><BR/><FONT COLOR="#ded3f5" POINT-SIZE="9">job application · the busiest table in scope</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD><TD ALIGN="LEFT" PORT="l_partner_name"></TD><TD ALIGN="LEFT">partner_name</TD><TD ALIGN="LEFT" PORT="r_partner_name">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_campaign_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">campaign_id</TD><TD ALIGN="LEFT" PORT="r_campaign_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_email_from"></TD><TD ALIGN="LEFT">email_from</TD><TD ALIGN="LEFT" PORT="r_email_from">varchar(128) N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_source_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">source_id</TD><TD ALIGN="LEFT" PORT="r_source_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_partner_phone"></TD><TD ALIGN="LEFT">partner_phone</TD><TD ALIGN="LEFT" PORT="r_partner_phone">varchar(32) N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_medium_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">medium_id</TD><TD ALIGN="LEFT" PORT="r_medium_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_partner_phone_sanitized"></TD><TD ALIGN="LEFT">partner_phone_sanitized</TD><TD ALIGN="LEFT" PORT="r_partner_phone_sanitized">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_message_bounce"></TD><TD ALIGN="LEFT">message_bounce</TD><TD ALIGN="LEFT" PORT="r_message_bounce">integer N</TD><TD ALIGN="LEFT" PORT="l_linkedin_profile"></TD><TD ALIGN="LEFT">linkedin_profile</TD><TD ALIGN="LEFT" PORT="r_linkedin_profile">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_message_main_attachment_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">message_main_attachment_id</TD><TD ALIGN="LEFT" PORT="r_message_main_attachment_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_priority"></TD><TD ALIGN="LEFT">priority</TD><TD ALIGN="LEFT" PORT="r_priority">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_sequence"></TD><TD ALIGN="LEFT">sequence</TD><TD ALIGN="LEFT" PORT="r_sequence">integer N</TD><TD ALIGN="LEFT" PORT="l_salary_proposed_extra"></TD><TD ALIGN="LEFT">salary_proposed_extra</TD><TD ALIGN="LEFT" PORT="r_salary_proposed_extra">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_partner_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">partner_id</TD><TD ALIGN="LEFT" PORT="r_partner_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_salary_expected_extra"></TD><TD ALIGN="LEFT">salary_expected_extra</TD><TD ALIGN="LEFT" PORT="r_salary_expected_extra">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_type_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">type_id</TD><TD ALIGN="LEFT" PORT="r_type_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_kanban_state"></TD><TD ALIGN="LEFT">kanban_state</TD><TD ALIGN="LEFT" PORT="r_kanban_state">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_color"></TD><TD ALIGN="LEFT">color</TD><TD ALIGN="LEFT" PORT="r_color">integer N</TD><TD ALIGN="LEFT" PORT="l_availability"></TD><TD ALIGN="LEFT">availability</TD><TD ALIGN="LEFT" PORT="r_availability">date N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_employee_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">employee_id</TD><TD ALIGN="LEFT" PORT="r_employee_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_applicant_properties"></TD><TD ALIGN="LEFT">applicant_properties</TD><TD ALIGN="LEFT" PORT="r_applicant_properties">jsonb N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_stage_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">stage_id</TD><TD ALIGN="LEFT" PORT="r_stage_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_applicant_notes"></TD><TD ALIGN="LEFT">applicant_notes</TD><TD ALIGN="LEFT" PORT="r_applicant_notes">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_last_stage_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">last_stage_id</TD><TD ALIGN="LEFT" PORT="r_last_stage_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_active"></TD><TD ALIGN="LEFT">active</TD><TD ALIGN="LEFT" PORT="r_active">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_company_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">company_id</TD><TD ALIGN="LEFT" PORT="r_company_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_create_date"></TD><TD ALIGN="LEFT">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_user_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">user_id</TD><TD ALIGN="LEFT" PORT="r_user_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_date_closed"></TD><TD ALIGN="LEFT">date_closed</TD><TD ALIGN="LEFT" PORT="r_date_closed">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_job_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">job_id</TD><TD ALIGN="LEFT" PORT="r_job_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_date_open"></TD><TD ALIGN="LEFT">date_open</TD><TD ALIGN="LEFT" PORT="r_date_open">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_department_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">department_id</TD><TD ALIGN="LEFT" PORT="r_department_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_date_last_stage_update"></TD><TD ALIGN="LEFT">date_last_stage_update</TD><TD ALIGN="LEFT" PORT="r_date_last_stage_update">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_refuse_reason_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">refuse_reason_id</TD><TD ALIGN="LEFT" PORT="r_refuse_reason_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_refuse_date"></TD><TD ALIGN="LEFT">refuse_date</TD><TD ALIGN="LEFT" PORT="r_refuse_date">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_pool_applicant_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">pool_applicant_id</TD><TD ALIGN="LEFT" PORT="r_pool_applicant_id" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_write_date"></TD><TD ALIGN="LEFT">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_probability"></TD><TD ALIGN="LEFT">probability</TD><TD ALIGN="LEFT" PORT="r_probability">float8 N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD><TD ALIGN="LEFT" PORT="l_salary_proposed"></TD><TD ALIGN="LEFT">salary_proposed</TD><TD ALIGN="LEFT" PORT="r_salary_proposed">float8 N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_phone_sanitized"></TD><TD ALIGN="LEFT">phone_sanitized</TD><TD ALIGN="LEFT" PORT="r_phone_sanitized">varchar N</TD><TD ALIGN="LEFT" PORT="l_salary_expected"></TD><TD ALIGN="LEFT">salary_expected</TD><TD ALIGN="LEFT" PORT="r_salary_expected">float8 N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_email_normalized"></TD><TD ALIGN="LEFT">email_normalized</TD><TD ALIGN="LEFT" PORT="r_email_normalized">varchar N</TD><TD ALIGN="LEFT" PORT="l_delay_close"></TD><TD ALIGN="LEFT">delay_close</TD><TD ALIGN="LEFT" PORT="r_delay_close">float8 N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_email_cc"></TD><TD ALIGN="LEFT">email_cc</TD><TD ALIGN="LEFT" PORT="r_email_cc">varchar N</TD><TD></TD><TD></TD><TD></TD></TR>
+      </TABLE>>];
+        hr_recruitment_stage [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#4c1d95" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>hr_recruitment_stage</B></FONT><BR/><FONT COLOR="#ded3f5" POINT-SIZE="9">pipeline stage</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_sequence"></TD><TD ALIGN="LEFT">sequence</TD><TD ALIGN="LEFT" PORT="r_sequence">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_template_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">template_id</TD><TD ALIGN="LEFT" PORT="r_template_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_rotting_threshold_days"></TD><TD ALIGN="LEFT">rotting_threshold_days</TD><TD ALIGN="LEFT" PORT="r_rotting_threshold_days">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name"></TD><TD ALIGN="LEFT">name</TD><TD ALIGN="LEFT" PORT="r_name">jsonb</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_legend_blocked"></TD><TD ALIGN="LEFT">legend_blocked</TD><TD ALIGN="LEFT" PORT="r_legend_blocked">jsonb</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_legend_waiting"></TD><TD ALIGN="LEFT">legend_waiting</TD><TD ALIGN="LEFT" PORT="r_legend_waiting">jsonb</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_legend_done"></TD><TD ALIGN="LEFT">legend_done</TD><TD ALIGN="LEFT" PORT="r_legend_done">jsonb</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_legend_normal"></TD><TD ALIGN="LEFT">legend_normal</TD><TD ALIGN="LEFT" PORT="r_legend_normal">jsonb</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_requirements"></TD><TD ALIGN="LEFT">requirements</TD><TD ALIGN="LEFT" PORT="r_requirements">text N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_fold"></TD><TD ALIGN="LEFT">fold</TD><TD ALIGN="LEFT" PORT="r_fold">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_hired_stage"></TD><TD ALIGN="LEFT">hired_stage</TD><TD ALIGN="LEFT" PORT="r_hired_stage">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_date"></TD><TD ALIGN="LEFT">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_date"></TD><TD ALIGN="LEFT">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date">timestamp N</TD></TR>
+      </TABLE>>];
+        hr_applicant_refuse_reason [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#4c1d95" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>hr_applicant_refuse_reason</B></FONT><BR/><FONT COLOR="#ded3f5" POINT-SIZE="9">rejection reason · drives the refusal mail that custom_recruitment_fix patches</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_sequence"></TD><TD ALIGN="LEFT">sequence</TD><TD ALIGN="LEFT" PORT="r_sequence">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_template_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">template_id</TD><TD ALIGN="LEFT" PORT="r_template_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">create_uid</TD><TD ALIGN="LEFT" PORT="r_create_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_uid" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">write_uid</TD><TD ALIGN="LEFT" PORT="r_write_uid" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name"></TD><TD ALIGN="LEFT">name</TD><TD ALIGN="LEFT" PORT="r_name">jsonb</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_active"></TD><TD ALIGN="LEFT">active</TD><TD ALIGN="LEFT" PORT="r_active">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_create_date"></TD><TD ALIGN="LEFT">create_date</TD><TD ALIGN="LEFT" PORT="r_create_date">timestamp N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_write_date"></TD><TD ALIGN="LEFT">write_date</TD><TD ALIGN="LEFT" PORT="r_write_date">timestamp N</TD></TR>
+      </TABLE>>];
+    }
+
+    subgraph cluster_framework {
+        label = <<FONT POINT-SIZE="15" COLOR="#475569"><B>Odoo framework (boundary)</B></FONT>>;
+        labelloc = t; labeljust = l;
+        style = "rounded"; color = "#475569"; penwidth = 1.6;
+        bgcolor = "#fbfcfd"; margin = 22;
+        res_company [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#475569" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>res_company</B></FONT><BR/><FONT COLOR="#d4dbe4" POINT-SIZE="9">company · multi-company boundary (2 rows) · 5 of 131 columns shown</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name"></TD><TD ALIGN="LEFT">name</TD><TD ALIGN="LEFT" PORT="r_name">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_partner_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">partner_id</TD><TD ALIGN="LEFT" PORT="r_partner_id" BGCOLOR="#fdf6e8">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_parent_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">parent_id</TD><TD ALIGN="LEFT" PORT="r_parent_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_currency_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">currency_id</TD><TD ALIGN="LEFT" PORT="r_currency_id" BGCOLOR="#fdf6e8">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" COLSPAN="3" BGCOLOR="#f6f8fa"><FONT POINT-SIZE="9" COLOR="#444444">U (name)<BR ALIGN="LEFT"/></FONT></TD></TR>
+      </TABLE>>];
+        res_users [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#475569" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>res_users</B></FONT><BR/><FONT COLOR="#d4dbe4" POINT-SIZE="9">login user · create_uid / write_uid on every table · 5 of 26 columns shown</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_login"></TD><TD ALIGN="LEFT">login</TD><TD ALIGN="LEFT" PORT="r_login">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_partner_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">partner_id</TD><TD ALIGN="LEFT" PORT="r_partner_id" BGCOLOR="#fdf6e8">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_company_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">company_id</TD><TD ALIGN="LEFT" PORT="r_company_id" BGCOLOR="#fdf6e8">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_active"></TD><TD ALIGN="LEFT">active</TD><TD ALIGN="LEFT" PORT="r_active">boolean N</TD></TR>
+        <TR><TD ALIGN="LEFT" COLSPAN="3" BGCOLOR="#f6f8fa"><FONT POINT-SIZE="9" COLOR="#444444">U (login)<BR ALIGN="LEFT"/></FONT></TD></TR>
+      </TABLE>>];
+        res_partner [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#475569" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>res_partner</B></FONT><BR/><FONT COLOR="#d4dbe4" POINT-SIZE="9">contact record · backs employees, companies and applicants · 6 of 73 columns shown</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name"></TD><TD ALIGN="LEFT">name</TD><TD ALIGN="LEFT" PORT="r_name">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_email"></TD><TD ALIGN="LEFT">email</TD><TD ALIGN="LEFT" PORT="r_email">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_phone"></TD><TD ALIGN="LEFT">phone</TD><TD ALIGN="LEFT" PORT="r_phone">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_company_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">company_id</TD><TD ALIGN="LEFT" PORT="r_company_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_parent_id" BGCOLOR="#fdf6e8"><B>FK</B></TD><TD ALIGN="LEFT" BGCOLOR="#fdf6e8">parent_id</TD><TD ALIGN="LEFT" PORT="r_parent_id" BGCOLOR="#fdf6e8">integer N</TD></TR>
+      </TABLE>>];
+        ir_attachment [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#475569" COLSPAN="3"><FONT COLOR="#ffffff" POINT-SIZE="14"><B>ir_attachment</B></FONT><BR/><FONT COLOR="#d4dbe4" POINT-SIZE="9">binary store · files behind vault documents and generated PDFs · 7 of 22 columns shown</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_id" BGCOLOR="#eef4fb"><B>PK</B></TD><TD ALIGN="LEFT" BGCOLOR="#eef4fb"><B>id</B></TD><TD ALIGN="LEFT" PORT="r_id" BGCOLOR="#eef4fb">integer</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_name"></TD><TD ALIGN="LEFT">name</TD><TD ALIGN="LEFT" PORT="r_name">varchar</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_res_model"></TD><TD ALIGN="LEFT">res_model</TD><TD ALIGN="LEFT" PORT="r_res_model">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_res_id"></TD><TD ALIGN="LEFT">res_id</TD><TD ALIGN="LEFT" PORT="r_res_id">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_mimetype"></TD><TD ALIGN="LEFT">mimetype</TD><TD ALIGN="LEFT" PORT="r_mimetype">varchar N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_file_size"></TD><TD ALIGN="LEFT">file_size</TD><TD ALIGN="LEFT" PORT="r_file_size">integer N</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="l_store_fname"></TD><TD ALIGN="LEFT">store_fname</TD><TD ALIGN="LEFT" PORT="r_store_fname">varchar N</TD></TR>
+      </TABLE>>];
+    }
+
+
+    /* --- Relationships (IE / Crow's Foot) ------------------------ */
+    /* Audit-column edges (create_uid / write_uid -> res_users) are
+       suppressed: every table has them, and drawing 40 edges into one
+       node hides the relationships that carry meaning. */
+
+    document_category:r_id:e -> document_category:l_parent_id:w [arrowtail = teeodot, color = "#2f6f5e", label="parent_id", weight = 12];
+    document_category:r_id:e -> document_template:l_category_id:w [arrowtail = teeodot, color = "#2f6f5e", label="category_id", weight = 12];
+    document_tag:r_id:e -> document_tag_document_template_rel:l_document_tag_id:w [arrowtail = tee, color = "#2f6f5e", label="document_tag_id", weight = 12];
+    document_template:r_id:e -> document_tag_document_template_rel:l_document_template_id:w [arrowtail = tee, color = "#2f6f5e", label="document_template_id", weight = 12];
+    document_template:r_id:e -> document_template_variable:l_template_id:w [arrowtail = tee, color = "#2f6f5e", label="template_id", weight = 12];
+    document_type:r_id:e -> hr_employee_document:l_document_type_id:w [arrowtail = teeodot, color = "#7c5a3a", label="document_type_id", weight = 12];
+    hr_applicant:r_id:e -> hr_applicant:l_pool_applicant_id:w [arrowtail = teeodot, color = "#6d3f7a", label="pool_applicant_id", weight = 12];
+    hr_applicant_refuse_reason:r_id:e -> hr_applicant:l_refuse_reason_id:w [arrowtail = teeodot, color = "#6d3f7a", label="refuse_reason_id", weight = 12];
+    hr_department:r_id:e -> hr_applicant:l_department_id:w [arrowtail = teeodot, color = "#6d3f7a", label="department_id", weight = 12];
+    hr_department:r_id:e -> hr_department:l_master_department_id:w [arrowtail = teeodot, color = "#5b6470", label="master_department_id", weight = 12];
+    hr_department:r_id:e -> hr_department:l_parent_id:w [arrowtail = teeodot, color = "#5b6470", label="parent_id", weight = 12];
+    hr_department:r_id:e -> hr_job:l_department_id:w [arrowtail = teeodot, color = "#5b6470", label="department_id", weight = 12];
+    hr_department:r_id:e -> hr_version:l_department_id:w [arrowtail = teeodot, color = "#5b6470", label="department_id", weight = 12];
+    hr_employee:r_id:e -> hr_applicant:l_employee_id:w [arrowtail = teeodot, color = "#6d3f7a", label="employee_id", weight = 12];
+    hr_employee:r_id:e -> hr_department:l_manager_id:w [arrowtail = teeodot, color = "#5b6470", label="manager_id", weight = 12];
+    hr_employee:r_id:e -> hr_employee:l_coach_id:w [arrowtail = teeodot, color = "#5b6470", label="coach_id", weight = 12];
+    hr_employee:r_id:e -> hr_employee:l_parent_id:w [arrowtail = teeodot, color = "#5b6470", label="parent_id", weight = 12];
+    hr_employee:r_id:e -> hr_employee_document:l_employee_ref_id:w [arrowtail = teeodot, color = "#7c5a3a", label="employee_ref_id", weight = 12];
+    hr_employee:r_id:e -> hr_employee_family:l_employee_id:w [arrowtail = teeodot, color = "#5b6470", label="employee_id", weight = 12];
+    hr_employee:r_id:e -> hr_job:l_manager_id:w [arrowtail = teeodot, color = "#5b6470", label="manager_id", weight = 12];
+    hr_employee:r_id:e -> hr_version:l_employee_id:w [arrowtail = teeodot, color = "#5b6470", label="employee_id", weight = 12];
+    hr_employee_document:r_id:e -> doc_attach_rel:l_doc_id:w [arrowtail = tee, color = "#7c5a3a", label="doc_id", weight = 12];
+    hr_job:r_id:e -> hr_applicant:l_job_id:w [arrowtail = teeodot, color = "#6d3f7a", label="job_id", weight = 12];
+    hr_job:r_id:e -> hr_version:l_job_id:w [arrowtail = teeodot, color = "#5b6470", label="job_id", weight = 12];
+    hr_recruitment_stage:r_id:e -> hr_applicant:l_last_stage_id:w [arrowtail = teeodot, color = "#6d3f7a", label="last_stage_id", weight = 12];
+    hr_recruitment_stage:r_id:e -> hr_applicant:l_stage_id:w [arrowtail = teeodot, color = "#6d3f7a", label="stage_id", weight = 12];
+    hr_version:r_id:e -> hr_employee:l_current_version_id:w [arrowtail = teeodot, color = "#5b6470", label="current_version_id", weight = 12];
+    hr_version:r_id:e -> hr_version:l_contract_template_id:w [arrowtail = teeodot, color = "#5b6470", label="contract_template_id", weight = 12];
+    ir_attachment:r_id:e -> doc_attach_rel:l_attach_id3:w [arrowtail = tee, color = "#7c5a3a", label="attach_id3", style = "dashed", weight = 1];
+    res_company:r_id:e -> res_company:l_parent_id:w [arrowtail = teeodot, color = "#8a949f", label="parent_id", style = "dashed", weight = 1];
+    res_partner:r_id:e -> hr_applicant:l_partner_id:w [arrowtail = teeodot, color = "#6d3f7a", label="partner_id", style = "dashed", weight = 1];
+    res_partner:r_id:e -> hr_employee:l_work_contact_id:w [arrowtail = teeodot, color = "#5b6470", label="work_contact_id", style = "dashed", weight = 1];
+    res_partner:r_id:e -> hr_job:l_address_id:w [arrowtail = teeodot, color = "#5b6470", label="address_id", style = "dashed", weight = 1];
+    res_partner:r_id:e -> hr_version:l_address_id:w [arrowtail = teeodot, color = "#5b6470", label="address_id", style = "dashed", weight = 1];
+    res_partner:r_id:e -> res_company:l_partner_id:w [arrowtail = tee, color = "#8a949f", label="partner_id", style = "dashed", weight = 1];
+    res_partner:r_id:e -> res_partner:l_parent_id:w [arrowtail = teeodot, color = "#8a949f", label="parent_id", style = "dashed", weight = 1];
+    res_partner:r_id:e -> res_users:l_partner_id:w [arrowtail = tee, color = "#8a949f", label="partner_id", style = "dashed", weight = 1];
+    res_users:r_id:e -> hr_applicant:l_user_id:w [arrowtail = teeodot, color = "#6d3f7a", label="user_id", style = "dashed", weight = 1];
+    res_users:r_id:e -> hr_employee:l_attendance_manager_id:w [arrowtail = teeodot, color = "#5b6470", label="attendance_manager_id", style = "dashed", weight = 1];
+    res_users:r_id:e -> hr_employee:l_expense_manager_id:w [arrowtail = teeodot, color = "#5b6470", label="expense_manager_id", style = "dashed", weight = 1];
+    res_users:r_id:e -> hr_employee:l_leave_manager_id:w [arrowtail = teeodot, color = "#5b6470", label="leave_manager_id", style = "dashed", weight = 1];
+    res_users:r_id:e -> hr_employee:l_user_id:w [arrowtail = teeodot, color = "#5b6470", label="user_id", style = "dashed", weight = 1];
+    res_users:r_id:e -> hr_job:l_user_id:w [arrowtail = teeodot, color = "#5b6470", label="user_id", style = "dashed", weight = 1];
+    res_users:r_id:e -> hr_version:l_hr_responsible_id:w [arrowtail = tee, color = "#5b6470", label="hr_responsible_id", style = "dashed", weight = 1];
+    res_users:r_id:e -> hr_version:l_last_modified_uid:w [arrowtail = tee, color = "#5b6470", label="last_modified_uid", style = "dashed", weight = 1];
+
+    /* --- Legend -------------------------------------------------- */
+
+    legend [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#94a3b8">
+        <TR><TD BGCOLOR="#f1f4f8" COLSPAN="2"><B>Legend &#8212; IE (Crow&#8217;s Foot) notation</B></TD></TR>
+        <TR><TD ALIGN="LEFT"><B>PK</B></TD><TD ALIGN="LEFT">primary key</TD></TR>
+        <TR><TD ALIGN="LEFT"><B>FK</B></TD><TD ALIGN="LEFT">foreign key (enforced by the database)</TD></TR>
+        <TR><TD ALIGN="LEFT">U</TD><TD ALIGN="LEFT">unique constraint</TD></TR>
+        <TR><TD ALIGN="LEFT">N</TD><TD ALIGN="LEFT">nullable</TD></TR>
+        <TR><TD ALIGN="LEFT">&#9553;&#9472;</TD><TD ALIGN="LEFT">exactly one &#8594; many (mandatory FK)</TD></TR>
+        <TR><TD ALIGN="LEFT">&#9675;&#9472;</TD><TD ALIGN="LEFT">zero or one &#8594; many (nullable FK)</TD></TR>
+        <TR><TD BGCOLOR="#f1f4f8" COLSPAN="2"><B>Subsystems</B></TD></TR>
+        <TR><TD BGCOLOR="#1e3a5f" WIDTH="18"></TD><TD ALIGN="LEFT">employee master &amp; org structure</TD></TR>
+        <TR><TD BGCOLOR="#7c2d12" WIDTH="18"></TD><TD ALIGN="LEFT">employee document vault</TD></TR>
+        <TR><TD BGCOLOR="#065f46" WIDTH="18"></TD><TD ALIGN="LEFT">document template manager</TD></TR>
+        <TR><TD BGCOLOR="#4c1d95" WIDTH="18"></TD><TD ALIGN="LEFT">recruitment pipeline</TD></TR>
+        <TR><TD BGCOLOR="#475569" WIDTH="18"></TD><TD ALIGN="LEFT">Odoo framework (boundary)</TD></TR>
+        <TR><TD BGCOLOR="#f1f4f8" COLSPAN="2"><B>Column ownership</B></TD></TR>
+        <TR><TD BGCOLOR="#fff4e5" WIDTH="18"></TD><TD ALIGN="LEFT">column declared by <B>hr_employee_cleardeals</B></TD></TR>
+        <TR><TD BGCOLOR="#e8f5ef" WIDTH="18"></TD><TD ALIGN="LEFT">column declared by <B>document_template_manager</B></TD></TR>
+        <TR><TD BGCOLOR="#fdeee8" WIDTH="18"></TD><TD ALIGN="LEFT">column declared by <B>oh_employee_documents_expiry</B></TD></TR>
+        <TR><TD BGCOLOR="#fdf6e8" WIDTH="18"></TD><TD ALIGN="LEFT">column declared by <B>hr_employee_updation</B></TD></TR>
+        <TR><TD BGCOLOR="#f3ecfb" WIDTH="18"></TD><TD ALIGN="LEFT">column declared by <B>custom_recruitment_fix</B></TD></TR>
+        <TR><TD BGCOLOR="#f1f4f8" COLSPAN="2"><B>Notes</B></TD></TR>
+        <TR><TD COLSPAN="2" ALIGN="LEFT"><FONT POINT-SIZE="9" COLOR="#444444">• Column tint marks the module that declared the field. Untinted columns are stock Odoo 19.</FONT></TD></TR>
+        <TR><TD COLSPAN="2" ALIGN="LEFT"><FONT POINT-SIZE="9" COLOR="#444444">• hr.employee carries 63 columns declared by hr_employee_cleardeals — Indian statutory identifiers, banking detail, issued assets and the onboarding document slots exposed by the HR API.</FONT></TD></TR>
+        <TR><TD COLSPAN="2" ALIGN="LEFT"><FONT POINT-SIZE="9" COLOR="#444444">• Odoo 19 has no hr_contract table. Contract and salary data live on hr_version, which versions a single employee over time.</FONT></TD></TR>
+      </TABLE>>];
+}

@@ -1,0 +1,1124 @@
+openapi: 3.1.0
+
+info:
+  title: ClearDeals HR Employee API
+  version: 1.0.0
+  summary: Employee master data, documents, assets and emergency contacts.
+  description: |
+    REST API exposed by the `hr_employee_cleardeals` Odoo addon.
+
+    All endpoints are served by the Odoo HTTP stack (`type='http'`) and return a
+    uniform JSON envelope, except for `GET /employees/{employee_id}/documents/{document_id}/download`
+    which streams the raw file.
+
+    ## Response envelope
+
+    Every JSON response has the shape:
+
+    ```json
+    {
+      "success": true,
+      "message": "Human readable message",
+      "timestamp": "2026-02-11T12:00:00.000000Z",
+      "data": { },
+      "errors": [ ],
+      "meta": { }
+    }
+    ```
+
+    `data`, `errors` and `meta` are omitted when empty.
+
+    ## Authentication
+
+    Every endpoint except `/health` and `/info` requires a static API key. Send it
+    either as `X-API-Key: <key>` or as `Authorization: Bearer <key>`. The key is
+    stored in the Odoo system parameter `hr_employee_cleardeals.api_key`
+    (Settings → Technical → Parameters → System Parameters).
+
+    Note that the routes themselves are declared `auth='public'`; the API key
+    decorator is the only access control, and records are read with `sudo()`, so
+    the key grants full read/write access to the endpoints below.
+
+    ## Conventions
+
+    - `employee_id` in paths is the human-readable ClearDeals code (`CD-0001`),
+      not the Odoo database id.
+    - Dates are `YYYY-MM-DD`. Timestamps are ISO-8601 UTC.
+    - Boolean query parameters are parsed from the strings `true` / `false`.
+    - `per_page` is capped server-side at 100.
+  contact:
+    name: ClearDeals Technology
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://{host}
+    description: Deployment host
+    variables:
+      host:
+        default: localhost:8069
+        description: Odoo host serving the addon
+
+tags:
+  - name: Service
+    description: Unauthenticated health and discovery endpoints.
+  - name: Employees
+    description: Employee master data.
+  - name: Documents
+    description: Employee document vault and compliance tracking.
+  - name: Assets
+    description: Issued hardware and asset allocation.
+  - name: Emergency Contact
+    description: Emergency contact details.
+
+security:
+  - ApiKeyHeader: []
+  - BearerToken: []
+
+paths:
+  /api/v1/health:
+    get:
+      tags: [Service]
+      operationId: healthCheck
+      summary: Health check
+      description: Liveness probe. Requires no authentication.
+      security: []
+      responses:
+        '200':
+          description: API is healthy.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          version:
+                            type: string
+                            examples: ['1.0.0']
+                          module:
+                            type: string
+                            examples: ['hr_employee_cleardeals']
+                          status:
+                            type: string
+                            examples: ['operational']
+
+  /api/v1/info:
+    get:
+      tags: [Service]
+      operationId: apiInfo
+      summary: API discovery document
+      description: |
+        Returns the list of endpoints, the authentication scheme and setup
+        instructions. Requires no authentication.
+      security: []
+      responses:
+        '200':
+          description: API metadata.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          version: { type: string }
+                          base_url: { type: string, examples: ['/api/v1'] }
+                          authentication:
+                            type: object
+                            properties:
+                              type: { type: string }
+                              methods:
+                                type: array
+                                items: { type: string }
+                              setup: { type: string }
+                          endpoints:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                path: { type: string }
+                                method: { type: string }
+                                description: { type: string }
+                                auth_required: { type: boolean }
+                          documentation: { type: string }
+
+  /api/v1/employees:
+    get:
+      tags: [Employees]
+      operationId: listEmployees
+      summary: List employees
+      description: |
+        Returns employees of every lifecycle status. Use `/employees/active` when
+        only currently employed staff are wanted.
+      parameters:
+        - name: department
+          in: query
+          description: Case-insensitive partial match on the department name.
+          schema: { type: string }
+          example: Engineering
+        - name: status
+          in: query
+          description: Exact match on the employee lifecycle status.
+          schema: { $ref: '#/components/schemas/EmployeeStatus' }
+        - name: search
+          in: query
+          description: Partial match on employee name **or** employee code.
+          schema: { type: string }
+          example: CD-00
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Employees retrieved successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          employees:
+                            type: array
+                            items: { $ref: '#/components/schemas/EmployeeSummary' }
+                          total_count:
+                            type: integer
+                            description: Total matching records before pagination.
+                      meta: { $ref: '#/components/schemas/PaginationMeta' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+    post:
+      tags: [Employees]
+      operationId: createEmployee
+      summary: Create an employee
+      description: |
+        Creates an `hr.employee` record. Only `name` is mandatory; the employee
+        code (`CD-XXXX`) is generated by the model.
+
+        Any key not listed in `EmployeeCreate` is ignored. Binary documents are
+        not accepted here — upload them separately via
+        `POST /employees/{employee_id}/documents/upload`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmployeeCreate' }
+            examples:
+              minimal:
+                summary: Minimum viable payload
+                value:
+                  name: John Doe
+              full:
+                summary: Full onboarding payload
+                value:
+                  name: John Doe
+                  work_email: john.doe@cleardeals.co.in
+                  work_phone: '+91-9876543210'
+                  job_title: Software Engineer
+                  department_id: 1
+                  job_id: 5
+                  date_of_joining: '2026-02-15'
+                  employee_status: onboarding
+                  legal_name: John Michael Doe
+                  sex: male
+                  marital: single
+                  birthday: '1995-05-15'
+                  private_email: john.personal@example.com
+                  blood_group: o+
+                  identification_id: '123456789012'
+                  pan_number: ABCDE1234F
+                  bank_name: HDFC Bank
+                  bank_acc_number: '12345678901234'
+                  ifsc_code: HDFC0001234
+                  account_type: savings
+                  asset_laptop: true
+                  asset_sim: true
+      responses:
+        '201':
+          description: Employee created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/EmployeeCreated' }
+        '400':
+          description: Malformed JSON body or missing `name`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422':
+          description: A model constraint rejected the payload (PAN format, Aadhaar length, ...).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/employees/active:
+    get:
+      tags: [Employees]
+      operationId: listActiveEmployees
+      summary: List active employees
+      description: |
+        Same as `GET /employees` but hard-filtered to `employee_status = active`,
+        with opt-in field groups per record.
+      parameters:
+        - name: department
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: fields
+          in: query
+          description: |
+            Comma-separated field groups to embed in each employee object.
+            The summary fields are always returned.
+          schema:
+            type: string
+            default: basic
+          example: basic,contact,banking
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Active employees retrieved successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          employees:
+                            type: array
+                            items:
+                              allOf:
+                                - $ref: '#/components/schemas/EmployeeSummary'
+                                - type: object
+                                  properties:
+                                    contact: { $ref: '#/components/schemas/ContactGroup' }
+                                    banking: { $ref: '#/components/schemas/BankingGroup' }
+                                    address: { $ref: '#/components/schemas/AddressGroup' }
+                                    assets: { $ref: '#/components/schemas/AssetGroup' }
+                                    documents: { $ref: '#/components/schemas/DocumentSummaryGroup' }
+                                    statutory: { $ref: '#/components/schemas/StatutoryGroup' }
+                          total_count: { type: integer }
+                      meta: { $ref: '#/components/schemas/PaginationMeta' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/employees/pending-documents:
+    get:
+      tags: [Documents]
+      operationId: listPendingDocuments
+      summary: Employees with missing documents
+      description: |
+        Compliance report. For every employee matching the filters, checks the
+        onboarding document fields and reports the ones that are still empty.
+
+        Whether a document counts as *required* depends on the employee's
+        lifecycle status:
+
+        | Status | Required documents |
+        |---|---|
+        | `onboarding` | offer letter, appointment letter, PAN card, bank document, passport photo |
+        | `active` | PAN card, bank document, passport photo |
+        | `notice`, `resigned` | PAN card |
+        | `terminated` | none |
+
+        By default only employees with at least one missing required document are
+        listed; set `show_all_documents=true` to list every employee and every
+        document field with its upload state.
+      parameters:
+        - name: employee_status
+          in: query
+          schema: { $ref: '#/components/schemas/EmployeeStatus' }
+        - name: department
+          in: query
+          schema: { type: string }
+        - name: document_category
+          in: query
+          description: Restrict the check to a single document category.
+          schema:
+            type: string
+            default: all
+            enum: [all, onboarding, identity, bank, address, experience, lifecycle]
+        - name: show_all_documents
+          in: query
+          description: Include uploaded documents and fully compliant employees.
+          schema: { type: string, default: 'false', enum: ['true', 'false'] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Compliance report retrieved successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          employees:
+                            type: array
+                            items: { $ref: '#/components/schemas/PendingDocumentsEmployee' }
+                          summary:
+                            type: object
+                            properties:
+                              total_employees_checked: { type: integer }
+                              employees_with_pending_documents: { type: integer }
+                              total_pending_documents: { type: integer }
+                              average_compliance_rate:
+                                type: integer
+                                description: Mean percentage of uploaded documents across the listed employees.
+                      meta: { $ref: '#/components/schemas/PaginationMeta' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/employees/{employee_id}:
+    parameters:
+      - $ref: '#/components/parameters/EmployeeId'
+    get:
+      tags: [Employees]
+      operationId: getEmployee
+      summary: Get employee details
+      description: |
+        Returns the requested field groups for one employee. The response object
+        contains exactly the groups named in `fields` — nothing else.
+      parameters:
+        - name: fields
+          in: query
+          description: |
+            Comma-separated field groups: `basic`, `contact`, `banking`,
+            `address`, `assets`, `documents`, `statutory`.
+          schema:
+            type: string
+            default: basic,contact
+          example: basic,contact,banking,statutory
+      responses:
+        '200':
+          description: Employee details retrieved successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          basic: { $ref: '#/components/schemas/BasicGroup' }
+                          contact: { $ref: '#/components/schemas/ContactGroup' }
+                          banking: { $ref: '#/components/schemas/BankingGroup' }
+                          address: { $ref: '#/components/schemas/AddressGroup' }
+                          assets: { $ref: '#/components/schemas/AssetGroup' }
+                          documents: { $ref: '#/components/schemas/DocumentSummaryGroup' }
+                          statutory: { $ref: '#/components/schemas/StatutoryGroup' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/EmployeeNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/employees/{employee_id}/documents:
+    parameters:
+      - $ref: '#/components/parameters/EmployeeId'
+    get:
+      tags: [Documents]
+      operationId: listEmployeeDocuments
+      summary: List an employee's document-vault records
+      description: |
+        Lists `hr.employee.document` records linked to the employee, newest
+        first. These are the vault records managed by
+        `oh_employee_documents_expiry`, distinct from the fixed onboarding
+        document fields reported by `/employees/pending-documents`.
+      parameters:
+        - name: document_type
+          in: query
+          description: Case-insensitive partial match on the document type name.
+          schema: { type: string }
+        - name: include_binary
+          in: query
+          description: Embed the base64 file contents in each document object.
+          schema: { type: string, default: 'false', enum: ['true', 'false'] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Documents retrieved successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          employee: { $ref: '#/components/schemas/EmployeeSummary' }
+                          documents:
+                            type: array
+                            items: { $ref: '#/components/schemas/EmployeeDocument' }
+                          document_count: { type: integer }
+                      meta: { $ref: '#/components/schemas/PaginationMeta' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/EmployeeNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/employees/{employee_id}/documents/{document_id}/download:
+    parameters:
+      - $ref: '#/components/parameters/EmployeeId'
+      - name: document_id
+        in: path
+        required: true
+        description: Database id of the `hr.employee.document` record.
+        schema: { type: integer, format: int64 }
+        example: 42
+    get:
+      tags: [Documents]
+      operationId: downloadEmployeeDocument
+      summary: Download a document file
+      description: |
+        Streams the first attachment of the document record as a file download.
+        The document must belong to the employee in the path, otherwise `404`.
+
+        On success the body is the raw file, **not** the JSON envelope; on error
+        the standard JSON envelope is returned.
+      responses:
+        '200':
+          description: 'The file, with a `Content-Disposition: attachment` header.'
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+              example: 'attachment; filename="pan_card.pdf"'
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+            application/pdf:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: Employee, document, or file data not found.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/employees/{employee_id}/documents/upload:
+    parameters:
+      - $ref: '#/components/parameters/EmployeeId'
+    post:
+      tags: [Documents]
+      operationId: uploadEmployeeDocument
+      summary: Upload an onboarding document
+      description: |
+        Writes an uploaded file into one of the fixed onboarding document fields
+        on the employee record. Uploading the same `document_type` twice replaces
+        the previous file.
+
+        Constraints: maximum 10 MB, extensions `.pdf`, `.jpeg`, `.jpg`, `.png`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, document_type]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The document file.
+                document_type:
+                  $ref: '#/components/schemas/OnboardingDocumentType'
+            encoding:
+              file:
+                contentType: application/pdf, image/jpeg, image/png
+      responses:
+        '201':
+          description: Document uploaded.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          employee_id: { type: string, examples: ['CD-0001'] }
+                          employee_name: { type: string }
+                          document_type: { $ref: '#/components/schemas/OnboardingDocumentType' }
+                          filename: { type: string }
+                          file_size: { type: integer, description: Size in bytes. }
+                          file_size_mb: { type: number }
+                          uploaded_at:
+                            type: string
+                            examples: ['2026-02-12 12:00:00']
+        '400':
+          description: '`file` or `document_type` missing.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/EmployeeNotFound' }
+        '413':
+          description: File exceeds the 10 MB limit.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '422':
+          description: Unsupported `document_type` or file extension.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/employees/{employee_id}/emergency-contact:
+    parameters:
+      - $ref: '#/components/parameters/EmployeeId'
+    get:
+      tags: [Emergency Contact]
+      operationId: getEmployeeEmergencyContact
+      summary: Get emergency contact details
+      description: |
+        Intended for emergency alerting and safety systems. Personal contact
+        details and blood group are opt-in.
+      parameters:
+        - name: include_personal
+          in: query
+          description: Also return personal and work phone/email.
+          schema: { type: string, default: 'false', enum: ['true', 'false'] }
+        - name: include_medical
+          in: query
+          description: Also return the blood group.
+          schema: { type: string, default: 'false', enum: ['true', 'false'] }
+      responses:
+        '200':
+          description: Emergency contact information retrieved successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          employee: { $ref: '#/components/schemas/EmployeeRef' }
+                          emergency_contact:
+                            type: object
+                            properties:
+                              name: { type: [string, 'null'] }
+                              phone: { type: [string, 'null'] }
+                              relationship: { type: [string, 'null'] }
+                          personal_contact:
+                            type: object
+                            description: Present only when `include_personal=true`.
+                            properties:
+                              personal_phone: { type: [string, 'null'] }
+                              personal_email: { type: [string, 'null'] }
+                              work_phone: { type: [string, 'null'] }
+                              work_email: { type: [string, 'null'] }
+                          medical_info:
+                            type: object
+                            description: Present only when `include_medical=true`.
+                            properties:
+                              blood_group: { $ref: '#/components/schemas/BloodGroup' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/EmployeeNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/employees/{employee_id}/assets:
+    parameters:
+      - $ref: '#/components/parameters/EmployeeId'
+    get:
+      tags: [Assets]
+      operationId: getEmployeeAssets
+      summary: Get issued assets
+      description: |
+        Returns which company assets the employee holds plus, when a laptop is
+        issued, its specification.
+      parameters:
+        - name: include_details
+          in: query
+          description: Include the `laptop_details` block when a laptop is issued.
+          schema: { type: string, default: 'true', enum: ['true', 'false'] }
+        - name: include_allocation
+          in: query
+          description: Include `laptop_details.allocation_date`.
+          schema: { type: string, default: 'true', enum: ['true', 'false'] }
+      responses:
+        '200':
+          description: Asset information retrieved successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          employee: { $ref: '#/components/schemas/EmployeeRef' }
+                          issued_assets:
+                            type: object
+                            properties:
+                              laptop: { type: boolean }
+                              sim_card: { type: boolean }
+                              phone: { type: boolean }
+                              pc_desktop: { type: boolean }
+                              physical_id_card: { type: boolean }
+                          laptop_details:
+                            type: object
+                            description: Omitted when no laptop is issued or `include_details=false`.
+                            properties:
+                              brand: { type: [string, 'null'] }
+                              model: { type: [string, 'null'] }
+                              serial_number: { type: [string, 'null'] }
+                              ram: { type: [string, 'null'] }
+                              storage: { type: [string, 'null'] }
+                              processor: { type: [string, 'null'] }
+                              allocation_date: { type: string, format: date }
+                          asset_summary:
+                            type: object
+                            properties:
+                              total_assets_issued: { type: integer }
+                              asset_types:
+                                type: array
+                                items: { type: string }
+                                examples: [['Laptop', 'SIM Card', 'Physical ID Card']]
+                              has_laptop: { type: boolean }
+                              has_mobile_assets: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/EmployeeNotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+components:
+
+  securitySchemes:
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Value of the `hr_employee_cleardeals.api_key` system parameter.
+    BearerToken:
+      type: http
+      scheme: bearer
+      description: |
+        `Authorization: Bearer <key>` — the same static key as `X-API-Key`.
+        This is not a JWT and is not time-limited.
+
+  parameters:
+    EmployeeId:
+      name: employee_id
+      in: path
+      required: true
+      description: ClearDeals employee code.
+      schema:
+        type: string
+        pattern: '^CD-\d{4,}$'
+      example: CD-0001
+    Page:
+      name: page
+      in: query
+      description: 1-based page number.
+      schema: { type: integer, minimum: 1, default: 1 }
+    PerPage:
+      name: per_page
+      in: query
+      description: Records per page. Values above 100 are clamped to 100.
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  responses:
+    BadRequest:
+      description: Invalid parameters or payload.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthorized:
+      description: API key missing or invalid.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+          examples:
+            missing:
+              value:
+                success: false
+                message: 'API key required. Provide X-API-Key header or Authorization: Bearer token'
+                timestamp: '2026-02-11T12:00:00.000000Z'
+    Forbidden:
+      description: Access denied by an Odoo access rule.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    EmployeeNotFound:
+      description: No employee with that code.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+          examples:
+            notFound:
+              value:
+                success: false
+                message: Employee with ID CD-9999 not found
+                timestamp: '2026-02-11T12:00:00.000000Z'
+    ServerError:
+      description: Unhandled server error.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  schemas:
+
+    SuccessEnvelope:
+      type: object
+      required: [success, message, timestamp]
+      properties:
+        success: { type: boolean, const: true }
+        message: { type: string }
+        timestamp:
+          type: string
+          format: date-time
+          description: UTC ISO-8601 timestamp of the response.
+
+    ErrorEnvelope:
+      type: object
+      required: [success, message, timestamp]
+      properties:
+        success: { type: boolean, const: false }
+        message: { type: string }
+        timestamp: { type: string, format: date-time }
+        errors:
+          description: |
+            Error detail. Decorator-level failures return an array of
+            `{type, details}`; endpoint-level validation failures return an
+            object keyed by field name.
+          oneOf:
+            - type: array
+              items:
+                type: object
+                properties:
+                  type: { type: string, examples: ['ValidationError'] }
+                  details: { type: string }
+            - type: object
+              additionalProperties: { type: string }
+
+    PaginationMeta:
+      type: object
+      properties:
+        pagination:
+          type: object
+          properties:
+            current_page: { type: integer }
+            per_page: { type: integer }
+            total_records: { type: integer }
+            total_pages: { type: integer }
+            has_next: { type: boolean }
+            has_prev: { type: boolean }
+
+    EmployeeStatus:
+      type: string
+      enum: [onboarding, active, notice, resigned, terminated]
+      description: Employee lifecycle status.
+
+    BloodGroup:
+      type: [string, 'null']
+      enum: ['a+', 'a-', 'b+', 'b-', 'ab+', 'ab-', 'o+', 'o-', null]
+
+    AccountType:
+      type: [string, 'null']
+      enum: [savings, current, salary, null]
+
+    EmployeeRef:
+      type: object
+      description: Minimal employee identification block.
+      properties:
+        id: { type: integer, description: Odoo database id. }
+        employee_id: { type: string, examples: ['CD-0001'] }
+        name: { type: string }
+        department: { type: [string, 'null'] }
+        job_title: { type: [string, 'null'] }
+        employee_status: { $ref: '#/components/schemas/EmployeeStatus' }
+
+    EmployeeSummary:
+      allOf:
+        - $ref: '#/components/schemas/EmployeeRef'
+        - type: object
+          properties:
+            work_email: { type: [string, 'null'] }
+            date_of_joining: { type: [string, 'null'], format: date }
+
+    EmployeeCreated:
+      type: object
+      properties:
+        id: { type: integer }
+        employee_id: { type: string, examples: ['CD-0015'] }
+        name: { type: string }
+        work_email: { type: [string, 'null'] }
+        employee_status: { $ref: '#/components/schemas/EmployeeStatus' }
+        date_of_joining: { type: [string, 'null'], format: date }
+        department: { type: [string, 'null'] }
+        department_id: { type: [integer, 'null'] }
+        job_title: { type: [string, 'null'] }
+        job_id: { type: [integer, 'null'] }
+        created_date: { type: [string, 'null'], format: date }
+
+    BasicGroup:
+      type: object
+      properties:
+        id: { type: integer }
+        employee_id: { type: string }
+        name: { type: string }
+        legal_name: { type: [string, 'null'] }
+        date_of_birth: { type: [string, 'null'], format: date }
+        gender: { type: [string, 'null'] }
+        marital_status: { type: [string, 'null'] }
+        blood_group: { $ref: '#/components/schemas/BloodGroup' }
+        date_of_joining: { type: [string, 'null'], format: date }
+        employee_status: { $ref: '#/components/schemas/EmployeeStatus' }
+        department: { type: [string, 'null'] }
+        job_title: { type: [string, 'null'] }
+
+    ContactGroup:
+      type: object
+      properties:
+        work_email: { type: [string, 'null'] }
+        work_phone: { type: [string, 'null'] }
+        personal_email: { type: [string, 'null'] }
+        personal_phone: { type: [string, 'null'] }
+        emergency_contact_name: { type: [string, 'null'] }
+        emergency_contact_phone: { type: [string, 'null'] }
+        emergency_contact_relationship: { type: [string, 'null'] }
+
+    BankingGroup:
+      type: object
+      description: Payroll and statutory banking data. Treat as sensitive.
+      properties:
+        bank_account_number: { type: [string, 'null'] }
+        ifsc_code: { type: [string, 'null'] }
+        account_type: { $ref: '#/components/schemas/AccountType' }
+        uan_number: { type: [string, 'null'] }
+        esic_number: { type: [string, 'null'] }
+        cibil_score:
+          type: [integer, 'null']
+          description: Returned by `GET /employees/{employee_id}` only.
+
+    AddressGroup:
+      type: object
+      properties:
+        permanent: { $ref: '#/components/schemas/AddressBlock' }
+        current:
+          allOf:
+            - $ref: '#/components/schemas/AddressBlock'
+            - type: object
+              properties:
+                same_as_permanent:
+                  type: boolean
+                  description: Returned by `GET /employees/{employee_id}` only.
+
+    AddressBlock:
+      type: object
+      properties:
+        address: { type: [string, 'null'] }
+        state: { type: [string, 'null'] }
+        country: { type: [string, 'null'] }
+        pincode: { type: [string, 'null'] }
+
+    AssetGroup:
+      type: object
+      properties:
+        laptop_brand: { type: [string, 'null'] }
+        laptop_serial_number: { type: [string, 'null'] }
+        laptop_model: { type: [string, 'null'] }
+        ram: { type: [string, 'null'] }
+        storage: { type: [string, 'null'] }
+        processor: { type: [string, 'null'] }
+        laptop_allocation_date:
+          type: [string, 'null']
+          format: date
+          description: Returned by `GET /employees/{employee_id}` only.
+
+    DocumentSummaryGroup:
+      type: object
+      properties:
+        total_documents: { type: integer }
+        documents_url:
+          type: string
+          examples: ['/api/v1/employees/CD-0001/documents']
+
+    StatutoryGroup:
+      type: object
+      description: Indian statutory identifiers. Treat as sensitive.
+      properties:
+        aadhaar_number:
+          type: [string, 'null']
+          description: 12-digit Aadhaar, stored in `identification_id`.
+        pan_number:
+          type: [string, 'null']
+          examples: ['ABCDE1234F']
+
+    EmployeeDocument:
+      type: object
+      properties:
+        id: { type: integer }
+        document_name: { type: string }
+        document_type: { type: [string, 'null'] }
+        file_name: { type: [string, 'null'] }
+        file_size: { type: integer, description: Decoded size in bytes; 0 when no attachment. }
+        mimetype: { type: [string, 'null'] }
+        uploaded_date:
+          type: [string, 'null']
+          format: date
+          description: The document's issue date.
+        expiry_date: { type: [string, 'null'], format: date }
+        is_expired: { type: boolean }
+        is_expiring_soon:
+          type: boolean
+          description: Expires within 30 days and is not already expired.
+        description: { type: string }
+        file_data:
+          type: string
+          contentEncoding: base64
+          description: Present only when `include_binary=true`.
+
+    PendingDocumentsEmployee:
+      allOf:
+        - $ref: '#/components/schemas/EmployeeSummary'
+        - type: object
+          properties:
+            pending_documents:
+              type: object
+              description: Document entries keyed by category. Empty categories are omitted.
+              additionalProperties:
+                type: array
+                items: { $ref: '#/components/schemas/PendingDocument' }
+            pending_count: { type: integer }
+            total_documents:
+              type: integer
+              description: Number of document fields checked.
+            uploaded_documents: { type: integer }
+            compliance_percentage:
+              type: integer
+              minimum: 0
+              maximum: 100
+
+    PendingDocument:
+      type: object
+      properties:
+        field_name: { type: string, examples: ['offer_letter'] }
+        document_name: { type: string, examples: ['Offer Letter'] }
+        category:
+          type: string
+          enum: [onboarding, identity, bank, address, experience, lifecycle]
+        is_uploaded: { type: boolean }
+        is_required:
+          type: boolean
+          description: Required for this employee's current lifecycle status.
+
+    OnboardingDocumentType:
+      type: string
+      description: Onboarding document slot to write the upload into.
+      enum:
+        - passport_photo
+        - bank_document
+        - offer_letter
+        - appointment_letter
+        - bond_document
+        - contract_document
+        - nda_document
+        - pan_card_doc
+        - passport_doc
+        - address_proof_document
+        - relieving_letter
+        - experience_letter
+        - salary_slip_1
+        - salary_slip_2
+        - salary_slip_3
+        - resume_doc
+        - appraisal_doc
+        - increment_letter
+        - notice_period_doc
+
+    EmployeeCreate:
+      type: object
+      required: [name]
+      additionalProperties: false
+      properties:
+        name: { type: string, description: Display name. The only required field. }
+        work_email: { type: string, format: email }
+        work_phone: { type: string }
+        mobile_phone: { type: string }
+        job_title: { type: string }
+        department_id: { type: integer, description: '`hr.department` id.' }
+        job_id: { type: integer, description: '`hr.job` id.' }
+        date_of_joining: { type: string, format: date }
+        employee_status: { $ref: '#/components/schemas/EmployeeStatus' }
+        legal_name: { type: string }
+        sex: { type: string, enum: [male, female, other] }
+        marital: { type: string, enum: [single, married, cohabitant, widower, divorced] }
+        birthday: { type: string, format: date }
+        private_phone: { type: string }
+        private_email: { type: string, format: email }
+        blood_group: { $ref: '#/components/schemas/BloodGroup' }
+        private_street: { type: string }
+        private_street2: { type: string }
+        private_city: { type: string }
+        private_state_id: { type: integer, description: '`res.country.state` id.' }
+        private_zip: { type: string }
+        private_country_id: { type: integer, description: '`res.country` id.' }
+        current_address: { type: string }
+        same_as_permanent: { type: boolean }
+        emergency_contact: { type: string }
+        emergency_phone: { type: string }
+        emergency_contact_relationship: { type: string }
+        identification_id:
+          type: string
+          pattern: '^\d{12}$'
+          description: Aadhaar number; must be exactly 12 digits.
+        pan_number:
+          type: string
+          pattern: '^[A-Za-z]{5}[0-9]{4}[A-Za-z]$'
+          description: Normalised to uppercase by the model.
+        bank_name: { type: string }
+        bank_acc_number: { type: string }
+        ifsc_code: { type: string }
+        account_type: { $ref: '#/components/schemas/AccountType' }
+        name_as_per_bank: { type: string }
+        cibil_score: { type: integer }
+        bank_document_type: { type: string, enum: [cancelled_cheque, passbook_copy] }
+        education_background: { type: string }
+        skill_set_summary: { type: string }
+        asset_laptop: { type: boolean }
+        asset_sim: { type: boolean }
+        asset_phone: { type: boolean }
+        asset_pc: { type: boolean }
+        asset_physical_id: { type: boolean }

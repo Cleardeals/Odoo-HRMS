@@ -7,6 +7,41 @@ on:
     branches: ['main']
 
 jobs:
+  # Cheap, fast gate: the OpenAPI specifications must be well-formed AND must
+  # describe exactly the routes the controllers expose. Runs without Docker or a
+  # database, so it reports drift in well under a minute.
+  #
+  # This job is deliberately part of "Run Odoo Tests" rather than a workflow of
+  # its own: deploy.yml triggers on this workflow completing successfully, so a
+  # specification that has drifted from the code blocks the deploy.
+  api-docs:
+    name: OpenAPI Specifications
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install validation tooling
+        run: pip install --quiet pyyaml openapi-spec-validator
+
+      - name: Validate specifications are well-formed
+        run: |
+          python -m openapi_spec_validator \
+            docs/api/hr_employee_cleardeals.openapi.yaml \
+            docs/api/document_template_manager.openapi.yaml
+
+      # Validation only proves the documents are well-formed -- a specification
+      # describing an API that does not exist validates perfectly. This step is
+      # the one that catches drift.
+      - name: Check specifications match the controllers
+        run: python docs/api/check_route_parity.py
+
   test:
     name: Test Custom Modules
     runs-on: ubuntu-latest

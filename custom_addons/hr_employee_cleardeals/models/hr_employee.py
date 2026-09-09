@@ -26,7 +26,7 @@ class HrEmployee(models.Model):
     employee_id = fields.Char(
         string="Employee ID",
         copy=False,
-        readonly=False,
+        readonly=True,
         index=True,
         tracking=True,
         help="Auto-generated Employee ID in format CD-XXXX",
