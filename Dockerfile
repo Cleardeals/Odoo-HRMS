@@ -51,8 +51,25 @@ RUN /opt/odoo-venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt \
 # Set ownership of venv to odoo user
 RUN chown -R odoo:odoo /opt/odoo-venv
 
-# Copy custom entrypoint script
-COPY --chmod=755 ./entrypoint.sh /usr/local/bin/entrypoint.sh
+# Copy custom entrypoint script.
+#
+# Deliberately NOT `COPY --chmod=755`. That option requires BuildKit, and
+# `gcr.io/cloud-builders/docker` — which both cloudbuild.yaml and
+# cloudbuild.ci.yaml use — runs the LEGACY builder, where it is a hard error:
+#
+#   Step 11/18 : COPY --chmod=755 ./entrypoint.sh /usr/local/bin/entrypoint.sh
+#   the --chmod option requires BuildKit.
+#
+# The image built fine by hand on the VM, whose Docker has BuildKit enabled by
+# default, so this was invisible until the first CI run — and it would have
+# failed the CD build identically, meaning the pipeline could never have built
+# an image at all.
+#
+# Setting DOCKER_BUILDKIT=1 on the build steps would also work, but this way the
+# Dockerfile carries no dependency on which builder happens to be in use. Note
+# `--chown` below is fine: only `--chmod` is BuildKit-only.
+COPY ./entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod 755 /usr/local/bin/entrypoint.sh
 
 # ── Bake the application code INTO the image ──────────────────────────────────
 #
