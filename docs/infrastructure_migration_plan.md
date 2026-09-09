@@ -1350,10 +1350,44 @@ metric.label.state="used"
 This is the same class of trap as CRM's eight loop devices, and it would have
 been missed by reading the metric name alone.
 
-**Still outstanding from this phase's gate:** `os-inventory describe` was not
-re-checked after the agent restart. OS Config inventory is reported on its own
-schedule, so it is worth re-running before Phase 7 rather than treating it as
-verified.
+**The `os-inventory describe` gate was WRONG, and is withdrawn.**
+Re-checked 2026-09-09 after Phase 7. It still returns "OS inventory data was not
+found", and the cause is nothing this phase could ever have fixed:
+
+```
+projectFeatureSettings: patchAndConfigFeatureSet = OSCONFIG_B
+osconfig inventories API -> FAILED_PRECONDITION
+  "OS inventory management has been disabled in this project.
+   To use this feature, enable full VM Manager functionality."
+```
+
+`OSCONFIG_B` is **basic** VM Manager, which disables OS inventory
+**project-wide**. This gate was therefore unsatisfiable no matter what the
+service account held, and listing it alongside "logs and metrics arrive"
+implied a shared cause that did not exist. The other two gate items — Cloud
+Logging receiving data, and `disk/percent_used` having time series — were the
+real tests of Phase 6, and both passed.
+
+Everything on the instance is correct and was verified rather than assumed:
+`enable-osconfig=TRUE`, `osconfig.googleapis.com` enabled,
+`google-osconfig-agent` active and enabled (v1:20260119.00-g1), four successful
+`ApplyConfigTask` runs with `goog-ops-agent-policy` COMPLIANT, and **zero**
+errors or permission denials in its journal. No `osconfig-disabled-features`
+metadata at instance or project level. The agent never mentions inventory at
+all, because the API it would report to is refusing the feature.
+
+Also corrected: an earlier note here read `google-guest-agent` as `inactive` and
+treated it as suspicious. That was a false alarm — Debian 12 splits it, and
+`google-guest-agent-manager` and `google-guest-compat-manager` are both active.
+OS Login functioning was already proof of it.
+
+**Enabling inventory is a one-line project-level change**
+(`patchAndConfigFeatureSet` → `OSCONFIG_C`), additive and reversible, and it is
+NOT done here because it is project-scoped and outside what this migration was
+asked to change. It is worth doing on its own merits: this host's single largest
+known hazard is package drift — `docker-ce` held at 28.5.2 while
+`containerd.io` is unheld — and central package inventory is exactly the thing
+that would make that drift visible instead of discovered during an outage.
 
 ---
 

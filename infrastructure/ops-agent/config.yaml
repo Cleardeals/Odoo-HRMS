@@ -16,8 +16,14 @@
 #     networkanalyzer reports. No syslog. No agent logs. No container logs. Ever.
 #   * the collector journal carries ~120 PermissionDenied entries per 20 minutes,
 #     with dropped_items in the hundreds per batch
-#   * `gcloud compute instances os-inventory describe` returns "OS inventory data
-#     was not found" despite enable-osconfig=TRUE
+#   * (this list originally included `os-inventory describe` returning "OS
+#     inventory data was not found" as further evidence of the same problem. IT
+#     IS NOT. Re-checked after the fix: it still fails, because VM Manager is on
+#     the BASIC feature set — patchAndConfigFeatureSet = OSCONFIG_B — which
+#     disables OS inventory PROJECT-WIDE, and the osconfig API returns
+#     FAILED_PRECONDITION saying exactly that. It has nothing to do with the
+#     service account or with this agent, and grouping it here made one problem
+#     look bigger than it was while hiding a second, separate one.)
 #   * and it has written 627 MB of its own failure messages onto a 30 GB disk
 #
 # Phase 4b attaches hrms-prod-vm@, which holds logging.logWriter and
