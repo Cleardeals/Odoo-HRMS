@@ -5,9 +5,11 @@
 > [docs/infrastructure_migration_plan.md](docs/infrastructure_migration_plan.md)
 > for the phases, the gates, and what has already been done.
 >
-> **There is currently no automated deploy path.** The GitHub Actions workflow
-> that used to deploy has been removed, and the Cloud Build trigger that
-> replaces it is not enabled yet. Read "Deploying right now", below.
+> **CI is live; CD is not.** The Cloud Build CI trigger
+> (`hrms-ci-pull-request`) runs on every pull request to `main` or
+> `development` and is green. The deploy trigger is still disabled
+> (`cloudbuild_cd_enabled = false`), so **there is no automated deploy path
+> yet** — read "Deploying right now", below.
 >
 > **Phases 4b, 4c, 5, 6, 7 and 8 are done (2026-09-09).** In short:
 >
@@ -20,8 +22,9 @@
 > * snapshots run 4-hourly with 30-day retention, and `gs://cleardeals-hrms-backups`
 >   exists for logical dumps, though writing to it is **deferred pending an org-level DR plan**.
 >
-> Secret Manager is reachable from the box, so the only thing still blocking
-> Cloud Build CD is the one-time GitHub App install.
+> The Cloud Build GitHub App is installed, Secret Manager is reachable from the
+> box, and the config is re-rendered at boot. What remains before CD is armed is
+> a deliberate first deploy — see "The first deploy", below.
 
 ---
 
@@ -53,19 +56,31 @@ in production" and makes rollback real.
 
 ## Deploying right now (before Cloud Build CD is enabled)
 
-Two things must happen before the pipeline can run, and neither is optional:
+### The first deploy
 
-1. **A GitHub org admin installs the Cloud Build GitHub App** and grants it
-   `Cleardeals/Odoo-HRMS`, once, at
-   <https://console.cloud.google.com/cloud-build/triggers/connect>. Terraform
-   cannot do this. Then set `cloudbuild_github_connected = true`.
-2. ~~**The Phase 4b maintenance window.**~~ **DONE 2026-09-09.**
+Both original prerequisites are now met:
+
+1. ~~**GitHub App install.**~~ **DONE** — `cloudbuild_github_connected = true`,
+   and `hrms-ci-pull-request` has run green.
+2. ~~**The Phase 4b maintenance window.**~~ **DONE 2026-09-09** —
    `hrms-prod-vm@` is attached with the `cloud-platform` scope, and
-   `gcloud secrets versions access latest` was verified working from the VM for
-   both `odoo-db-password` and `odoo-admin-passwd`. So `cloudbuild_cd_enabled`
-   can be set to `true` as soon as item 1 is done.
+   `render_odoo_conf.sh` has been run successfully on the VM.
 
-Until both are done, deploy by hand, on the VM:
+What makes the first deploy different from every later one, and why it deserves
+a chosen moment rather than a merge:
+
+* it moves production from the hand-built `odoo-hrms:latest` onto a
+  **SHA-tagged image with the addons baked in**;
+* it swaps the config source from `./odoo.conf` on disk to
+  **`/dev/shm/odoo.conf`** in tmpfs;
+* `docker compose up -d odoo` **also recreates `odoo-db`**, because its
+  definition changed (healthcheck database name, `POSTGRES_PASSWORD` removed).
+  Confirmed with `docker compose --dry-run`. Postgres data is a bind mount at
+  `./odoo-db-data`, so it survives the container being replaced — this is a
+  restart, not a reinitialisation — but it is a database restart, so pick a
+  quiet window and take a dump first.
+
+Until CD is armed, deploy by hand, on the VM:
 
 ```bash
 gcloud compute ssh tech@odoo-hrms-prod \
