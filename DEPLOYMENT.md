@@ -18,7 +18,7 @@
 > * logs and metrics reach Cloud Logging and Monitoring, and five alert policies
 >   are live and confirmed to deliver;
 > * snapshots run 4-hourly with 30-day retention, and `gs://cleardeals-hrms-backups`
->   exists for logical dumps — though **nothing writes to it on a schedule yet**.
+>   exists for logical dumps, though writing to it is **deferred pending an org-level DR plan**.
 >
 > Secret Manager is reachable from the box, so the only thing still blocking
 > Cloud Build CD is the one-time GitHub App install.
@@ -196,9 +196,23 @@ sudo docker exec odoo-db pg_dump -U odoo odoo_hrms_db | gzip > /tmp/odoo_hrms_$(
 gcloud storage cp /tmp/odoo_hrms_*.sql.gz gs://cleardeals-hrms-backups/
 ```
 
-**Nothing does this automatically yet.** The bucket exists and the VM can write
-to it, but no schedule writes anything, so the only logical dumps are the ones
-somebody takes by hand.
+**Nothing does this automatically, by decision.** Backup automation is
+**deferred pending an organisation-level DR plan** (2026-09-09). The bucket
+exists and the VM can write to it, but no schedule writes anything, so the only
+logical dumps are the ones somebody takes by hand — using the two commands
+above.
+
+Do not add a dump schedule without checking where that DR plan landed: this
+bucket is single-region and in the **same region as the disk it backs up**, and
+a bucket's location cannot be changed, so a geographic-separation requirement
+means a different bucket.
+
+**What that means if you are recovering something right now:** snapshots give
+you the whole disk as of at most 4 hours ago, and nothing else. There is no
+point-in-time restore, no single-table restore, and no way to load the data into
+a different Postgres. If someone reports that specific records were damaged
+rather than that the site is down, take a dump *before* you change anything —
+it is the only artefact that will let you compare.
 
 The VM holds `objectCreator` + `objectViewer` on that bucket and deliberately
 **not** `objectAdmin`: it can write and verify its own backups but cannot delete

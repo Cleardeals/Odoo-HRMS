@@ -1505,14 +1505,45 @@ with "Invalid for_each argument". HRMS has one writer, already created, so the
 resource attribute is referenced directly — simpler, and it yields a real
 dependency edge instead of a declared one.
 
-**STILL MISSING, and this is the important part: nothing writes to this bucket.**
-Creating it does not create backups, and an empty backups bucket is worse than
-none because it reads as solved. There is no scheduled `pg_dump` on this host —
-the only logical dump that exists was taken by hand before the 4b window. Until
-something writes here on a schedule *and* an alert fires when the newest object
-gets too old (the same shape as P2b), recovery for anything finer than a
-whole-disk rollback is still "somebody remembered". Phase 8 as scoped is
-complete; the backup *story* is not.
+**Nothing writes to this bucket, and that is now a recorded decision rather
+than an omission.**
+
+**DEFERRED 2026-09-09** at the operator's direction, pending an
+organisation-level DR plan then under discussion. The automation is explicitly
+out of scope until that lands, and should not be added without checking where it
+landed.
+
+Deferring is the right order rather than building now and adjusting later. This
+bucket is **single-region US-CENTRAL1, the same region as the disk it backs
+up** — the first thing a DR review tends to reject. A GCS bucket's location is
+**immutable**, so a geographic-separation requirement means a *new* bucket and
+migrating anything already written. Cadence, retention, whether the 759 MB
+filestore is included, and whether backups belong in this project at all are the
+same class of question. Building a dump pipeline against this bucket first would
+create work to undo.
+
+**So state the recovery position honestly, because it is an input to that
+discussion, not an output of it:**
+
+| | Today |
+| --- | --- |
+| Worst-case data loss (RPO) | **≤ 4 h** — crash-consistent disk snapshots |
+| Whole-VM recovery | Attach the boot disk to a new instance (`auto_delete = false`) |
+| Point-in-time restore | **Not possible** |
+| Partial / single-table restore | **Not possible** |
+| Restore into a different Postgres | **Not possible** |
+| Recovery from logical corruption found late | **Only within 30 days**, and only by rolling the whole disk back |
+| Backup geographic separation | **None** — snapshots and bucket are both in the disk's region |
+| Detection if backups stop | Snapshots: **yes**, P2b. Logical dumps: **n/a, none exist** |
+
+The gap that matters is the middle three rows. A crash-consistent snapshot
+answers "the machine died"; it does not answer "a bad import at 14:20 corrupted
+the payroll table", which is the more likely incident in an HR system.
+
+When unblocked, the shape is a dump-and-upload script, a systemd timer, a
+log-based metric on successful uploads, and a staleness alert built exactly like
+P2b — a backup job that silently stops is the same failure as a snapshot
+schedule that silently stops.
 
 ---
 

@@ -93,13 +93,33 @@ resource "google_storage_bucket_iam_member" "backup_read" {
 
 # ── TWO GAPS, RECORDED SO THEY ARE NOT MISTAKEN FOR DONE ─────────────────────
 #
-# 1. NOTHING WRITES TO THIS BUCKET YET. Creating it does not create backups, and
-#    an empty backups bucket is worse than none: it reads as solved. There is no
-#    scheduled `pg_dump` on this host — the only logical dump taken so far was
-#    by hand, before the Phase 4b window. Until something writes here on a
-#    schedule AND an alert fires when the newest object gets too old (the same
-#    shape as monitoring.tf's P2b), the recovery story for anything finer than
-#    a whole-disk rollback is still "somebody remembered".
+# 1. NOTHING WRITES TO THIS BUCKET, AND THAT IS A DECISION, NOT AN OVERSIGHT.
+#
+#    DEFERRED 2026-09-09, pending an organisation-level DR plan that was under
+#    discussion when this was written. Do not "fix" this by adding a dump
+#    schedule without checking where that landed.
+#
+#    The state to be aware of meanwhile: creating this bucket did not create any
+#    backups. It is EMPTY. The only logical dump that exists was taken by hand
+#    before the Phase 4b window. Recovery today rests entirely on the 4-hourly
+#    disk snapshots, which are crash-consistent — so there is no point-in-time
+#    restore, no partial restore, and no way to load the data into a different
+#    Postgres.
+#
+#    WHY DEFERRING IS THE RIGHT ORDER, rather than building the pipeline now and
+#    adjusting later: this bucket is single-region US-CENTRAL1, the same region
+#    as the disk it backs up. If the DR plan requires geographic separation — and
+#    a same-region backup of a same-region disk is the first thing such a review
+#    tends to reject — then the LOCATION has to change, and a GCS bucket's
+#    location is IMMUTABLE. That means a new bucket, and anything already
+#    written here would have to be migrated. Cadence, retention, whether the
+#    759 MB filestore is included, and whether backups belong in this project at
+#    all are all the same kind of question.
+#
+#    When it is unblocked, the shape is: a dump-and-upload script, a systemd
+#    timer, a log-based metric on successful uploads, and a staleness alert built
+#    exactly like monitoring.tf's P2b — because a backup job that silently stops
+#    is the same failure as a snapshot schedule that silently stops.
 #
 # 2. Legacy GCS bindings still give any project Editor `legacyObjectOwner` on
 #    this bucket, which includes delete. So the no-delete property above holds
