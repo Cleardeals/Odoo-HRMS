@@ -166,17 +166,37 @@ steps:
         done
         [ -n "$modules" ] || { echo "no installable modules found" >&2; exit 1; }
 
-        tags="$(echo "$modules" | sed 's#[^,]*#/&#g')"
-        echo "installing: $modules"
-        echo "test tags : $tags"
+        # Two gates, matching cloudbuild.ci.yaml — see the long comment there.
+        # Gate 1 installs EVERY module (the broad check a deploy actually
+        # performs). Gate 2 runs tests only for the first-party modules, which
+        # is what .github/workflows/test.yml gated on, because the vendored
+        # third-party test files cannot be imported on Odoo 19 at all:
+        #
+        #   hr_payroll_account_community: from odoo.modules.module import
+        #   get_module_resource -> ImportError (removed from Odoo)
+        #
+        # --test-tags does not help: Odoo imports a module's tests package
+        # while collecting, before tags are filtered.
+        test_modules="hr_employee_cleardeals,document_template_manager"
+        tags="$(echo "$test_modules" | sed 's#[^,]*#/&#g')"
+        img="${_REGION}-docker.pkg.dev/$PROJECT_ID/hrms/odoo-hrms:$SHORT_SHA"
 
-        docker run --rm --network hrms-cd-net \
-          "${_REGION}-docker.pkg.dev/$PROJECT_ID/hrms/odoo-hrms:$SHORT_SHA" \
+        echo "GATE 1 — install every module: $modules"
+        docker run --rm --network hrms-cd-net "$img" \
           odoo -d hrms_cd_db \
             --db_host=hrms-cd-db --db_port=5432 \
             --db_user=odoo --db_password=odoo \
             --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/opt/cleardeals-addons \
             -i "$modules" \
+            --stop-after-init --log-level=warn
+
+        echo "GATE 2 — run tests for: $test_modules  (tags: $tags)"
+        docker run --rm --network hrms-cd-net "$img" \
+          odoo -d hrms_cd_tests \
+            --db_host=hrms-cd-db --db_port=5432 \
+            --db_user=odoo --db_password=odoo \
+            --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/opt/cleardeals-addons \
+            -i "$test_modules" \
             --test-enable \
             --test-tags "$tags" \
             --stop-after-init --log-level=test

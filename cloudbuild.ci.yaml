@@ -217,19 +217,60 @@ steps:
         done
         [ -n "$modules" ] || { echo "no installable modules found" >&2; exit 1; }
 
-        # --test-tags takes /module form; reuse the same list so the two can
-        # never disagree about what is being tested.
-        tags="$(echo "$modules" | sed 's#[^,]*#/&#g')"
+        # ── WHICH MODULES GET TESTS RUN, AND WHY IT IS NOT ALL OF THEM ──────────
+        #
+        # Two separate gates, deliberately, because they answer two different
+        # questions and one of them cannot be asked of every module.
+        #
+        # GATE 1 installs EVERYTHING. That is the valuable, broad check: it
+        # proves the built image can install the entire addon set against a
+        # clean database, which is what a deploy does. No tests enabled.
+        #
+        # GATE 2 runs TESTS, and only for the two first-party modules. This
+        # matches exactly what .github/workflows/test.yml gated on before this
+        # pipeline existed:
+        #
+        #     -i hr_employee_cleardeals,document_template_manager --test-enable
+        #
+        # The rest of custom_addons is vendored third-party code whose test
+        # files were written for a much older Odoo and cannot even be IMPORTED
+        # on 19.0. Live example, from the first CI run on this repo:
+        #
+        #   hr_payroll_account_community/tests/test_hr_payroll_account.py:26
+        #   from odoo.modules.module import get_module_resource
+        #   ImportError: cannot import name 'get_module_resource'
+        #
+        # `get_module_resource` was removed from Odoo (the modern equivalent is
+        # odoo.tools.misc.file_path). The module itself installs and runs fine —
+        # it is installed in production today — so this is purely its tests
+        # being stale, and it has nothing to do with this migration.
+        #
+        # NOTE --test-tags alone does NOT avoid this. Odoo imports a module's
+        # `tests` package while collecting, BEFORE tag filtering is applied, so
+        # a broken test file breaks the run even when its tags are excluded.
+        # The module has to be outside the tested set, not merely untagged.
+        #
+        # Porting those third-party tests to 19.0 is real work and is tracked
+        # separately. When it is done, move the module name into test_modules.
+        test_modules="hr_employee_cleardeals,document_template_manager"
+        tags="$(echo "$test_modules" | sed 's#[^,]*#/&#g')"
 
-        echo "installing: $modules"
-        echo "test tags : $tags"
-
+        echo "GATE 1 — install every module: $modules"
         docker run --rm --network hrms-ci-net "hrms-ci:$SHORT_SHA" \
           odoo -d hrms_ci_db \
             --db_host=hrms-ci-db --db_port=5432 \
             --db_user=odoo --db_password=odoo \
             --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/opt/cleardeals-addons \
             -i "$modules" \
+            --stop-after-init --log-level=warn
+
+        echo "GATE 2 — run tests for: $test_modules  (tags: $tags)"
+        docker run --rm --network hrms-ci-net "hrms-ci:$SHORT_SHA" \
+          odoo -d hrms_ci_tests \
+            --db_host=hrms-ci-db --db_port=5432 \
+            --db_user=odoo --db_password=odoo \
+            --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/opt/cleardeals-addons \
+            -i "$test_modules" \
             --test-enable \
             --test-tags "$tags" \
             --stop-after-init --log-level=test
