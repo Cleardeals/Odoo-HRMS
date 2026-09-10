@@ -471,14 +471,49 @@ today is that **read-only diagnostics require root**: `docker compose logs`,
 `docker compose ps` and `docker compose exec` all fail without it. That is a bad
 property at 3am, when the thing you want is to look without changing anything.
 
-So: skip Compose for inspection. `docker-compose.yml` pins `container_name:` on
-all three services (`traefik`, `odoo-db`, `odoo-app`), so `docker exec` and
-`docker logs` by name need no working directory, no `.env`, and no sudo. Prefer
-them in runbooks and scripts — they do not depend on a directory a later phase
-might move again, or on a file mode a later deploy might tighten.
+**Third, no human is in the `docker` group, so everything needs `sudo` anyway.**
+Skip Compose and you hit the next boundary:
+
+```
+permission denied while trying to connect to the Docker daemon socket
+at unix:///var/run/docker.sock
+```
+
+**This is correct, and must not be "fixed".** Membership of the `docker` group is
+equivalent to root: anyone in it can `docker run -v /:/host` and read or rewrite
+the entire filesystem, with no sudo and no audit trail. The group is deliberately
+empty of humans, and root via `sudo` — which OS Login grants through
+`roles/compute.osAdminLogin` and which is logged — is the intended path. It
+matches the pipeline: Cloud Build SSHes in and runs `sudo bash
+scripts/deploy.sh`, never bare `docker`.
+
+So the working commands all take `sudo`, and the useful choice is *which* tool:
+
+```bash
+sudo docker exec odoo-app ps auxf          # no working directory, no .env
+sudo docker compose exec odoo ps auxf      # needs the cd, and reads .env
+```
+
+Prefer the first in runbooks and scripts. `docker-compose.yml` pins
+`container_name:` on all three services (`traefik`, `odoo-db`, `odoo-app`), so
+`docker exec` and `docker logs` by name survive both a directory move (Phase 4c
+already did one) and a file mode a later deploy might tighten.
+
+**The lesson is bigger than the commands.** Those three failures are three
+*separate* permission boundaries — a working directory, a file mode, a group
+membership — stacked so that each one hides the next. Fix the first and you
+learn about the second; fix the second and you learn about the third. At no point
+does an error message mention the boundary behind it.
+
+That is the same shape as the OS Login lockout in Part 7, where five independent
+checks all report success because the missing permission sits on a different
+resource. It is why every stage in the plan states a **gate** that has to be
+demonstrated rather than argued: in access control, "there is no reason this
+would fail" is not evidence.
 
 This whole class of friction disappears on GKE: `kubectl logs` has no working
-directory to be wrong about and no dotfile to be unable to read.
+directory to be wrong about, no dotfile to be unable to read, and its permission
+model is one RBAC check that says which resource it denied you.
 
 ```bash
 # the process tree — you should see master + 3 http + 1 cron + 1 gevent
