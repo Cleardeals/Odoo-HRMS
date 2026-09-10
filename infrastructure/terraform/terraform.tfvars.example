@@ -18,8 +18,3 @@ cloudbuild_cd_enabled       = false
 # Optional. Approve rights already ride on roles/editor (see cloudbuild.tf);
 # this is only for granting approval to somebody who is NOT an editor.
 cloudbuild_approvers = []
-
-# Humans who need SSH (login, NOT sudo) into the production VM. Required in
-# ADDITION to roles/compute.osLogin, because the VM has a service account
-# attached — see the comment on humans_actas_prod_vm in iam.tf.
-vm_ssh_users = ["user:you@example.com"]

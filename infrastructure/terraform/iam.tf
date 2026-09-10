@@ -109,49 +109,6 @@ resource "google_service_account_iam_member" "cloudbuild_actas_prod_vm" {
   member             = "serviceAccount:${google_service_account.cloudbuild.email}"
 }
 
-# ── HUMANS NEED THE SAME GRANT TO SSH IN, WHICH PHASE 4B MISSED ───────────────
-#
-# roles/compute.osLogin is NOT sufficient on its own to log into a VM that has a
-# service account attached. The user also needs iam.serviceAccounts.actAs on
-# THAT service account. Phase 4b did both halves of the change that creates the
-# requirement — turned OS Login on, and attached hrms-prod-vm@ — and granted
-# actAs only to Cloud Build, so it locked out the human accounts it was
-# documented as keeping.
-#
-# The failure gives no useful hint at the client. `gcloud compute ssh` reports:
-#
-#   developer2_cleardeals_in@compute.<id>: Permission denied (publickey).
-#
-# which reads like a key problem and is not one. The reason is only visible on
-# the instance, in the guest agent's log:
-#
-#   google_authorized_keys: OS Login user developer2_cleardeals_in does not have
-#   login permission.
-#   google_authorized_keys: Could not grant access to organization user.
-#
-# It is also invisible to the obvious IAM check.
-# instances/<vm>:testIamPermissions reports compute.instances.osLogin as
-# GRANTED, because it is — the missing permission is on a different resource
-# entirely. The authoritative check is the metadata server's own endpoint, run
-# on the VM:
-#
-#   curl -H 'Metadata-Flavor: Google' \
-#     'http://metadata.google.internal/computeMetadata/v1/oslogin/authorize?email=<user>&policy=login'
-#
-# which returned {"success":false} for developer2@ and {"success":true} for
-# tech@ — tech@ only because roles/owner carries actAs everywhere.
-#
-# THIS GRANTS LOGIN, NOT SUDO. Sudo is roles/compute.osAdminLogin and is
-# deliberately still only held by tech@ and hrms-cloudbuild@, matching CRM.
-# Scoped to this one service account rather than granted project-wide, so it
-# conveys nothing about any other identity.
-resource "google_service_account_iam_member" "humans_actas_prod_vm" {
-  for_each           = toset(var.vm_ssh_users)
-  service_account_id = google_service_account.prod_vm.name
-  role               = "roles/iam.serviceAccountUser"
-  member             = each.value
-}
-
 # The same grant on the account the instance runs as TODAY.
 #
 # On the CRM instance this gap cost two failed deploys: granting a permission to
@@ -168,6 +125,14 @@ resource "google_service_account_iam_member" "cloudbuild_actas_default_compute" 
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${google_service_account.cloudbuild.email}"
 }
+
+# NOTE, deliberately not implemented here: a human also needs
+# roles/iam.serviceAccountUser on prod_vm to SSH in under OS Login —
+# compute.osLogin alone is not enough on a VM with an attached service account.
+# No such grant exists, which is why developer2@ currently cannot log in at all.
+# That is an OPEN finding held for auditor review, not an oversight to fix in
+# passing: see "FINDING (OPEN)" in docs/infrastructure_migration_plan.md before
+# adding one.
 
 # ── Letting Cloud Build USE the custom build service account ───────────────────
 #

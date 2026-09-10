@@ -1742,12 +1742,16 @@ explicitly "login, no sudo". It is that the intended state was **unachievable**
 with the roles held, and correcting it requires an IAM change on a resource the
 developer cannot modify: `developer2@` holds no `iam.*` role on this project.
 
-**The remediation is written and deliberately inert.**
-`google_service_account_iam_member.humans_actas_prod_vm` in `iam.tf` iterates
-`var.vm_ssh_users`, which is set to `[]`, so it creates nothing — verified by an
-empty `terraform plan` against live state. Setting it grants **login only**;
-sudo remains `roles/compute.osAdminLogin`, held by `tech@` and
-`hrms-cloudbuild@` alone, matching CRM.
+**No remediation exists in code.** A draft was written and then removed at the
+operator's direction, so nothing in this repository grants a human access to
+production and nothing is one flag away from doing so. `iam.tf` carries only a
+pointer comment back to this finding.
+
+**What the fix would be, when it is approved:** one
+`google_service_account_iam_member` granting `roles/iam.serviceAccountUser` to
+the developer **on `hrms-prod-vm@` specifically** — not project-wide. That
+grants **login only**. Sudo is `roles/compute.osAdminLogin` and would remain
+with `tech@` and `hrms-cloudbuild@` alone, matching CRM.
 
 **CRM is likely to have the identical defect** — same OS Login cutover, same
 attached-service-account pattern, and `serviceAccountUser` granted only to its
