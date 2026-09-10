@@ -62,9 +62,58 @@ Single VM, one Docker Compose stack:
   `db_maxconn = 5`, `proxy_mode = True`, `db_name`/`dbfilter` pinned to
   `odoo_hrms_db`, `list_db = False`.
 
-Data sizes, from the comment in `infrastructure/terraform/storage.tf`:
-**119 MB database, 759 MB filestore** of HR documents (payroll and personnel
-attachments).
+### Measured filestore baseline (2026-09-10, on production)
+
+`storage.tf` records "119 MB database, 759 MB filestore" as of 2026-09-09. Those
+are the right order of magnitude but too coarse to size Stage 2 with, so the
+corpus was measured directly. **These are the numbers Stage 2 plans against.**
+
+```
+filestore on disk        769 MB          sessions on disk     744 KB
+attachment rows          5,489           distinct blobs       4,359
+logical bytes            1,107 MB        → ~30% dedup saving
+largest attachment       6,551 kB        mean attachment      206 kB
+attachments > 10 MB      0               attachments > 50 MB  0
+in db_datas column       0               ir_attachment.location  NOT SET
+top-level dirs           257             = 256 hex scatter + checklist/
+```
+
+Composition, which decides what actually has to move:
+
+| kind | `res_model` / `res_field` | rows | bytes |
+| --- | --- | --- | --- |
+| real documents | `hr.applicant` | 2,052 | **400 MB** |
+| real documents | `hr.employee.document` | 179 | **340 MB** |
+| **regenerable** | `ir.attachment` / `thumbnail` | 1,685 | 40 MB |
+| **regenerable** | `ir.ui.view` (compiled web assets) | 25 | 23 MB |
+| derived variants | `res.partner` / `image_128…1920` | 375 | 590 kB |
+| derived variants | `hr.employee` / `image_128…1920` | 305 | ~95 kB |
+| derived variants | `payment.method` / `image*` | 442 | 702 kB |
+| link attachments | `type = 'url'` | **9** | — |
+
+Four things follow, and each lands somewhere in this plan:
+
+1. **740 of the 769 MB is two models** — applicant CVs and employee documents.
+   Those are the records the migration exists to protect, and the ones whose loss
+   is least recoverable by re-entry.
+2. **~63 MB is regenerable** (thumbnails and compiled asset bundles). It *could*
+   be skipped and left to rebuild. Recommendation: **don't** — migrate
+   everything. Deciding per-row which attachments are safely derived is a new
+   judgement call for 8% of the bytes, and a wrong call is silent data loss.
+   Simpler is provable.
+3. **Nine `type='url'` attachments exist**, so the scoping caveat in §2.2 is not
+   hypothetical — an override that fires on every attachment will break them.
+4. **The largest file is 6.4 MB**, which materially softens the memory argument
+   in §2.2. See the correction there.
+
+Sessions at **744 KB** mean the smallest Memorystore tier is comfortably ample;
+Stage 3 is not a sizing exercise.
+
+*(Aside, noticed while measuring and outside this plan's scope: `hr.applicant`
+holds 2,052 attachments totalling 400 MB — past-candidate CVs, which is the
+category a data-retention policy usually governs. Migrating them is a natural
+moment to ask whether all of them should still exist. Not a migration decision;
+just the right time to raise it.)*
 
 ### Invisible operational state that this migration must not trip over
 
@@ -185,8 +234,25 @@ Two traps in that path:
    miss and the failure only appears on the first download.
 
 If signed URLs are rejected for policy reasons, the fallback is
-`stream.type = 'data'` with the bytes fetched from GCS — correct, but it loads
-each file fully into worker memory, against `limit_memory_hard = 640 MB`.
+`stream.type = 'data'` with the bytes fetched from GCS. That loads each file
+fully into worker memory, against `limit_memory_hard = 640 MB`.
+
+**Corrected 2026-09-10 against measured data — this is less of a risk than it
+first appears.** The concern above was written from the shape of the code, not
+from the corpus. Measured on production:
+
+```
+largest attachment  6,551 kB      mean  206 kB
+over 10 MB: 0        over 50 MB: 0
+```
+
+So the fallback is **safe on today's data** — there is no attachment large
+enough to threaten a worker. Signed URLs remain the better design (bytes never
+traverse a pod, no memory churn on downloads, no egress through the cluster) and
+the recommendation does not change. But the memory argument for them is
+*prospective*, not current, and it should be presented that way rather than as a
+live hazard. It becomes real only if large files start arriving — which is worth
+an alert on `max(file_size)` rather than an assumption either way.
 
 **Scope the override precisely.** `ir.attachment` already has a `type = 'url'`
 kind — an external link, not stored content — with its own handling
@@ -209,8 +275,71 @@ return {
 
 Set `ir_attachment.location = gcs` and this raises `KeyError: 'gcs'`. It is
 called by `force_storage()` (104) — which is precisely the tool needed to
-migrate the existing 759 MB. So the migration tool breaks first, before
+migrate the existing filestore. So the migration tool breaks first, before
 anything else does. `_get_storage_domain` must be overridden.
+
+#### CORRECTION 2026-09-10 — and the fix is not the obvious one
+
+An earlier revision of this section said to override `_get_storage_domain` and
+*"return the same domain as `'file'`"*. **That is wrong, and it would have
+failed silently.** Measured on production:
+
+```sql
+SELECT count(*) FROM ir_attachment WHERE db_datas IS NOT NULL;  -->  0
+```
+
+Every attachment is already on disk; **nothing** is in the `db_datas` column. So
+the `'file'` domain — `[('db_datas', '!=', False)]` — matches **zero rows**.
+`force_storage()` would search, find nothing, migrate nothing, and **return
+successfully**. You would set the parameter, run the migration, see no error, and
+conclude the 769 MB had moved.
+
+Read the dict again and the semantics become clear. The domain answers *"which
+attachments are NOT yet in the current target storage?"* — so each key names the
+column used by the **other** backend:
+
+```python
+'db':   [('store_fname', '!=', False)],   # target is the DB → find the ones in FILES
+'file': [('db_datas',    '!=', False)],   # target is files  → find the ones in the DB
+```
+
+For `'gcs'` the target is GCS, and the things not in GCS are the ones on local
+disk — which are identified by `store_fname`. So the correct override returns the
+**`'db'` key's domain**, not the `'file'` one:
+
+```python
+'gcs': [('store_fname', '!=', False)],
+```
+
+#### The consequence nobody warns you about: this is not resumable
+
+`'db'` and `'file'` work as a pair because they use **different columns**, so the
+domain itself distinguishes migrated from unmigrated. GCS breaks that symmetry:
+it **reuses `store_fname`** — deliberately, per §2.1, so a key means the same
+thing in both worlds.
+
+The cost of that choice is that after a blob moves to GCS, `store_fname` is still
+set, so the domain **still matches it**. There is no column-level way to tell a
+disk blob from a GCS blob.
+
+Which means:
+
+- `force_storage()` under `'gcs'` is **"rewrite everything"**, not "migrate what
+  remains";
+- it is **not idempotent in cost** — re-running re-uploads all 4,359 blobs;
+- and if it dies at 60%, it **cannot tell you where it stopped**.
+
+For 4,359 blobs / 769 MB that is survivable but not acceptable as an operational
+procedure. **Stage 2 must therefore drive the migration with its own batched,
+resumable script that tracks progress explicitly** — not with a bare
+`force_storage()` call. Track it by attachment `id` ranges, or with a small
+migration-state table; either is fine, but the progress marker must exist outside
+`store_fname`.
+
+The alternative — prefixing GCS keys so the domain can distinguish them — trades
+resumability for the "identical in both worlds" property. Not worth it: an
+external progress marker is cheap, and `store_fname` meaning one thing everywhere
+is what keeps the revert path and ad-hoc SQL honest.
 
 ### 2.4 Filestore garbage collection stops completely, and silently
 
@@ -238,8 +367,67 @@ A replacement GC has to respect one subtlety that is easy to miss.
 `sha[:2] + '/' + sha` — so two attachment records with identical content share
 one object. Deleting eagerly on `unlink` will delete a blob another record still
 references. Core avoids this by collecting out-of-band under
-`LOCK ir_attachment IN SHARE MODE`; any replacement must do the equivalent
+`LOCK ir_attachment IN SHARE MODE` (212); any replacement must do the equivalent
 existence check against `store_fname` before removing a blob.
+
+#### Measured 2026-09-10 — the sharing is heavy, so this is not a corner case
+
+This was written as a subtlety. On the real corpus it is the common case:
+
+```
+attachment rows with a store_fname : 5,489
+distinct blobs                     : 4,359
+                                     ------
+shared references                  : 1,130   (21% of all attachments)
+```
+
+And the distribution has a long tail — `count(*)` grouped by `store_fname`:
+
+| attachments sharing one blob | number of blobs |
+| --- | --- |
+| **21** | 2 |
+| 11 | 2 |
+| **10** | 61 |
+| 8 | 1 |
+| 7 | 1 |
+| 5 | 25 |
+| 4 | 15 |
+| 3 | 50 |
+
+**Sixty-one blobs have ten references each, and two have twenty-one.** A naive
+`_file_delete` that deletes the object on unlink would, on those, break up to
+twenty other attachments per deletion — and break them *silently*, surfacing
+weeks later as one employee's document 404ing while the others are fine.
+
+Dedup is also doing real work: `sum(file_size)` is **1,107 MB** logical against
+**769 MB** on disk, so ~30% of the corpus is duplicate content. Worth knowing
+for GCS sizing — you are copying 769 MB, not 1.1 GB.
+
+#### The existing GC is verifiably healthy, so Stage 2 starts from a clean base
+
+Checked rather than assumed, because a migration that begins on an inconsistent
+filestore will faithfully reproduce the inconsistency in GCS:
+
+```
+referenced by an attachment, ABSENT from disk :  0      ← nothing broken
+on disk, referenced by NOTHING                :  9
+pending notes in checklist/                   : 18
+  └─ of those, blob still referenced          :  9      (GC will keep)
+  └─ of those, blob unreferenced              :  9      (GC will delete)
+orphans with NO pending note                  :  0      ← nothing bypassed _file_delete
+```
+
+The arithmetic closes exactly: 18 notes = 9 doomed + 9 spared, and every orphan
+is already queued. `ir_cron` id 1, *"Base: Auto-vacuum internal data"*, is active
+on a daily interval and last ran 21 hours before this measurement.
+
+So the filestore is in textbook steady state, and the algorithm at 222 is
+demonstrably doing what the code says. **Zero missing blobs is the important
+number** — it means Stage 2's migration will not hit a `FileNotFoundError` that
+looks like a bug in the new GCS code but is actually pre-existing damage.
+
+Re-run this check immediately before Stage 2, and treat a non-zero "absent from
+disk" as a blocker rather than something to migrate around.
 
 ### 2.5 The session store has an in-tree reference implementation — with two bugs in it
 
@@ -707,23 +895,56 @@ here** — unlike the backups bucket, this one genuinely needs delete for GC. Ad
 `roles/iam.serviceAccountTokenCreator` on itself if signed URLs are used
 (§2.2).
 
-Then, in order: set `ir_attachment.location = gcs`, verify a *new* upload lands
-in GCS and downloads, and only then migrate the existing 759 MB with
-`force_storage()` — **in batches**, because core's `_migrate` (116) rewrites
-every record in one transaction, and 759 MB of `attach.write({'raw': ...})` in a
-single transaction on a 4 GB box with a 640 MB hard memory limit will not
-finish.
+Then, in order:
+
+1. **Re-run the consistency check from §2.4 as a pre-flight.** "Referenced but
+   absent from disk" must be **0**. It was 0 on 2026-09-10. A non-zero value is
+   a blocker, not something to migrate around — those rows would fail mid-run and
+   look like a bug in the new code.
+2. **Set `ir_attachment.location = gcs`.** The parameter does not currently
+   exist (confirmed: `SELECT ... WHERE key = 'ir_attachment.location'` returns 0
+   rows), so this is a create, and deleting the row is the revert.
+3. **Verify one new upload** lands in GCS *and* downloads, before touching
+   anything historical.
+4. **Then migrate the existing 4,359 blobs / 769 MB** — with a **batched,
+   resumable script, not a bare `force_storage()`**. Two independent reasons:
+   - core's `_migrate` (116) rewrites every matched record in **one
+     transaction**, and 769 MB of `attach.write({'raw': ...})` in a single
+     transaction on a 4 GB box under a 640 MB hard memory limit will not finish;
+   - under `'gcs'` the storage domain cannot distinguish migrated from
+     unmigrated, so `force_storage()` is not resumable and cannot report
+     progress — see the correction in §2.3. The progress marker has to live
+     outside `store_fname`.
 
 **Reversibility, stated precisely because it is easy to get wrong:** flipping
 the parameter back to `file` is instant and affects only *new* writes.
 Attachments written to GCS while it was on have no local file, so a real revert
-means running the migration in reverse. The flag is not a rollback on its own.
+means running the migration in reverse. The flag is not a rollback on its own —
+it is a stop-the-bleeding move.
 
-**Gate:** upload, download, and PDF report generation all work; `force_storage`
-completes with zero attachments left holding `db_datas`; the count of distinct
-`store_fname` values in `ir_attachment` equals the object count in the bucket;
-and a delete followed by the new GC actually removes the blob while leaving a
-shared blob alone.
+**Gate**, with the numbers to check against (re-measure first; these are
+2026-09-10):
+
+| check | expected |
+| --- | --- |
+| objects in the bucket | **4,359**, matching `count(DISTINCT store_fname)` |
+| bytes in the bucket | **~769 MB**, *not* 1,107 MB — dedup means blobs, not rows |
+| referenced blobs absent from GCS | **0** |
+| a new upload → download → PDF report | all work |
+| a `type='url'` attachment (9 exist) | still resolves, untouched by the override |
+| delete one attachment sharing a 10-reference blob | GC leaves the blob alone |
+| delete the last reference to a blob | GC removes it |
+| `virtual memory limit reached` in the container log | still absent (§2.15) |
+
+The last two are the ones that actually matter, and they need a **deliberately
+constructed** case rather than whatever happens to be to hand: pick one of the
+61 blobs with ten references, delete one referencing attachment, and prove the
+other nine still download. That is the §2.4 hazard, tested rather than trusted.
+
+Do not accept "the bucket has about the right number of objects" as the byte
+gate. 1,107 MB versus 769 MB is exactly the discrepancy that dedup produces, and
+a migration that wrote 1,107 MB would mean the content-addressed key shape had
+been broken — i.e. every blob written once per referencing row.
 
 ### Stage 3 — Memorystore Redis sessions, still on the VM
 

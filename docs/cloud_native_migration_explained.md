@@ -291,8 +291,36 @@ Think of a library that shelves books by a fingerprint of their text rather than
 by title. Two copies of the same book are one physical book with two catalogue
 cards. Deduplication for free.
 
-But now: **deleting a catalogue card must not burn the book.** Nine other cards
-still point at it.
+**And this is not a thought experiment — it's your data.** Measured on
+production, 2026-09-10:
+
+```
+attachment rows with a blob : 5,489
+distinct blobs              : 4,359
+                              ------
+shared references           : 1,130   (21% of all attachments)
+
+logical bytes (sum file_size) : 1,107 MB
+actual bytes on disk          :   769 MB   → dedup is saving ~30%
+```
+
+And grouped by how many attachments share each blob:
+
+| attachments per blob | blobs |
+| --- | --- |
+| **21** | 2 |
+| 11 | 2 |
+| **10** | 61 |
+| 5 | 25 |
+| 4 | 15 |
+| 3 | 50 |
+
+I picked "ten employees" as an illustration before measuring. There are
+literally sixty-one blobs shared by exactly ten attachments, and two shared by
+twenty-one.
+
+So now: **deleting a catalogue card must not burn the book.** On those
+twenty-one-reference blobs, twenty other cards still point at it.
 
 Odoo solves this with a two-step dance. Look at `_file_delete`
 (`ir_attachment.py:173`):
@@ -332,6 +360,50 @@ a new reference to a blob while it's being judged.
 
 Understand these fifteen lines and you understand exactly what Part 5.1 has to
 rebuild for GCS — and exactly why "just delete the object on unlink" is wrong.
+
+### 1.5b Watching the garbage collector work
+
+Here is the nicest thing in this whole document, because it turns the algorithm
+above from a story into arithmetic you can check.
+
+Reading the code gives a prediction. If `_file_delete` only ever *writes a note*,
+and the GC deletes only unreferenced blobs, then at any moment:
+
+> every orphaned file on disk should have a pending note in `checklist/`, and the
+> notes should split cleanly into "still referenced" (which GC will spare) and
+> "unreferenced" (which GC will delete).
+
+Measured on production, 2026-09-10:
+
+```
+referenced by an attachment, ABSENT from disk :  0
+on disk, referenced by NOTHING (orphans)      :  9
+pending notes in checklist/                   : 18
+  ├─ note's blob still referenced             :  9   → GC will keep
+  └─ note's blob unreferenced                 :  9   → GC will delete
+orphans with NO pending note                  :  0
+```
+
+**18 = 9 + 9, and the orphan set is entirely inside the note set.** The
+prediction held to the number. `ir_cron` id 1, *"Base: Auto-vacuum internal
+data"*, is active on a daily schedule and last ran 21 hours earlier — so those
+18 notes are simply one day's churn awaiting the next sweep.
+
+Two things worth taking from that:
+
+- **The mechanism is real and healthy.** You are not reading aspirational code;
+  it is running, and its bookkeeping balances.
+- **Zero missing blobs is the number that matters for Stage 2.** Every
+  attachment that claims a file has one. So when the migration runs, a
+  `FileNotFoundError` would mean the *new* code is wrong — not that it inherited
+  pre-existing damage. Starting from a provably consistent base is what makes
+  the migration's own failures interpretable.
+
+That second point is a general habit worth stealing: before you migrate
+something, measure whether it is internally consistent. Otherwise the first bug
+you hit will be someone else's, and you will spend a day owning it.
+
+You can re-run all of it yourself; the queries are in §1.10.
 
 ### 1.6 Where sessions go, and what a session actually is
 
@@ -1058,7 +1130,29 @@ break link attachments and the `db_datas` path, neither of which involves GCS.
 
 If policy forbids signed URLs, the fallback is `stream.type = 'data'` with bytes
 fetched from GCS. Correct, but it loads each file fully into worker memory
-against `limit_memory_hard = 640 MB`. A 200 MB attachment kills the worker.
+against `limit_memory_hard = 640 MB`.
+
+**I overstated this, and the data says so.** An earlier draft warned that "a
+200 MB attachment kills the worker." True in principle; irrelevant here.
+Measured:
+
+```
+largest attachment  6,551 kB      mean  206 kB
+over 10 MB: 0        over 50 MB: 0
+```
+
+The biggest thing in the corpus is 6.4 MB. The fallback is **safe on today's
+data**, and I should have checked before reaching for a scary number.
+
+Signed URLs are still the better design — bytes never traverse a pod, no memory
+churn, no cluster egress — so the recommendation doesn't change. But the honest
+argument for them is *architectural*, not "otherwise it falls over." The memory
+case becomes real only if large files start arriving, which is a reason to alert
+on `max(file_size)` rather than to assume either way.
+
+Worth noticing as a habit: a plausible mechanism plus an invented magnitude
+reads exactly like a measured finding. The mechanism was right. The magnitude
+was decoration.
 
 #### The `KeyError` in the migration tool
 
@@ -1074,10 +1168,68 @@ return {
 Two keys. Set `ir_attachment.location = gcs` and this raises `KeyError: 'gcs'`.
 
 The joke is that the caller is `force_storage()` (line 104) — the tool for
-migrating the existing 759 MB. So the migration tool breaks *first*, before
-anything user-facing does. Override `_get_storage_domain` and return the same
-domain as `'file'`: "find everything whose bytes are in the database column, and
-move it."
+migrating the existing 769 MB. So the migration tool breaks *first*, before
+anything user-facing does.
+
+#### And the obvious fix is also wrong
+
+An earlier draft of this said: *"Override `_get_storage_domain` and return the
+same domain as `'file'`."* That sounds right. We're moving off files, so use the
+file domain.
+
+It is wrong, and it fails in the worst possible way — **silently, reporting
+success.** Measured:
+
+```sql
+SELECT count(*) FROM ir_attachment WHERE db_datas IS NOT NULL;  -->  0
+```
+
+The `'file'` domain is `[('db_datas', '!=', False)]`, and **nothing** on this
+system has `db_datas`. Every attachment is already on disk. So `force_storage()`
+would search, match zero rows, migrate nothing, and return cleanly. You'd flip
+the parameter, run the migration, see no error, and believe 769 MB had moved.
+
+Read the dict once more and the actual semantics appear:
+
+```python
+'db':   [('store_fname', '!=', False)],   # target is the DB → find the ones in FILES
+'file': [('db_datas',    '!=', False)],   # target is files  → find the ones in the DB
+```
+
+The domain answers **"what is not yet in the target?"** — so each key names the
+*other* backend's column. For `'gcs'`, the target is GCS, and what isn't in GCS
+is what's on local disk, identified by `store_fname`. So the correct answer is
+the **`'db'` key's domain**:
+
+```python
+'gcs': [('store_fname', '!=', False)],
+```
+
+I had the direction of the question backwards. Worth dwelling on for a second,
+because the mistake is instructive: I read the dict as *"where the data is"* when
+it means *"where the data isn't yet."* Both readings produce sensible-looking
+code, and only one of them migrates your files.
+
+#### A consequence that only shows up at 60%
+
+`'db'` and `'file'` work as a pair because they use **different columns**, so the
+domain itself tells you what's already done.
+
+GCS breaks that. It **reuses `store_fname`** — deliberately, so that a key means
+the same thing whether the blob is on disk or in a bucket. That's a property
+worth having (revert paths and ad-hoc SQL stay honest), but it costs you
+something: after a blob moves to GCS, `store_fname` is *still set*, so the domain
+**still matches it.** There is no column that distinguishes a disk blob from a
+GCS blob.
+
+Which means `force_storage()` under `'gcs'` is **"rewrite everything"**, not
+"migrate what's left." Re-running re-uploads all 4,359 blobs. And if it dies
+partway, it cannot tell you where.
+
+For 769 MB that's survivable, but it isn't an operational procedure. **Stage 2
+needs its own batched, resumable script with an explicit progress marker** —
+tracked by attachment `id` range or in a small state table. Anywhere except
+`store_fname`.
 
 #### The garbage collector, which stops silently
 
@@ -1664,8 +1816,15 @@ readable in `odoo/`. Go check them; that's what the line numbers are for.
 10. **Do one thing at a time.** Four changes at once means four suspects and no
     rollback that isn't also four changes. Prove GCS, Redis and Cloud SQL on the
     VM. GKE last.
-11. **Measure the running system, don't reason about it.** `ps auxf` answered a
-    question the source didn't (`argv[1] == 'gevent'`) and produced a finding
-    nobody was looking for (workers at 91% of `limit_memory_soft`, with Stage 1
-    about to add two libraries). Both came from one command. Neither was
-    derivable from reading.
+11. **Measure the running system, don't reason about it.** Reading the source got
+    the mechanisms right and three quantities wrong. `ps auxf` answered a
+    question the code didn't (`argv[1] == 'gevent'`) and found workers sitting at
+    91% of `limit_memory_soft` just as Stage 1 was about to add two libraries.
+    Six SQL queries then corrected a wrong prescription (the storage domain
+    asks *"what isn't in the target yet"*, so `'gcs'` needs the `'db'` domain,
+    not the `'file'` one — the obvious choice matches zero rows and reports
+    success), deflated an invented magnitude (largest attachment 6.4 MB, not the
+    "200 MB" I reached for), and turned the shared-blob hazard from a caveat into
+    61 blobs with ten references and two with twenty-one. None of it was
+    derivable from reading, and the plan was wrong in a load-bearing way until
+    somebody ran a query.
