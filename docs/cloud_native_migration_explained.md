@@ -449,11 +449,36 @@ cd /opt/odoo-hrms
 until the move is fully settled, so if `/opt/odoo-hrms` is ever absent, look
 there.
 
-The alternative is to skip Compose entirely. `docker-compose.yml` pins
-`container_name:` on all three services (`traefik`, `odoo-db`, `odoo-app`), so
-plain `docker exec odoo-app ...` works from any directory. Prefer that in
-scripts: it does not depend on a working directory that a later phase might move
-again.
+**Second, `.env` is root-only, so Compose needs `sudo` even to read.** After the
+`cd` you will hit:
+
+```
+open /opt/odoo-hrms/.env: permission denied
+```
+
+`scripts/deploy.sh` writes `.env` through `mktemp` + `chmod 600` while running as
+root under sudo, so it ends up `root:root` mode 600. The Compose *client* reads
+that file on your behalf — it has to, in order to resolve
+`image: ${ODOO_IMAGE:-odoo-hrms:latest}` — before it ever contacts the daemon. So
+this is a plain file-read error, not a Docker permission problem, and belonging
+to the `docker` group does not help.
+
+Worth sitting with for a second, because it is a real operational defect rather
+than a quirk. `.env` holds exactly one line —
+`ODOO_IMAGE=<registry>/hrms/odoo-hrms:<sha>` — which is **not a secret**. The 600
+is a reasonable precaution for a file that might one day hold one. But the effect
+today is that **read-only diagnostics require root**: `docker compose logs`,
+`docker compose ps` and `docker compose exec` all fail without it. That is a bad
+property at 3am, when the thing you want is to look without changing anything.
+
+So: skip Compose for inspection. `docker-compose.yml` pins `container_name:` on
+all three services (`traefik`, `odoo-db`, `odoo-app`), so `docker exec` and
+`docker logs` by name need no working directory, no `.env`, and no sudo. Prefer
+them in runbooks and scripts — they do not depend on a directory a later phase
+might move again, or on a file mode a later deploy might tighten.
+
+This whole class of friction disappears on GKE: `kubectl logs` has no working
+directory to be wrong about and no dotfile to be unable to read.
 
 ```bash
 # the process tree — you should see master + 3 http + 1 cron + 1 gevent
