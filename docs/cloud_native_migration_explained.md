@@ -434,27 +434,61 @@ Don't lose these in the migration. They were expensive:
 
 ### 1.10 Go and look yourself
 
-Don't take my word for any of it:
+Don't take my word for any of it.
+
+**First, `cd`.** `docker compose` reads `docker-compose.yml` from the *current
+directory*, and your shell starts in your home directory. Every `docker compose`
+command below fails with `no configuration file provided: not found` unless you
+move to the app directory first — which Phase 4c moved to `/opt/odoo-hrms`:
+
+```bash
+cd /opt/odoo-hrms
+```
+
+`scripts/deploy.sh` still carries a fallback to the old `/home/tech/odoo-project`
+until the move is fully settled, so if `/opt/odoo-hrms` is ever absent, look
+there.
+
+The alternative is to skip Compose entirely. `docker-compose.yml` pins
+`container_name:` on all three services (`traefik`, `odoo-db`, `odoo-app`), so
+plain `docker exec odoo-app ...` works from any directory. Prefer that in
+scripts: it does not depend on a working directory that a later phase might move
+again.
 
 ```bash
 # the process tree — you should see master + 3 http + 1 cron + 1 gevent
-docker compose exec odoo ps auxf
+docker exec odoo-app ps auxf
 
 # where the files really are, and the content-addressed names
-docker compose exec odoo ls /var/lib/odoo/filestore/odoo_hrms_db | head
+docker exec odoo-app ls /var/lib/odoo/filestore/odoo_hrms_db | head
 
 # the cloakroom
-docker compose exec odoo ls /var/lib/odoo/sessions | head
+docker exec odoo-app ls /var/lib/odoo/sessions | head
 
 # how many routers Traefik knows about — a healthy HRMS stack reports 5,
 # and ZERO is the signature of the February outage
 curl -s http://127.0.0.1:8080/api/rawdata | python3 -c \
   'import json,sys; print(len(json.load(sys.stdin)["routers"]))'
 
-# prove the deduplication of §1.5 with SQL
-#   rows vs. distinct blobs — the gap is the dedup
-SELECT count(*) AS rows, count(DISTINCT store_fname) AS blobs FROM ir_attachment;
+# prove the deduplication of §1.5 — rows vs. distinct blobs.
+# If `blobs` is lower than `rows`, the gap IS the content-addressed dedup,
+# and it is exactly the number of attachments that would break if a naive
+# _file_delete removed a blob on unlink (§4.1).
+docker exec odoo-db psql -U odoo -d odoo_hrms_db -c \
+  'SELECT count(*) AS rows,
+          count(DISTINCT store_fname) AS blobs
+     FROM ir_attachment
+    WHERE store_fname IS NOT NULL;'
+
+# and the same number from the other side: how many files are actually on disk
+docker exec odoo-app find /var/lib/odoo/filestore/odoo_hrms_db \
+  -type f -not -path '*/checklist/*' | wc -l
 ```
+
+Those last two are worth running **before** Stage 2, not just for interest. The
+`blobs` count is the number of objects the migration has to create in GCS, and
+the disk count should match it. If it does not, something in the filestore is
+already inconsistent and Stage 2 would carry that forward.
 
 ---
 
