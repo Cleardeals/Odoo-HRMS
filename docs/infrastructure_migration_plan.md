@@ -1679,6 +1679,82 @@ database and P1 reports it externally.
 
 ---
 
+### FINDING (OPEN — for auditor review) — OS Login locked out the developer account
+
+**Raised 2026-09-09. Deliberately NOT remediated**, at the operator's direction,
+so the auditors see the problem as it occurred.
+
+**Symptom.** After Phase 4b, `developer2@` — the sole developer — cannot SSH to
+production at all. Not "without sudo", which was the documented and accepted
+outcome: no access whatsoever.
+
+```
+$ gcloud compute ssh developer2@odoo-hrms-prod --tunnel-through-iap
+developer2_cleardeals_in@compute.2765489493182904909: Permission denied (publickey).
+```
+
+**Cause.** `roles/compute.osLogin` is **not sufficient on its own** to log into a
+VM that has a service account attached. The user additionally needs
+`iam.serviceAccounts.actAs` on **that service account**. Phase 4b did both halves
+of the change that creates this requirement — enabled OS Login, and attached
+`hrms-prod-vm@` — and granted `actAs` only to the Cloud Build service account.
+The human accounts the phase was documented as preserving were locked out as a
+side effect.
+
+**Why it was not caught.** Every obvious check reports that access is fine:
+
+| Check | Reports |
+| --- | --- |
+| `instances/<vm>:testIamPermissions` as developer2@ | `compute.instances.osLogin` **GRANTED** |
+| OS Login POSIX profile | exists — `developer2_cleardeals_in`, uid 1118974338 |
+| Registered SSH key | present, no expiry |
+| NSS on the host (`getent passwd`) | resolves the user |
+| IAP tunnel | connects — the denial comes from `sshd`, not the tunnel |
+
+The missing permission is on a **different resource** — the service account, not
+the instance — so an instance-scoped permission check cannot see it, and the
+client-side error blames a public key that is not the problem.
+
+**The two authoritative checks**, both run on the VM:
+
+```
+# guest agent log
+google_authorized_keys: OS Login user developer2_cleardeals_in does not have login permission.
+google_authorized_keys: Could not grant access to organization user: developer2_cleardeals_in.
+
+# the metadata endpoint the guest agent actually consults
+curl -H 'Metadata-Flavor: Google' \
+  'http://metadata.google.internal/computeMetadata/v1/oslogin/authorize?email=<user>&policy=login'
+
+  developer2@  -> {"success":false}
+  tech@        -> {"success":true}     # only because roles/owner carries actAs everywhere
+  developer1@  -> NOT_FOUND: No POSIX profile found  # has never logged in
+```
+
+**Current holders of `serviceAccountUser` on `hrms-prod-vm@`:**
+`hrms-cloudbuild@` only. No human. `tech@` reaches it solely via `roles/owner`.
+
+**Why this belongs in the access request.** It is the sharpest illustration of
+the standing problem: the only technical operator cannot reach production
+without borrowing an Owner account that is scheduled to be retired. This is not
+a disagreement about how much privilege is appropriate — the intended state was
+explicitly "login, no sudo". It is that the intended state was **unachievable**
+with the roles held, and correcting it requires an IAM change on a resource the
+developer cannot modify: `developer2@` holds no `iam.*` role on this project.
+
+**The remediation is written and deliberately inert.**
+`google_service_account_iam_member.humans_actas_prod_vm` in `iam.tf` iterates
+`var.vm_ssh_users`, which is set to `[]`, so it creates nothing — verified by an
+empty `terraform plan` against live state. Setting it grants **login only**;
+sudo remains `roles/compute.osAdminLogin`, held by `tech@` and
+`hrms-cloudbuild@` alone, matching CRM.
+
+**CRM is likely to have the identical defect** — same OS Login cutover, same
+attached-service-account pattern, and `serviceAccountUser` granted only to its
+build account. Untested.
+
+---
+
 ## 4. Change manifest
 
 **New**

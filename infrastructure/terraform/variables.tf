@@ -137,3 +137,25 @@ variable "public_host" {
   EOT
   default     = "hr.cleardeals.xyz"
 }
+
+# Human principals who must be able to SSH into the production VM.
+#
+# roles/compute.osLogin alone does NOT grant login on a VM with an attached
+# service account — iam.serviceAccounts.actAs on that service account is also
+# required. See the long comment on humans_actas_prod_vm in iam.tf; Phase 4b
+# missed this and locked out the accounts it was documented as keeping.
+#
+# Fully-qualified members ("user:someone@example.com" or "group:..."), because
+# this repository is PUBLIC and no address belongs in it — the real values live
+# in the gitignored terraform.tfvars.
+#
+# A GROUP is the better long-term answer: membership then changes without a
+# Terraform apply. Listed as users here because no suitable group exists yet.
+#
+# NOTE this grants LOGIN only. Sudo is roles/compute.osAdminLogin and is
+# deliberately not included.
+variable "vm_ssh_users" {
+  description = "Members granted actAs on the VM service account so OS Login works. Login only, not sudo."
+  type        = list(string)
+  default     = []
+}
