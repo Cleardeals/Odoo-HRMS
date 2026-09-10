@@ -349,11 +349,42 @@ On GKE that leaves two shapes:
   the same split the compose labels already encode, and it is the one that makes
   HPA meaningful.
 
-**(b) is the recommendation**, with one thing to establish in Stage 1 rather
-than assume: `odoo/cli/` has no `gevent` subcommand, so the exact supported way
-to start `GeventServer` standalone must be read out of
-`odoo/_monkeypatches/site.py` and confirmed against the `odoo:19.0` image's own
-entrypoint before the manifests are written.
+**(b) is the recommendation**, and the mechanism for starting the `bus`
+Deployment is now **verified** rather than open. It was resolved by reading
+`ps auxf` on the live VM, which shows the master spawning:
+
+```
+/opt/odoo-venv/bin/python3 /usr/bin/odoo gevent
+```
+
+The switch is `argv[1]`, and the check is positional
+(`odoo/_monkeypatches/site.py:29`):
+
+```python
+if odoo.evented or not (len(sys.argv) > 1 and sys.argv[1] == 'gevent'):
+    return
+```
+
+`odoo/service/server.py:898` confirms the master does exactly that:
+`cmd = [sys.executable, sys.argv[0], 'gevent'] + nargs[1:]`.
+
+**`gevent` must be the FIRST argument**, not merely present. So
+`odoo -c /etc/odoo/odoo.conf gevent` runs a normal prefork server and silently
+serves no websockets — the pod comes up healthy and the bus is simply dead. The
+container command is:
+
+```yaml
+command: ["odoo", "gevent", "-c", "/etc/odoo/odoo.conf"]
+```
+
+which `entrypoint.sh` rewrites to `python3 /usr/bin/odoo gevent -c ...`, keeping
+`gevent` in position 1.
+
+Two related options exist for that Deployment and are worth using, since the bus
+process has a very different memory profile from an HTTP worker:
+`limit_memory_soft_gevent` and `limit_memory_hard_gevent`
+(`odoo/tools/config.py:467,477`; consumed at `server.py:94,733`). Both fall back
+to the non-gevent limits when unset.
 
 ### 2.8 Cron is already safe across pods — but still wants its own Deployment
 
@@ -458,6 +489,59 @@ deliberate trade rather than letting it arrive by default, and if shared:
 The same question applies to Memorystore. One instance with a key prefix or
 logical DB per domain is fine and much cheaper; four is cleaner. Sessions are
 small and uniform, so shared is the easier call here than for the database.
+
+### 2.15 Stage 1 adds two libraries, and there is 46 MiB of headroom
+
+Measured on the live VM, not reasoned about. `ps auxf` inside `odoo-app`:
+
+| PID | what | VSZ | RSS |
+| --- | --- | --- | --- |
+| 1 | master | 386,236 KB | 187,124 KB |
+| 19 | WorkerHTTP | **477,508 KB** | 197,860 KB |
+| 21 | WorkerHTTP | 475,596 KB | 220,284 KB |
+| 23 | WorkerHTTP | 473,412 KB | 204,432 KB |
+| 24 | gevent (`odoo gevent`) | 472,364 KB | 200,524 KB |
+| 26 | WorkerCron (niced, `os.nice(10)` at `server.py:1432`) | 455,884 KB | 171,692 KB |
+
+Against `odoo.prod.conf`:
+
+```
+limit_memory_soft = 536870912   =  524,288 KB   (512 MiB)
+limit_memory_hard = 671088640   =  655,360 KB   (640 MiB)
+```
+
+These are **virtual** memory limits (`RLIMIT_AS`), so VSZ is the column that
+matters. The largest worker is at **91% of the soft limit**, with about
+**46 MiB** of address space to spare. Total RSS across the six processes is
+~1.13 GiB on a 4 GB machine that also runs Postgres with
+`shared_buffers = 512MB`.
+
+**Why this lands on Stage 1.** Stage 1 adds `google-cloud-storage` and `redis`
+to `requirements.txt`. Every import maps code and allocates, and it happens in
+**each** worker. There is 46 MiB of room. `google-cloud-storage` pulls
+`google-auth`, `google-api-core`, `requests` and `google-crc32c`; that may fit,
+and it may not.
+
+Crossing `limit_memory_soft` does not crash anything and does not look like an
+error. Odoo finishes the current request and then recycles the worker. The
+symptoms are latency, lost warm caches, and `virtual memory limit reached` lines
+in the container log — easily mistaken for a problem with the new GCS code
+rather than with the ceiling it is running into.
+
+`odoo.prod.conf` explicitly deferred this decision, and its stated trigger has
+now fired:
+
+> Left exactly as they are. […] Revisit once Phase 6 makes real memory metrics
+> exist — which is the first time there will be data to decide on.
+
+Phase 6 is done. The data exists.
+
+**So Stage 1 gains a gate:** record per-worker VSZ before and after adding the
+two libraries. If the delta eats the headroom, raise `limit_memory_soft` and
+`limit_memory_hard` **in the same change that adds the libraries** — deliberately
+and with the measurement recorded, not reactively after someone reports the site
+feeling slow. The limits are RLIMIT_AS, not RSS, so raising them costs no actual
+memory; the 4 GB ceiling is governed by RSS, which has room.
 
 ### 2.14 Sales and Invoicing are product work, not infrastructure work
 
@@ -608,6 +692,12 @@ configured, falling back to the filesystem store.
 behaviour is byte-for-byte unchanged — attachments still on local disk, sessions
 still in `$data_dir/sessions`. This is a deliberately boring deploy, and if it
 is not boring, something in §2.6 is wrong.
+
+**Plus the memory gate from §2.15**: per-worker VSZ recorded before and after
+the two new libraries, and `virtual memory limit reached` still absent from the
+container log. There is only ~46 MiB of address space above
+`limit_memory_soft`, so if the imports consume it, raise both limits in this
+same change with the measurement written down.
 
 ### Stage 2 — GCS filestore, still on the VM
 
@@ -791,10 +881,13 @@ everything: see §1 on access.
 Stated explicitly, because the value of the preceding sections rests on the
 difference:
 
-- **How to start `GeventServer` standalone.** `odoo.evented` is set in
-  `odoo/_monkeypatches/site.py`, and `odoo/cli/` has no `gevent` subcommand.
-  The mechanism must be read there and confirmed against the `odoo:19.0` image
-  entrypoint before the Stage 5 manifests are written (§2.7).
+- ~~**How to start `GeventServer` standalone.**~~ **RESOLVED 2026-09-10**, by
+  reading `ps auxf` on the live VM and then the source. It is `argv[1] == 'gevent'`
+  — positional, not merely present (`odoo/_monkeypatches/site.py:29`,
+  `odoo/service/server.py:898`). See §2.7 for the container command. This is the
+  one open question in these documents that was answered by looking at the
+  running system rather than at the code, which is worth noting: the source alone
+  did not make the positional requirement obvious.
 - **Cloud SQL, Memorystore and GKE behaviour.** Everything in §2 about the Odoo
   source was read from this repository. Everything about GCP service limits,
   quotas, tier defaults and pricing is *not* verified here and must be checked

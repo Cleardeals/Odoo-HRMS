@@ -171,8 +171,54 @@ master (forks, supervises, reaps; serves nothing)
 └── gevent       ×1     ← always exactly one     serving :8072
 ```
 
-Five processes hold database connections. Remember that number; Part 6.1 does
-arithmetic with it.
+Five processes hold database connections — the master holds none. Remember that
+number; Part 6.1 does arithmetic with it.
+
+Here it is on the live box, so you can match each row to the diagram
+(`sudo docker exec odoo-app ps auxf`, 2026-09-10):
+
+```
+  PID  VSZ(KB)  RSS(KB)  STAT  COMMAND
+    1   386236   187124  Ss    python3 /usr/bin/odoo                 ← master
+   19   477508   197860  Sl    python3 /usr/bin/odoo                 ← WorkerHTTP
+   21   475596   220284  Sl    python3 /usr/bin/odoo                 ← WorkerHTTP
+   23   473412   204432  Sl    python3 /usr/bin/odoo                 ← WorkerHTTP
+   24   472364   200524  Sl    ... /usr/bin/odoo gevent              ← the bus
+   26   455884   171692  SNl   python3 /usr/bin/odoo                 ← WorkerCron
+```
+
+Two tells let you identify them without guessing:
+
+- **PID 24 says `gevent` in its command line.** That is not decoration — it is
+  the switch. `odoo/_monkeypatches/site.py:29` sets `odoo.evented = True` only
+  when `sys.argv[1] == 'gevent'`, and the master spawns it that way at
+  `odoo/service/server.py:898`. Part 3.2 uses this.
+- **PID 26 has an `N` in its STAT column**, meaning niced. `WorkerCron.start()`
+  calls `os.nice(10)` (`odoo/service/server.py:1432`) so that background jobs
+  lose CPU races against user requests. That `N` is how you spot the cron worker
+  in a list of otherwise identical `python3` processes.
+
+And there's a number in there worth stopping on, because it changes what Stage 1
+has to do. `odoo.prod.conf` sets:
+
+```
+limit_memory_soft = 536870912   =  524,288 KB  (512 MiB)
+```
+
+These are **virtual** memory limits (`RLIMIT_AS`), so compare against VSZ, not
+RSS. The busiest worker is at 477,508 KB — **91% of the soft limit**, with about
+**46 MiB** spare.
+
+Why that matters: Stage 1 adds `google-cloud-storage` and `redis` to
+`requirements.txt`, and every import maps code into **each** worker. Crossing
+the soft limit doesn't crash and doesn't log an error — Odoo finishes the current
+request and recycles the worker. What you see is latency and cold caches, and you
+will naturally blame the new GCS code rather than the ceiling it just touched.
+
+`odoo.prod.conf` deliberately left these limits alone and said why: *"Revisit
+once Phase 6 makes real memory metrics exist — which is the first time there will
+be data to decide on."* Phase 6 is done. This is that data. Plan §2.15 turns it
+into a Stage 1 gate.
 
 Why prefork rather than threads? Python's GIL means threads don't give you
 parallel CPU. Separate processes do. The cost is that they share nothing — no
@@ -724,11 +770,55 @@ Two pods asking simultaneously get *different* jobs. So the separation is about
 resource waste, not correctness — good to know, because it means a mistake here
 is expensive rather than dangerous.
 
-One honest gap: `odoo/cli/` has **no** `gevent` subcommand. `odoo.evented` is
-set in `odoo/_monkeypatches/site.py` (`False` at line 20, `True` at 54). Before
-writing the `bus` manifest, read that file and confirm how the image is meant to
-start `GeventServer` alone. I did not verify it, and I'm not going to guess in a
-plan.
+**How do you start just the bus?** This was an open question when the plan was
+written — `odoo/cli/` has no `gevent` subcommand, so there appeared to be no
+supported way to run `GeventServer` alone. It was answered by looking at the
+running system rather than at the code. `ps` on the live VM shows the master
+spawning:
+
+```
+/opt/odoo-venv/bin/python3 /usr/bin/odoo gevent
+```
+
+There *is* a switch. It just isn't a CLI subcommand — it's the first positional
+argument, checked at `odoo/_monkeypatches/site.py:29`:
+
+```python
+if odoo.evented or not (len(sys.argv) > 1 and sys.argv[1] == 'gevent'):
+    return
+sys.argv.remove('gevent')
+...
+odoo.evented = True
+```
+
+Read that condition carefully, because the trap is in it. **`gevent` must be
+`argv[1]`** — position, not presence. So:
+
+```yaml
+command: ["odoo", "gevent", "-c", "/etc/odoo/odoo.conf"]   # ✅ bus
+command: ["odoo", "-c", "/etc/odoo/odoo.conf", "gevent"]   # ❌ silently a web server
+```
+
+The second one starts a perfectly healthy **prefork** server that serves no
+websockets. The pod goes ready, the Service gets endpoints, the Ingress routes
+`/websocket` to it, and every realtime update in the UI dies — with nothing in
+any log. It is the §1.4 failure mode all over again, one YAML list away.
+
+(The first form works through `entrypoint.sh`, which rewrites `odoo ...` to
+`python3 /usr/bin/odoo ...` and preserves argument order, keeping `gevent` in
+position 1.)
+
+Two config options exist specifically for this Deployment, and you should use
+them: `limit_memory_soft_gevent` and `limit_memory_hard_gevent`
+(`odoo/tools/config.py:467,477`). A process juggling thousands of idle
+connections has a different memory shape from one rendering a payslip, and these
+let you say so instead of sharing one ceiling. Both fall back to the ordinary
+limits when unset.
+
+**The general lesson is the better souvenir.** The source did not make the
+positional requirement obvious; `ps` did. When you want to know how a system is
+*actually* invoked, read the running process table, not just the code that might
+invoke it.
 
 ### 3.3 Cloud SQL, and what "managed" buys
 
@@ -1530,10 +1620,9 @@ readable in `odoo/`. Go check them; that's what the line numbers are for.
 
 **Not verified:**
 
-- **How to start `GeventServer` standalone.** `odoo.evented` is set in
-  `odoo/_monkeypatches/site.py` (20, 54) and there's no `gevent` CLI
-  subcommand. Read that file and confirm against the `odoo:19.0` image
-  entrypoint before writing the `bus` manifest. I'm not guessing in a plan.
+- ~~**How to start `GeventServer` standalone.**~~ **Resolved 2026-09-10** — see
+  Part 3.2. It is `argv[1] == 'gevent'`, positionally. Found by reading `ps auxf`
+  on the live VM, not by reading the code, which is itself the lesson.
 - **All GCP behaviour.** Quotas, tier defaults, `max_connections` limits,
   Memorystore sizes, pricing. Check current documentation and this project's
   actual quota. Every GCP number in these documents is illustrative.
@@ -1575,3 +1664,8 @@ readable in `odoo/`. Go check them; that's what the line numbers are for.
 10. **Do one thing at a time.** Four changes at once means four suspects and no
     rollback that isn't also four changes. Prove GCS, Redis and Cloud SQL on the
     VM. GKE last.
+11. **Measure the running system, don't reason about it.** `ps auxf` answered a
+    question the source didn't (`argv[1] == 'gevent'`) and produced a finding
+    nobody was looking for (workers at 91% of `limit_memory_soft`, with Stage 1
+    about to add two libraries). Both came from one command. Neither was
+    derivable from reading.
