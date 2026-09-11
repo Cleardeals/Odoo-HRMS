@@ -1772,25 +1772,253 @@ Always set `max_age`, well under the signature lifetime.
 ### 6.4 `unaccent`, and a restore that fails halfway
 
 `odoo.prod.conf` has `unaccent = True`. Read what that flag actually does
-(`odoo/tools/config.py:448`):
+(`odoo/tools/config.py:449`):
 
 > "Try to enable the unaccent extension **when creating new databases**."
 
-So it isn't what makes accent-insensitive search work on an existing database.
-What matters at boot is `has_unaccent` (`odoo/modules/db.py:166`), and if the
-extension is missing, search behaviour changes **silently** — no error, just
-`café` no longer matching `cafe`.
+So it's a **database-creation** instruction, not a runtime setting — and it
+already ran, years ago. It's history.
 
-The restore is where this bites. A `pg_dump` of `odoo_hrms_db` contains
-`CREATE EXTENSION unaccent`, and on Cloud SQL that requires membership of
-`cloudsqlsuperuser`. The `odoo` role won't have it. So:
+Worth noticing the word *"Try"*. That's honest documentation of a best-effort
+operation, and it's easy to read past. Here's the only place the flag is read
+(`odoo/service/db.py:154`):
 
-1. restore as the Cloud SQL default admin user
-2. then reassign ownership to `odoo`
+```python
+try:
+    with db.cursor() as cr:
+        cr.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+        if odoo.tools.config['unaccent']:
+            cr.execute("CREATE EXTENSION IF NOT EXISTS unaccent")
+            cr.execute("ALTER FUNCTION unaccent(text) IMMUTABLE")
+except psycopg2.Error as e:
+    _logger.warning("Unable to create PostgreSQL extensions : %s", e)
+```
 
-Run the restore directly as `odoo` and it fails part-way through — during a
-maintenance window, on a partially-loaded database, which is the worst possible
-moment for a surprise.
+Look at that `except`. **Odoo swallows the failure and carries on.** No
+permission? One `WARNING` line in a wall of startup output, a database with no
+`unaccent`, and an application that boots perfectly and searches wrongly.
+
+#### So what does matter? Odoo asks the database, every startup
+
+Every registry load, Odoo runs a query: *is the `unaccent` function actually
+here?* That's `has_unaccent` (`odoo/modules/db.py:166`). It doesn't trust the
+config flag — it looks.
+
+Sensible. But it asks a **second, stranger question** too, and to see why we
+need to talk about why Odoo wants the function at all.
+
+#### Why "is it here?" isn't enough — the phone book
+
+Odoo wants accent-insensitive search to be **fast**. Fast search means an
+**index**.
+
+An index is a precomputed answer book. Think of a phone book: names sorted
+alphabetically so you can find "Patel" without reading every page.
+
+But Odoo isn't searching the raw name — it's searching the *accent-stripped*
+name, because it wants `cafe` to find `café`. A phone book sorted by raw surname
+is no help there: `Müller`, `Muller` and `Mueller` land on different pages.
+
+What Odoo needs is a **second phone book, sorted by the stripped version**.
+Postgres can do that — an *expression index*:
+
+```sql
+CREATE INDEX ... ON res_partner (unaccent(name))
+```
+
+Building it means walking every row once, calling `unaccent()`, and writing the
+answers down in sorted order.
+
+**And there's the problem.** That book is only useful if `unaccent('Müller')`
+returns the same thing *forever*. If the accent-stripping rules ever changed,
+your book would be sorted by the old rules — and lookups using the new rules
+would silently miss people. The book would be quietly wrong, and nothing would
+say so.
+
+#### So Postgres makes you promise
+
+Postgres won't index a function unless you promise its answer never changes.
+Three levels of promise:
+
+| label | the promise | example |
+| --- | --- | --- |
+| `VOLATILE` | could return anything, any time | `random()`, `now()` |
+| `STABLE` | same answer within one query; may differ between queries | anything reading settings |
+| `IMMUTABLE` | **same input → same answer, forever** | `lower()`, `abs()` |
+
+**Only `IMMUTABLE` can be indexed.** The phone book is why.
+
+And how does Postgres label `unaccent`? **`STABLE`** — because it reads its
+accent rules from dictionary files on disk, and somebody could edit those files.
+By Postgres's own reasoning, it is not safe to index.
+
+#### Odoo overrides Postgres, deliberately
+
+That's what the second line above is:
+
+```sql
+ALTER FUNCTION unaccent(text) IMMUTABLE     -- "trust me, Postgres"
+```
+
+It forcibly relabels the function to unlock indexing. Odoo's own comment
+concedes the point:
+
+> From PostgreSQL's point of view, making 'unaccent' immutable is **incorrect**
+> because it depends on external data […] But in the case of Odoo, we consider
+> that those data don't change in the lifetime of a database. **If they do
+> change, all indexes created with this function become corrupted!**
+
+A documented, accepted trade. But notice the consequence: **the good state is not
+"the extension is installed." It's "installed AND somebody ran that second
+line."** Two separate facts. Installing gets you `STABLE`. Only the `ALTER` gets
+you `IMMUTABLE`.
+
+That second fact is the stranger question `has_unaccent` asks.
+
+#### Now the three states make sense
+
+```python
+MISSING   = 0   # the function isn't there
+PRESENT   = 1   # there, but STABLE    — can't be indexed
+INDEXABLE = 2   # there, and IMMUTABLE — can be indexed
+```
+
+And Odoo behaves differently in each, because its two consumers test
+differently — `registry.py:305` is a **truthy** test, while `registry.py:844` is
+`== FunctionStatus.INDEXABLE`:
+
+**`MISSING`** — Odoo gives up on accents. `registry.py:305` swaps the function
+for `lambda x: x`, so searches stop wrapping in `unaccent()` at all. Search turns
+accent-*sensitive*: `cafe` no longer finds `café`. **Your answers change.** No
+error.
+
+**`PRESENT`** — Odoo still wraps searches in `unaccent()`, so answers are
+correct. But it won't build the stripped phone book. You're asking *"find
+everyone whose stripped name is muller"* holding only the raw-sorted book — it
+can't help, so Postgres reads every row. **Correct but slow.** No error.
+
+**`INDEXABLE`** — searches use `unaccent()`, the matching index exists, lookups
+are fast. Correct *and* fast.
+
+**Two entirely different silent failures.** One changes what comes back. The
+other changes how long it takes. Neither says a word.
+
+#### Your database is in the best state — measured
+
+```
+extname   | schema | version        proname  | pronargs | provolatile
+pg_trgm   | public | 1.6            unaccent |        1 | i   ← IMMUTABLE
+unaccent  | public | 1.1            unaccent |        2 | s   (ignored, pronargs=1)
+```
+
+`INDEXABLE`. Somebody ran that `ALTER` — which tells us the database was
+originally created by Odoo with `unaccent = True`, and it worked.
+
+**Which means the migration can only make this worse**, in one of the two silent
+ways above. That asymmetry is the whole reason this section exists.
+
+Two more traps in the query, while we're here. It requires
+`pronamespace = current_schema` — so installing extensions into a separate
+`extensions` schema (a common hardening pattern) leaves `\dx` looking perfect
+and Odoo reporting `MISSING`. And `pronargs = 1`, so only the one-argument
+overload counts.
+
+---
+
+#### Now: why Cloud SQL threatens all of this
+
+Here's the thing I didn't expect to find:
+
+```
+rolname | rolsuper
+odoo    | t          ← your odoo role is a Postgres SUPERUSER
+```
+
+Of course it is. Postgres runs in a container, `odoo` is the account it was set
+up with, so it owns everything and can do anything — `CREATE EXTENSION` and
+`ALTER FUNCTION` included.
+
+**On Cloud SQL, nobody can ever be a superuser.** Google doesn't offer it; that's
+how instances stay manageable. The ceiling is membership of a role called
+`cloudsqlsuperuser` — which can create extensions, but is not a true superuser.
+
+So the migration isn't "copy the data across." It's: **take a database built by
+a superuser, and rebuild it somewhere no superuser exists.**
+
+#### Why the restore "fails halfway"
+
+This is the bit that's easy to miss. **A `pg_dump` file is not data. It's a
+script of SQL commands.** Open one:
+
+```sql
+CREATE EXTENSION unaccent;                    -- ← needs superuser
+ALTER FUNCTION unaccent(text) IMMUTABLE;
+CREATE TABLE res_partner (...);
+COPY res_partner FROM stdin; ...
+CREATE INDEX ...;
+```
+
+Restoring means **running** every line, as whoever you logged in as.
+
+Connect as `odoo` on Cloud SQL and it hits `CREATE EXTENSION` and is refused —
+*and that line is near the top, before your data.* So you don't get a clean "no"
+up front. You get a few objects created, then a permission error, then either a
+halt or a cascade of follow-on failures against a half-built schema.
+
+Mid-maintenance-window. On a partly-loaded database. The worst moment for a
+surprise.
+
+#### So it's three steps, not two
+
+1. **Restore as the Cloud SQL admin user** (the one with `cloudsqlsuperuser`),
+   so `CREATE EXTENSION` is allowed.
+2. **Hand ownership of the objects to `odoo`**, so the application owns its own
+   schema.
+3. **Re-run `ALTER FUNCTION unaccent(text) IMMUTABLE` — as the admin user.**
+
+Step 3 is the sneaky one, and it's **unfixable from inside the application**.
+`ALTER FUNCTION` requires *owning* that function, and in step 1 the *admin user*
+created the extension — so the admin owns those functions, not `odoo`. Even if
+`odoo` noticed the problem, it could not correct it. Somebody has to do it
+deliberately, as the right role.
+
+Skip step 3 and you land in `PRESENT`: right answers, indexes quietly unused,
+and no bug report — because nobody ever files *"search feels a bit slower than
+last month."*
+
+#### What to check afterwards
+
+Restore into a **throwaway** instance and ask exactly what Odoo asks:
+
+```sql
+SELECT current_schema, p.provolatile
+  FROM pg_proc p
+ WHERE p.proname = 'unaccent'
+   AND p.pronamespace = current_schema::regnamespace
+   AND p.pronargs = 1;
+```
+
+- `i` → immutable, you match production
+- `s` → step 3 was needed, and you just caught it before the real cutover
+- no rows → the extension didn't survive, or it's in the wrong schema
+
+**Being honest about a gap:** I don't know whether `pg_dump` actually preserves
+that `ALTER FUNCTION`. `pg_dump` deliberately doesn't dump an extension's
+internal objects — it writes `CREATE EXTENSION` and lets the extension rebuild
+itself. Whether a volatility change to one of those functions survives, I can't
+tell you from here. But the query above settles it in ten seconds on a scratch
+instance, which is why step 3 is written as *re-assert* rather than *must*.
+
+#### The general lesson
+
+Your database holds state that isn't tables and isn't rows — which extensions
+exist, how their functions are labelled, who owns what, which roles hold which
+privileges. `pg_dump` preserves most of it, silently drops some of it, and Odoo
+checks what survived at startup and quietly does **less** when something's
+missing.
+
+So the test after migrating can't be *"is the data there?"* It has to be
+**"does the database still answer Odoo's questions the same way?"**
 
 ### 6.5 One shared Cloud SQL, or four?
 

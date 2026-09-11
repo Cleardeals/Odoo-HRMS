@@ -712,17 +712,118 @@ no writable data dir will not boot.
 
 ### 2.12 Cloud SQL, `unaccent`, and the restore
 
-`odoo.prod.conf` sets `unaccent = True`. Per `odoo/tools/config.py:448` that
-only means "try to enable the extension **when creating new databases**" — it is
-not what makes search work on an existing one. What matters at boot is
-`has_unaccent` (`odoo/modules/db.py:166`); if the extension is absent, search
-behaviour changes silently rather than failing.
+`odoo.prod.conf` sets `unaccent = True`. Per `odoo/tools/config.py:449` that
+only means "**try** to enable the unaccent extension **when creating new
+databases**" — it is a database-creation instruction, not a runtime setting, and
+it has already run. Note also that `service/db.py:164` wraps the whole thing in
+`except psycopg2.Error` and emits a `_logger.warning`, so a failure to create
+the extension does not stop anything.
 
-The restore is where this bites: a `pg_dump` of `odoo_hrms_db` contains
-`CREATE EXTENSION unaccent`, and on Cloud SQL that requires membership of
-`cloudsqlsuperuser`. Restore as the Cloud SQL default user, then reassign
-ownership to the `odoo` role. A restore run directly as `odoo` fails part-way
-through, which is the worst moment for it.
+What matters at runtime is `has_unaccent` (`odoo/modules/db.py:166`), which
+queries the database on every registry load. **It returns three states, not
+two**, and each produces different behaviour:
+
+```python
+class FunctionStatus(IntEnum):
+    MISSING   = 0   # no unaccent function in current_schema
+    PRESENT   = 1   # present but STABLE   -> not indexable
+    INDEXABLE = 2   # present and IMMUTABLE -> indexable
+```
+
+| state | queries wrap in `unaccent()` | trigram index built on | effect |
+| --- | --- | --- | --- |
+| `MISSING` | **no** — `registry.py:305` swaps in `lambda x: x` | bare column | **search becomes accent-sensitive**; `cafe` stops matching `café`. Wrong answers, silently. |
+| `PRESENT` | yes | bare column | query expression `unaccent(col)` does not match an index on `col`, so **the index cannot be used**. Right answers, sequential scans, silently. |
+| `INDEXABLE` | yes | `unaccent(col)` | correct and indexed. |
+
+The two consumers test differently, which is why three states matter:
+`registry.py:305` is a **truthy** test (so `PRESENT` passes), while
+`registry.py:844` is `== FunctionStatus.INDEXABLE` (so it does not).
+
+#### Why `INDEXABLE` is a separate, fragile thing
+
+`CREATE EXTENSION unaccent` alone yields `provolatile = 's'` (STABLE) on the
+one-argument function — i.e. `PRESENT`, not `INDEXABLE`. Postgres declares it
+STABLE deliberately, because `unaccent` reads dictionary files from disk. Only an
+explicit second statement lifts it (`service/db.py:163`):
+
+```sql
+ALTER FUNCTION unaccent(text) IMMUTABLE
+```
+
+Odoo's own comment concedes this overrides Postgres's judgement — *"From
+PostgreSQL's point of view, making 'unaccent' immutable is incorrect […] If they
+do change, all indexes created with this function become corrupted!"* A
+deliberate trade, but it means **the good state is a manual alteration layered
+on top of the extension**, and that is exactly the sort of thing a dump/restore
+drops.
+
+Two further traps in `has_unaccent`'s query:
+
+- `pronamespace = current_schema::regnamespace` — the function must be in the
+  **current schema**. Installing extensions into a separate `extensions` schema
+  (a common hardening pattern) leaves `\dx` looking perfect and Odoo reporting
+  `MISSING`.
+- `pronargs = 1` — only the one-argument overload is checked. The two-argument
+  `unaccent(regdictionary, text)` is STABLE and irrelevant.
+
+#### Measured on production, 2026-09-10
+
+```
+extname   | schema  | version        proname  | schema | pronargs | provolatile
+pg_trgm   | public  | 1.6            unaccent | public |        1 | i   -> INDEXABLE
+unaccent  | public  | 1.1            unaccent | public |        2 | s   (ignored)
+
+has_trigram: word_similarity present = 1
+```
+
+**Production is `INDEXABLE` — the best of the three.** So the migration cannot
+improve this and can only degrade it, in two ways that both fail silently.
+
+#### The restore, and why `odoo` cannot do it
+
+Also measured, and it is the crux:
+
+```
+rolname | rolsuper | rolcreatedb | rolcreaterole
+odoo    | t        | t           | t
+```
+
+**The `odoo` role is a Postgres SUPERUSER** — it is the role `initdb` created
+inside the `postgres:17` container, and it owns `odoo_hrms_db`. **Cloud SQL
+never grants superuser to anybody**; the ceiling is membership of
+`cloudsqlsuperuser`. So this is not "copy the data across" — it is rebuilding a
+superuser-built database in an environment where no superuser exists.
+
+A `pg_dump` is **a script of SQL statements that gets executed**, not a data
+file, and `CREATE EXTENSION` sits near the top — before the `COPY` blocks. Run
+the restore as `odoo` and it is refused there: a few objects created, then a
+permission error, then either a halt or a cascade of follow-on failures against a
+half-built schema. Mid-window, on a partially-loaded database.
+
+**Three steps, not two:**
+
+1. **Restore as the Cloud SQL admin user** (holds `cloudsqlsuperuser`), so
+   `CREATE EXTENSION` is permitted.
+2. **Reassign object ownership to `odoo`**, so the application owns its schema.
+3. **Re-assert `ALTER FUNCTION unaccent(text) IMMUTABLE`, as the admin user.**
+
+Step 3 is the one that gets forgotten, and it is unfixable from inside the
+application: `ALTER FUNCTION` requires **owning** the function, and after step 1
+the extension's functions belong to the admin user, not to `odoo`. So `odoo`
+cannot correct this even if someone notices. Skip it and the instance lands in
+`PRESENT` — correct results, unusable indexes, and no bug report, because nobody
+files *"search feels slower than last month"*.
+
+#### NOT VERIFIED
+
+**Whether `pg_dump` preserves the `ALTER FUNCTION`.** `pg_dump` deliberately
+does not dump an extension's member objects individually — it emits
+`CREATE EXTENSION` and lets the extension recreate its own contents. Whether a
+volatility change to a member function survives that was **not** established
+here, and must not be assumed in either direction. Step 3 is therefore written
+as *re-assert* rather than *must run*, and the Stage 4 gate settles it
+empirically on a throwaway instance.
 
 ### 2.13 Cost is an order-of-magnitude change, and it multiplies by four
 
@@ -1065,11 +1166,38 @@ The bus uses the **`postgres` maintenance database**, not `odoo_hrms_db`. If the
 `odoo` role cannot `CONNECT` there, every realtime feature dies and the only
 evidence is a log line claiming it started correctly.
 
-**Gate:** the full stack on Cloud SQL with container Postgres stopped;
-`unaccent` confirmed present via `has_unaccent`; and a PITR restore to a
-throwaway instance actually performed, because a backup nobody has restored is
-not a backup — the same argument `infrastructure/terraform/storage.tf` already
-makes about the empty backups bucket.
+**Gate:** the full stack on Cloud SQL with container Postgres stopped; and a
+PITR restore to a throwaway instance actually performed, because a backup nobody
+has restored is not a backup — the same argument
+`infrastructure/terraform/storage.tf` already makes about the empty backups
+bucket.
+
+Plus the extension gate (§2.12). *"`unaccent` confirmed present"* is **not
+sufficient** — present-but-STABLE is a silent degradation, so the check must read
+the volatility flag. Run Odoo's own query verbatim against the restored
+instance:
+
+```sql
+SELECT current_schema, p.provolatile
+  FROM pg_proc p
+ WHERE p.proname = 'unaccent'
+   AND p.pronamespace = current_schema::regnamespace
+   AND p.pronargs = 1;
+```
+
+| result | meaning | action |
+| --- | --- | --- |
+| `i` | `INDEXABLE` — matches production | pass |
+| `s` | `PRESENT` — indexes silently unusable | run step 3 of §2.12, then re-check |
+| no rows | `MISSING` — accent-sensitive search, **or** the extension landed in another schema | stop; do not proceed |
+
+Do this on a **throwaway restore first**, not on the instance you are about to
+cut over to. It is the cheapest possible way to settle the "not verified"
+question in §2.12, and it costs one scratch instance.
+
+Also confirm `pg_trgm` survived — `SELECT count(*) FROM pg_proc WHERE
+proname='word_similarity'` should return 1, as it does on production — and that
+`odoo` owns the restored objects after step 2.
 
 Plus the realtime gate, which must be **end-to-end and observed in a browser**,
 not inferred from logs (§2.9 — the log asserts success even when the bus is
