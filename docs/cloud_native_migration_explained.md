@@ -1573,8 +1573,16 @@ plus the `bus` pod, plus the `cron` pod.
 
 At 10 replicas you need 200+ connections. If the Cloud SQL instance is at a
 tier default of, say, 100, then **the autoscaler takes the database down under
-exactly the load it exists to absorb** — and on a shared instance (§6.5) it
-takes Ops, Sales and Invoicing with it.
+exactly the load it exists to absorb.**
+
+Per §6.5 each domain now gets its own instance, so this stays inside the
+offending domain instead of taking Ops, Sales and Invoicing with it. That's a
+smaller blast radius — not a fix. The domain that spikes still loses its own
+database, and it's still the autoscaler that did it.
+
+It also makes the arithmetic *simpler*, which is the practical benefit: each
+`maxReplicas` is derived from one instance's `max_connections`, rather than from
+a figure four teams have to agree on.
 
 This is a beautiful failure because it's *caused* by the thing meant to prevent
 failure, and it only fires under load, which is when you're least able to think.
@@ -2020,33 +2028,120 @@ missing.
 So the test after migrating can't be *"is the data there?"* It has to be
 **"does the database still answer Odoo's questions the same way?"**
 
-### 6.5 One shared Cloud SQL, or four?
+### 6.5 What gets shared across the estate, and what doesn't — DECIDED
 
-A design question, not a bug, and worth deciding deliberately because it's
-expensive to reverse.
+An earlier version of this section asked "one shared Cloud SQL, or four?" and
+used the word **shared** for two completely different questions. Untangling them
+first, because the confusion was mine:
 
-The blueprint says "a centralized, fully managed Cloud SQL cluster" (§4.2) —
-i.e. one instance, four databases. On cost that's almost certainly right; HRMS is
-**119 MB**, and four HA instances to hold a few gigabytes total is hard to
-defend.
+- **Compute** — one GKE cluster for the whole estate, or one per domain?
+- **Database** — one Cloud SQL *instance*, or one per domain?
 
-But notice the tension. Blueprint §3 is all about **decoupling** the domains, and
-a shared instance re-couples them at two levels:
+Those are independent, and they got different answers (operator decision,
+2026-09-11):
 
-- **capacity** — the §6.1 connection budget is now shared, so Sales' autoscaler
-  can starve payroll
-- **maintenance** — one upgrade window for all four domains, which is exactly
-  the coupling §3 complains about
+| | decision |
+| --- | --- |
+| **Compute** | **one GKE cluster**, one central load balancer, a namespace per domain |
+| **Database** | **one Cloud SQL instance per domain** — four instances |
+| **Sessions** | one Memorystore, key prefix per domain |
 
-That's a real trade, and either answer can be right. Just make it a decision
-rather than a default. If shared:
+#### The principle that makes those differ
 
-- a **separate Postgres role per domain**, no cross-database grants, so Sales
-  cannot read payroll — this is not optional for HR data
-- budget `max_connections` across **all four** HPAs together, not per instance
+> **Share the stateless layer. Separate the stateful layer.**
 
-For Redis the call is easier. Sessions are small and uniform, so one instance
-with a key prefix or logical DB per domain is fine.
+**Compute is fungible.** A pod gets killed, drained and rescheduled as routine —
+Kubernetes is *built* around that. So sharing a cluster surrenders very little,
+because the isolation tools are first-class (namespaces, `ResourceQuota`,
+NetworkPolicy, per-namespace Workload Identity) and the thing being shared has no
+memory. Meanwhile you save one control plane, one upgrade cycle, one load
+balancer and one Terraform module *per domain*. For a single operator, four
+clusters would be indefensible toil.
+
+**A database is not fungible.** It carries durable state, a PITR timeline, a
+maintenance window, a major version and a blast radius. And Postgres has no
+equivalent of a `ResourceQuota` — there is no way to say "don't let Sales exhaust
+payroll's connections."
+
+That asymmetry is the whole answer. It's worth carrying beyond this project:
+when deciding what may be shared, ask whether the thing has memory.
+
+#### Why four database instances, concretely
+
+The decisive one is something I'd missed entirely when I first wrote this
+section. **Cloud SQL point-in-time recovery operates on the instance, not the
+database.**
+
+So with four databases on one instance, rolling Sales back to 14:19 means
+rolling HRMS back too — or cloning the whole instance to a point in time,
+`pg_dump`ing one database out of the clone, and restoring it into the live
+instance. That second path works, but it's a multi-step procedure performed
+under pressure at the worst moment.
+
+Now recall §2: **the strongest justification for this entire migration is that
+crash-consistent snapshots give you no point-in-time recovery.** PITR is the
+headline capability being bought. Making it per-estate rather than per-domain
+would forfeit a large fraction of the reason for going.
+
+Then the rest: maintenance window, Postgres version and flags per domain; no
+noisy neighbour; each instance sized to its own load rather than to the noisiest
+tenant; and **isolation by IAM rather than by `GRANT`** — each domain's service
+account gets `roles/cloudsql.client` on exactly one instance, so Sales' pods
+cannot reach HRMS's database *at all*, enforced by IAM rather than by somebody
+getting a cross-database grant right.
+
+There's also a pleasing side effect: **cross-domain SQL becomes impossible.**
+The blueprint says the domains integrate via API. Four instances make that
+architectural rule physically true instead of a convention people are trusted to
+observe.
+
+#### It also deletes two traps from these documents
+
+**§6.2's shared `imbus` channel vanishes.** Recall that Odoo's bus lives in the
+`postgres` database, and Postgres notification channels are scoped *per
+database*. Four databases on **one instance** would share one `postgres`
+database and therefore one `imbus` channel — every domain's bus waking for every
+other domain's notifications, with channel names visible across domains. Four
+**instances** means four separate `postgres` databases and four isolated buses.
+
+(The `CONNECT ON DATABASE postgres` requirement still applies, per instance. It's
+the cross-talk that disappears, not the grant.)
+
+**§6.1's cross-domain starvation vanishes at the database layer.** It still
+applies at the compute layer, which is exactly what `ResourceQuota` per namespace
+is for.
+
+Two findings resolved by one topology decision is a good sign the decision is
+cutting along a real seam rather than an arbitrary one.
+
+#### What it costs — and a correction
+
+**I wrote that this was "expensive to reverse." That was wrong**, and it matters
+because it changes how much agonising the decision deserves. Moving a database
+between Cloud SQL instances is a `pg_dump`/restore, and HRMS is **119 MB** — a
+short maintenance window, not a project. What's genuinely hard to change on a
+Cloud SQL instance is its **region**; which databases live on it is not.
+
+The real cost is **money**: four instances means four standbys and four
+per-instance floors, and a 119 MB database on a large HA instance pays for
+compute it will never use. Two things keep that honest:
+
+- **Size each instance to its domain.** HRMS is not Sales. Four small instances
+  cost far less than four copies of one big one.
+- **HA is per-instance and can be turned on later** (an online change). Payroll
+  warrants it from day one; Sales and Invoicing can start single-zone until they
+  carry real load.
+
+And **operational surface**: four sets of flags, backup schedules and retention
+settings is four times the config-drift risk. The answer is one Terraform module
+instantiated four times, so a setting can't quietly differ between domains.
+
+**Redis stays shared**, and that follows from the same principle. Sessions are
+744 KB, uniform in shape, and reconstructible by logging in again — they have no
+PITR story, no cross-domain query surface, and no maintenance coupling that
+matters. Losing them all at once means everyone logs in again, which is an
+annoyance rather than an incident. One instance, smallest tier, prefix per
+domain.
 
 ---
 

@@ -662,12 +662,13 @@ SQL instance. It can by default. But:
 > the identical silent symptom.**
 
 That is an entirely reasonable hardening step for a security reviewer to request
-on a shared instance — and it is *more* likely to be requested under the shared
-Cloud SQL model of §2.15, where restricting cross-database access is the whole
-point of the separate-role-per-domain rule. So the two recommendations collide,
-and the collision has to be resolved explicitly: **every domain's role needs
-`CONNECT` on `postgres`**, and that grant must be documented as load-bearing
-rather than looking like a leftover default nobody tightened.
+on a shared instance. **§2.13 removes the cross-domain half of this**: with one
+Cloud SQL instance per domain there is a separate `postgres` database per
+instance, so the `imbus` channels are isolated and no cross-database grant is
+involved. What survives is the per-instance requirement — **every domain's role
+still needs `CONNECT` on its own instance's `postgres` database**, and that grant
+must be documented as load-bearing rather than looking like a leftover default
+nobody tightened.
 
 A related detail for §2.10's arithmetic: the listener's connection comes from
 Odoo's own pool and is held for the life of the process. With `db_maxconn = 5`,
@@ -825,33 +826,113 @@ here, and must not be assumed in either direction. Step 3 is therefore written
 as *re-assert* rather than *must run*, and the Stage 4 gate settles it
 empirically on a throwaway instance.
 
-### 2.13 Cost is an order-of-magnitude change, and it multiplies by four
+### 2.13 Estate topology — DECIDED
 
-One `e2-medium` with a co-located Postgres and a local disk becomes: a GKE
-cluster, a **regional-HA** Cloud SQL instance, and a Memorystore instance. That
-is a large multiple of today's bill, not a marginal increase — and the blueprint
-applies it four times over (HRMS, Ops, Sales, Invoicing).
+The blueprint leaves this implicit and the word "shared" was doing two jobs. The
+two axes are independent and were decided separately by the operator on
+2026-09-11:
 
-The decision to surface before Stage 4, because it is expensive to reverse:
-**one shared Cloud SQL instance holding four databases, or four instances?**
+| axis | decision |
+| --- | --- |
+| **Compute** | **ONE GKE cluster** for the whole estate, one central load balancer, a namespace per domain |
+| **Database** | **ONE Cloud SQL INSTANCE PER DOMAIN** — four instances, not four databases on one |
+| **Sessions** | One Memorystore instance, key prefix or logical DB per domain |
 
-The blueprint says "a centralized, fully managed GCP Cloud SQL cluster" (§4.2),
-i.e. shared. For four small databases — HRMS is 119 MB — that is almost
-certainly right on cost and operational load. But it re-couples the four domains
-at exactly two levels the architecture is otherwise trying to decouple
-(§3): noisy-neighbour capacity, and the maintenance window. Name it as a
-deliberate trade rather than letting it arrive by default, and if shared:
+The organising principle, which is why these differ:
 
-- a separate Postgres **role per domain**, with no cross-database grants, so
-  Sales cannot read payroll;
-- `max_connections` budgeted across all four instances' HPAs together (§2.10),
-  not per instance.
+> **Share the stateless layer. Separate the stateful layer.**
 
-The same question applies to Memorystore. One instance with a key prefix or
-logical DB per domain is fine and much cheaper; four is cleaner. Sessions are
-small and uniform, so shared is the easier call here than for the database.
+Compute is fungible — a pod is killed, drained and rescheduled as a matter of
+routine, and Kubernetes provides first-class isolation primitives (namespaces,
+`ResourceQuota`, NetworkPolicy, per-namespace Workload Identity). So sharing a
+cluster surrenders very little and saves one control plane, one upgrade cycle,
+one load balancer and one Terraform module per domain.
 
-### 2.15 Stage 1 adds two libraries, and there is 46 MiB of headroom
+A database is not fungible. It carries durable state, a PITR timeline, a
+maintenance window, a major version and a blast radius — and Postgres offers no
+equivalent of a `ResourceQuota` for "do not let Sales exhaust payroll's
+connections".
+
+#### What four instances buys
+
+1. **PITR per domain.** This is the decisive one. Cloud SQL point-in-time
+   recovery operates on the **instance**, not the database. On a shared instance,
+   rolling Sales back to 14:19 means rolling HRMS back too, or cloning the
+   instance and dumping one database out of the clone under pressure. PITR is the
+   headline capability this migration is buying (§2 — snapshots are
+   crash-consistent and give none), so making it per-estate would forfeit much of
+   the point.
+2. **Maintenance window, Postgres version and flags per domain.** Sales can move
+   to a new major version without scheduling payroll.
+3. **The connection budget becomes per-domain**, which *simplifies* §2.10
+   considerably: each domain's HPA competes only with itself, so `maxReplicas`
+   is derived from one instance's `max_connections` rather than from a figure
+   negotiated across four autoscalers.
+4. **Isolation by IAM rather than by `GRANT`.** Each domain's Workload Identity
+   service account gets `roles/cloudsql.client` on exactly one instance. Sales'
+   pods cannot reach HRMS's database at all — enforced by IAM, not by someone
+   getting a cross-database grant right.
+5. **Right-sizing per domain.** HRMS is 119 MB and low-traffic; Sales replaces
+   ROLO and may be far busier. Separate instances mean each is sized to its own
+   load instead of one instance provisioned for the noisiest tenant.
+6. **Cross-domain SQL becomes impossible**, which *enforces* the blueprint's
+   API-integration discipline instead of trusting people to observe it.
+
+#### Two documented traps that this decision RESOLVES
+
+- **§2.9's shared `imbus` channel disappears.** Odoo's bus uses the `postgres`
+  maintenance database, and Postgres notification channels are scoped per
+  database. Four databases on **one instance** would therefore share one
+  `postgres` database and one `imbus` channel — every domain's bus waking for
+  every other domain's notifications, with channel names visible across domains.
+  Four **instances** means four separate `postgres` databases and four isolated
+  buses. The `CONNECT ON DATABASE postgres` requirement still applies per
+  instance; the cross-talk does not.
+- **§2.10's cross-domain starvation disappears** at the database layer. It still
+  applies at the compute layer, which is what `ResourceQuota` per namespace is
+  for.
+
+#### What it costs, and how to keep that honest
+
+**Money, and this is the real objection.** Four regional-HA instances means four
+standbys and four per-instance floors, and a 119 MB database on a large HA
+instance is paying for compute it will never use. Two mitigations keep the
+decision defensible:
+
+- **Size each instance to its domain.** HRMS does not need what Sales needs.
+  Four small instances cost far less than four copies of one big one.
+- **HA is per-instance and can be enabled later** (an online change). Payroll
+  warrants HA from day one; Sales and Invoicing can start single-zone until they
+  carry real load. That buys the isolation now and defers the cost.
+
+**Operational surface.** Four sets of flags, backup schedules, PITR retention
+and maintenance windows is four times the config-drift risk. The answer is
+discipline, not fewer instances: **one Terraform module, instantiated four
+times**, so a setting cannot drift silently between domains.
+
+**Private IP address space — a pre-flight item.** Cloud SQL private IP consumes
+addresses from the range allocated for private services access on the VPC.
+Allocate generously **before** the first instance; the usual guidance is a `/16`,
+and a range sized for one instance will refuse the fourth. Growing it afterwards
+is disruptive. *Verify the current requirement against GCP documentation — this
+is a GCP behaviour, not something established from this repository (§8).*
+
+#### Consequence for the Stages
+
+Stage 4 gets simpler, not harder: HRMS is migrated to **its own** instance, and
+there is no estate-topology question to defer to Stage 7. Ops, Sales and
+Invoicing each provision their own at Stages 7–8 from the same module.
+
+#### Cost is still an order-of-magnitude change
+
+Independent of the topology: one `e2-medium` with a co-located Postgres and a
+local disk becomes a GKE cluster, a Cloud SQL instance and a Memorystore
+instance — a large multiple of today's bill, not a marginal increase, applied
+four times. Price Stages 4 and 5 **before** starting Stage 2. A programme that
+runs out of budget mid-flight leaves the estate half-migrated, which is worse
+than either end.
+
+### 2.14 Stage 1 adds two libraries, and there is 46 MiB of headroom
 
 Measured on the live VM, not reasoned about. `ps auxf` inside `odoo-app`:
 
@@ -904,7 +985,7 @@ and with the measurement recorded, not reactively after someone reports the site
 feeling slow. The limits are RLIMIT_AS, not RSS, so raising them costs no actual
 memory; the 4 GB ceiling is governed by RSS, which has room.
 
-### 2.14 Sales and Invoicing are product work, not infrastructure work
+### 2.15 Sales and Invoicing are product work, not infrastructure work
 
 Blueprint Phase 3 bundles "deploy Sales Odoo and Invoices Odoo" with "codify all
 cloud resources into Terraform". Those are unrelated efforts on very different
@@ -994,6 +1075,71 @@ Both go in `custom_addons/`, are baked into the image by the existing
 `Dockerfile`, and ride the existing Cloud Build pipeline. No change to how
 deploys work.
 
+### 4.1 Estate topology — how the four domains sit in one cluster
+
+The diagram above is **one domain**. Per §2.13 all four share a cluster and a
+load balancer, and each owns its Cloud SQL instance:
+
+```
+                     ┌──────────── one GCLB / Ingress ────────────┐
+                     │  hr.*      ops.*      sales.*      inv.*   │
+                     └───┬──────────┬───────────┬───────────┬─────┘
+  ═══════════════════════│══════════│═══════════│═══════════│══════ ONE GKE CLUSTER
+     namespace: hrms     │   ops    │   sales   │ invoicing │
+     ┌───────────────────▼──┐ ┌─────▼─────┐ ┌───▼───────┐ ┌─▼─────────┐
+     │  web  /  bus  / cron │ │  w/b/c    │ │  w/b/c    │ │  w/b/c    │
+     │  + ResourceQuota     │ │  + quota  │ │  + quota  │ │  + quota  │
+     └───────────┬──────────┘ └─────┬─────┘ └───┬───────┘ └─┬─────────┘
+                 │  one Workload Identity GSA per namespace │
+  ═══════════════│══════════════════│═══════════│═══════════│══════════════════
+        ┌────────▼───────┐ ┌────────▼──────┐ ┌──▼─────────┐ ┌▼─────────────┐
+        │ Cloud SQL      │ │ Cloud SQL     │ │ Cloud SQL  │ │ Cloud SQL    │
+        │ hrms  (HA)     │ │ ops           │ │ sales      │ │ invoicing    │
+        └────────────────┘ └───────────────┘ └────────────┘ └──────────────┘
+                 └──────── one Memorystore, prefix per domain ────────┘
+```
+
+Six controls make the shared cluster safe. The first two are what stop one
+domain starving another at the compute layer — the database layer is already
+isolated by §2.13.
+
+1. **A namespace per domain.** This is what gives RBAC, quota and NetworkPolicy
+   something to scope to. Everything below depends on it.
+2. **`ResourceQuota` + `LimitRange` per namespace.** Without them, one domain's
+   HPA can consume all cluster capacity and another domain's pods sit
+   `Pending` — the compute-layer twin of the connection-starvation problem.
+   **This is the single most important control in a shared cluster, and the one
+   most often skipped, because everything works until the first spike.**
+3. **Honest `requests` and `limits` on every pod.** Measured on HRMS: ~200 MB
+   RSS and ~466 MB VSZ per worker (§2.14). `requests` is what the scheduler
+   reserves — set it too low and pods land on nodes that cannot feed them, then
+   throttle or get OOM-killed. The container memory limit and Odoo's own
+   `limit_memory_*` values must agree.
+4. **One Workload Identity service account per namespace — never shared.** This
+   is the real isolation boundary and is stronger than anything network-level,
+   because it is IAM. Each GSA gets `roles/cloudsql.client` on exactly one
+   instance and `objectAdmin` on exactly one bucket. **If one GSA is ever shared
+   across namespaces to save effort, the entire separation collapses silently.**
+5. **Default-deny `NetworkPolicy` per namespace.** In GKE any pod can reach any
+   pod by default, so without policy a compromised Sales pod can reach HRMS's
+   Services. Deny, then allow only what is needed.
+6. **Ingress: eight rules, not four.** Every domain needs its `/websocket` +
+   `/longpolling` split routed to its own `bus` Service (§2.7). Miss it for one
+   domain and that domain's realtime dies silently — the same failure, with four
+   times the opportunity. Generate these from a template rather than by hand.
+
+**The coupling shared compute does introduce** is that cluster upgrades drain
+nodes across all four domains at once. This is far more benign than the database
+equivalent, and the asymmetry is the principle proving itself: Kubernetes is
+built for nodes disappearing, so with ≥2 replicas and a PodDisruptionBudget a
+drain is a rolling, zero-downtime event, whereas a Cloud SQL maintenance window
+genuinely removes the database with no application-level mitigation.
+
+One exception worth handling: **`bus` pods hold long-lived websockets**, and
+draining a node kills every connection on it. Clients reconnect, so it is a blip
+rather than an outage — but give bus pods a PodDisruptionBudget and keep them off
+spot/preemptible nodes. `web` and `cron` pods can churn freely.
+
 ---
 
 ## 5. Stages
@@ -1054,7 +1200,7 @@ behaviour is byte-for-byte unchanged — attachments still on local disk, sessio
 still in `$data_dir/sessions`. This is a deliberately boring deploy, and if it
 is not boring, something in §2.6 is wrong.
 
-**Plus the memory gate from §2.15**: per-worker VSZ recorded before and after
+**Plus the memory gate from §2.14**: per-worker VSZ recorded before and after
 the two new libraries, and `virtual memory limit reached` still absent from the
 container log. There is only ~46 MiB of address space above
 `limit_memory_soft`, so if the imports consume it, raise both limits in this
@@ -1107,7 +1253,7 @@ it is a stop-the-bleeding move.
 | a `type='url'` attachment (9 exist) | still resolves, untouched by the override |
 | delete one attachment sharing a 10-reference blob | GC leaves the blob alone |
 | delete the last reference to a blob | GC removes it |
-| `virtual memory limit reached` in the container log | still absent (§2.15) |
+| `virtual memory limit reached` in the container log | still absent (§2.14) |
 
 The last two are the ones that actually matter, and they need a **deliberately
 constructed** case rather than whatever happens to be to hand: pick one of the
@@ -1210,8 +1356,9 @@ receiving nothing):
 | nothing pools the bus | confirm no PgBouncer or proxy other than the Cloud SQL Auth Proxy is in the path |
 
 The middle row exists because the grant can be removed *later*, by someone
-tightening a shared instance, long after this gate passed. Note it as a standing
-constraint on the Cloud SQL instance, not a one-time check.
+tightening the instance, long after this gate passed. Note it as a standing
+constraint on every Cloud SQL instance in the estate (§2.13 — one per domain, so
+this check is repeated per instance rather than once), not a one-time check.
 
 ### Stage 5 — GKE
 
@@ -1302,8 +1449,9 @@ everything: see §1 on access.
    and logging it, so "did it take effect" is answerable from a log line rather
    than from behaviour.
 3. **HPA versus `max_connections` (§2.10).** Manifests as a database-wide outage
-   under exactly the load the HPA exists to handle, and on a shared instance it
-   takes the other domains with it. Mitigated by deriving `maxReplicas` from the
+   under exactly the load the HPA exists to handle. §2.13's one-instance-per-domain
+   decision confines it to the offending domain rather than taking the estate
+   with it — but it does not prevent it. Mitigated by deriving `maxReplicas` from the
    connection budget and alerting on Cloud SQL connection utilisation before
    Stage 5.
 4. **Orphaned GCS objects (§2.4).** Costs money quietly and forever. Mitigated by
