@@ -587,19 +587,91 @@ and an HPA sized for web traffic would scale cron with it. Separate Deployment,
 
 ### 2.9 What must never go in front of Cloud SQL
 
-`addons/bus/models/bus.py:29` and `:164` use `pg_notify` (with an
-`ODOO_NOTIFY_FUNCTION` env override), and the longpolling side `LISTEN`s on the
-`imbus` channel.
+`addons/bus/models/bus.py:163` publishes with `pg_notify` (overridable via the
+`ODOO_NOTIFY_FUNCTION` env var) and `:242` subscribes with `LISTEN imbus`.
 
 - The **Cloud SQL Auth Proxy is a TCP proxy** and preserves `LISTEN`/`NOTIFY`.
-  The blueprint's §4.2 choice is correct.
-- **A transaction-pooling PgBouncer does not.** Notifications are silently lost;
-  chat, activity counters and every realtime update stop, with nothing in any
-  log.
+  The blueprint's §4.2 choice is correct. It is safe *because* it does not parse
+  the Postgres protocol — it cannot break semantics it does not understand.
+- **A transaction-pooling PgBouncer does not.** `LISTEN` registers a
+  subscription against a *connection*; transaction pooling's entire premise is
+  that connections carry no state and are interchangeable. Both cannot be true.
 
 This is worth writing down now because "put PgBouncer in front of it" is the
-obvious optimisation the first time pod count pushes the connection count up,
-and it is the change that breaks the bus with no error message.
+obvious optimisation the first time pod count pushes the connection count up
+(§2.10) — so the trap is entered *by correctly solving the previous problem*.
+
+#### Why the bus is the textbook worst case for transaction pooling
+
+Not merely incompatible. Read the listener, `bus.py:237`:
+
+```python
+def loop(self):
+    _logger.info("Bus.loop listen imbus on db postgres")
+    with odoo.sql_db.db_connect('postgres').cursor() as cr, \
+         selectors.DefaultSelector() as sel:
+        cr.execute("listen imbus")
+        cr.commit()                       # 1
+        conn = cr._cnx
+        sel.register(conn, selectors.EVENT_READ)
+        while not stop_event.is_set():    # 3
+            if sel.select(TIMEOUT):       # 2
+```
+
+1. **It commits immediately after `LISTEN`** — and `COMMIT` is exactly the signal
+   a transaction-mode pooler uses to reclaim the server connection. The
+   subscription is registered and the connection is reassigned on the next line.
+2. **It then blocks on the raw socket**, waiting for Postgres to push an async
+   notification down that specific TCP connection. In transaction mode there is
+   no client↔server mapping at that moment to route it along.
+3. **It loops forever**, holding one connection open indefinitely with no
+   transaction open — precisely the state transaction pooling exists to
+   eliminate.
+
+#### CORRECTION: it is not "silent" — the log actively reassures you
+
+An earlier revision said the failure leaves "nothing in any log". **That is
+wrong, and the truth is worse.** The first line of `loop()` emits:
+
+```
+INFO … Bus.loop listen imbus on db postgres
+```
+
+every time, and **the statement is true** — `LISTEN imbus` did execute and did
+succeed. The connection simply never receives anything afterwards.
+
+So the log does not omit the failure; it asserts, accurately, that the broken
+component started correctly. And `run()` catches `InterfaceError`/`PoolError` and
+restarts `loop()`, so a pooler that keeps reclaiming the connection produces an
+endless cycle of reconnects and reassuring log lines.
+
+Diagnostically this is the worst shape a fault can have: the component reports
+healthy, the symptom is in a different subsystem (the UI), and the actual cause
+is a middlebox nobody thinks of as a participant.
+
+#### NEW REQUIREMENT: the bus uses the `postgres` database, not `odoo_hrms_db`
+
+Both halves call `db_connect("postgres")` — the publisher at `bus.py:159`, the
+listener at `:240`. The `imbus` channel is deliberately server-wide rather than
+per-database, so it lives in the **`postgres` maintenance database**.
+
+Which means the `odoo` role must be able to `CONNECT` to `postgres` on the Cloud
+SQL instance. It can by default. But:
+
+> **`REVOKE CONNECT ON DATABASE postgres FROM PUBLIC` kills all realtime, with
+> the identical silent symptom.**
+
+That is an entirely reasonable hardening step for a security reviewer to request
+on a shared instance — and it is *more* likely to be requested under the shared
+Cloud SQL model of §2.15, where restricting cross-database access is the whole
+point of the separate-role-per-domain rule. So the two recommendations collide,
+and the collision has to be resolved explicitly: **every domain's role needs
+`CONNECT` on `postgres`**, and that grant must be documented as load-bearing
+rather than looking like a leftover default nobody tightened.
+
+A related detail for §2.10's arithmetic: the listener's connection comes from
+Odoo's own pool and is held for the life of the process. With `db_maxconn = 5`,
+the gevent process therefore has 4 usable slots, not 5.
 
 ### 2.10 The connection budget, which is how an autoscaled Odoo kills its own database
 
@@ -979,13 +1051,39 @@ gate.
 days.** Stopped, not deleted. It is the only rollback that does not involve a
 restore.
 
+**Before the window**, confirm the requirement from §2.9 that is easy to miss
+because nothing references it by name:
+
+```sql
+-- as the odoo role, against the Cloud SQL instance
+\c postgres
+LISTEN imbus;          -- must succeed
+SELECT pg_notify('imbus', 'probe');
+```
+
+The bus uses the **`postgres` maintenance database**, not `odoo_hrms_db`. If the
+`odoo` role cannot `CONNECT` there, every realtime feature dies and the only
+evidence is a log line claiming it started correctly.
+
 **Gate:** the full stack on Cloud SQL with container Postgres stopped;
-`unaccent` confirmed present via `has_unaccent`; `LISTEN`/`NOTIFY` confirmed
-working end-to-end by watching a chat message arrive in a second browser (§2.9);
-and a PITR restore to a throwaway instance actually performed, because a backup
-nobody has restored is not a backup — the same argument
-`infrastructure/terraform/storage.tf` already makes about the empty backups
-bucket.
+`unaccent` confirmed present via `has_unaccent`; and a PITR restore to a
+throwaway instance actually performed, because a backup nobody has restored is
+not a backup — the same argument `infrastructure/terraform/storage.tf` already
+makes about the empty backups bucket.
+
+Plus the realtime gate, which must be **end-to-end and observed in a browser**,
+not inferred from logs (§2.9 — the log asserts success even when the bus is
+receiving nothing):
+
+| check | how |
+| --- | --- |
+| `LISTEN`/`NOTIFY` works | send a chat message; watch it arrive in a **second browser** with no refresh |
+| the `postgres` grant survives | re-run the probe above *after* any hardening pass |
+| nothing pools the bus | confirm no PgBouncer or proxy other than the Cloud SQL Auth Proxy is in the path |
+
+The middle row exists because the grant can be removed *later*, by someone
+tightening a shared instance, long after this gate passed. Note it as a standing
+constraint on the Cloud SQL instance, not a one-time check.
 
 ### Stage 5 — GKE
 

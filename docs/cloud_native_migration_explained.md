@@ -241,16 +241,30 @@ So: with `workers > 0`, Odoo serves the bus from a *separate process on a
 separate port* (8072). And that's why `docker-compose.yml` needs the second
 router. Get it wrong and:
 
-- Nothing errors.
-- Nothing appears in any log.
-- Every realtime update in the UI just... stops. Silently.
+- Nothing errors, and Odoo logs nothing — the request never reaches it.
+- **Traefik's access log does show it**: `accesslog=true` is set, so you get a
+  404 per `/websocket` attempt. It is the one place the fault is visible, and
+  nobody reads a proxy access log unless they already suspect the proxy.
+- The browser console shows a failed WebSocket handshake.
+- Every realtime update in the UI just... stops.
+
+So not literally invisible — just filed somewhere nobody looks, under a status
+code that reads like a missing favicon.
 
 Under the hood, how does one Odoo process tell another that something happened?
-Postgres. `addons/bus/models/bus.py:164` calls **`pg_notify`**, and the gevent
-process runs **`LISTEN imbus`**. Postgres is the message bus.
+Postgres. `addons/bus/models/bus.py:163` calls **`pg_notify`**, and the gevent
+process runs **`LISTEN imbus`** (`:242`). Postgres is the message bus — there is
+no RabbitMQ, no Kafka, nothing else to run.
 
-Hold onto that. It's Part 6.2, and it's the trap most likely to bite you a year
-from now.
+One wrinkle worth registering now, because it matters at Stage 4 and is
+invisible everywhere else: both sides connect with `db_connect("postgres")` —
+the **`postgres` maintenance database**, not `odoo_hrms_db`. The channel is
+deliberately server-wide, so one Odoo hosting many databases shares one channel
+and filters by payload. Which means the `odoo` role needs `CONNECT` on a
+database nothing else in the application ever touches.
+
+Hold onto all of that. It's Part 6.2, and it's the trap most likely to bite you
+a year from now.
 
 ### 1.5 Where the files actually go, and the clever thing Odoo does
 
@@ -1590,7 +1604,7 @@ Do not put it in transaction-pooling mode in front of this application. Here's
 why, and it's a lovely illustration of leaky abstractions.
 
 Recall §1.4: the bus is Postgres. `pg_notify` to publish
-(`addons/bus/models/bus.py:164`), `LISTEN imbus` to subscribe.
+(`addons/bus/models/bus.py:163`), `LISTEN imbus` to subscribe (`:242`).
 
 `LISTEN` is a **session-scoped** thing. You say "notify me on this channel" and
 that subscription belongs to *that connection*, indefinitely.
@@ -1600,21 +1614,147 @@ one transaction, then gives it to someone else. Your `LISTEN` was registered on
 a connection you no longer have. The notification arrives at whichever process
 happens to be holding that connection now — or nowhere.
 
-Result:
+**The desk analogy.** Picture the database as an office with a bank of desks,
+each with a phone.
 
-- no error
-- nothing in any log
-- chat, activity counters, live updates: all dead
+*With your own desk* (session pooling, or no pooler): you get desk 7 for your
+whole visit. You tell reception *"ring desk 7 if a package arrives for me."* An
+hour later the package comes, reception rings desk 7, you're sitting there, you
+get it.
 
-Someone will spend two days on Redis.
+*With transaction pooling*: you get whatever desk is free, and only while you do
+one task. Then you hand it back and return to the waiting room. So you sit at
+desk 7, tell reception *"ring desk 7 for my package"* — and your task ends, and
+the desk goes to Bob. The package arrives. Reception rings desk 7. **Bob
+answers**, has no idea what it's about, and hangs up. You wait forever.
 
-The Cloud SQL **Auth Proxy** is safe precisely because it's *dumb*. It's a TCP
-tunnel. It doesn't parse the protocol, so it can't break session semantics. Its
-lack of intelligence is a feature.
+The bug is in the sentence: **you registered the subscription against the desk,
+not against yourself.** `LISTEN` puts state on a *connection*; transaction
+pooling is built on the premise that connections carry no state. Both cannot be
+true.
 
-If you truly need pooling later: session-pooling mode preserves `LISTEN`, or
-pool only a subset of connections and keep the bus direct. But start by reducing
-`maxReplicas`.
+That premise is correct for nearly everything an app does, which is why the
+abstraction is usually watertight. It leaks at exactly the handful of Postgres
+features whose state lives on the connection: `LISTEN`/`NOTIFY`, prepared
+statements, temp tables, `SET` variables, session-level advisory locks. Nowhere
+else.
+
+#### Odoo's bus isn't just incompatible — it's the textbook worst case
+
+Here's the real listener, `addons/bus/models/bus.py:237`:
+
+```python
+def loop(self):
+    _logger.info("Bus.loop listen imbus on db postgres")
+    with odoo.sql_db.db_connect('postgres').cursor() as cr, \
+         selectors.DefaultSelector() as sel:
+        cr.execute("listen imbus")
+        cr.commit()                       # ← 1
+        conn = cr._cnx
+        sel.register(conn, selectors.EVENT_READ)
+        while not stop_event.is_set():    # ← 3
+            if sel.select(TIMEOUT):       # ← 2
+                conn.poll()
+```
+
+1. **It commits immediately after `LISTEN`.** `COMMIT` is precisely the signal a
+   transaction-mode pooler uses to reclaim the connection. The subscription is
+   registered, and the desk goes to Bob on the very next line.
+2. **Then it blocks on the raw socket**, waiting for Postgres to spontaneously
+   push bytes down that specific TCP connection. A transaction-mode pooler holds
+   no client↔server mapping at that instant, so there is nothing to route the
+   notification along.
+3. **Then it loops forever** — one connection, held open indefinitely, *with no
+   transaction open*. That is the exact state transaction pooling was invented to
+   eliminate. The pooler sees an idle connection that ought to be reclaimed, and
+   reclaiming it is the bug.
+
+#### The log doesn't stay silent. It lies to you comfortingly.
+
+An earlier version of this section said "nothing in any log." **That was wrong,
+and the reality is nastier.** Look at the first line of `loop()`:
+
+```
+INFO … Bus.loop listen imbus on db postgres
+```
+
+That appears every time, and **it is true.** `LISTEN imbus` really did execute
+and really did succeed. The connection just never receives anything afterwards.
+
+So the log doesn't omit the failure — it asserts, accurately, that the broken
+component started correctly. And `run()` catches `InterfaceError`/`PoolError`
+and restarts `loop()`, so a pooler that keeps reclaiming the connection gives
+you an endless cycle of reconnects and cheerful log lines.
+
+That's the worst shape a fault can take: the component reports healthy, the
+symptom shows up in a different subsystem (the UI), and the cause is a middlebox
+nobody thinks of as a participant.
+
+**Which is why someone will spend two days on Redis.** In this plan you move
+sessions to Redis at Stage 3. Then at Stage 5 somebody adds a pooler to fix
+connection limits, and chat breaks. What's the nearest suspicious recent change?
+*"We put sessions in Redis."* Chat feels session-shaped. It is the obvious
+suspect, it is completely innocent, and you can lose two days there before
+anyone suspects a component they never thought of as part of the system.
+
+#### One more thing the code told me: the bus lives in a different database
+
+Both halves call `db_connect("postgres")` — the publisher at `bus.py:159`, the
+listener at `:240`. Not `odoo_hrms_db`. The `imbus` channel is deliberately
+**server-wide** rather than per-database, so one Odoo server hosting many
+databases shares one channel and filters by payload.
+
+Consequence for Stage 4: **the `odoo` role must be able to `CONNECT` to the
+`postgres` database on Cloud SQL.** It can by default — but
+
+```sql
+REVOKE CONNECT ON DATABASE postgres FROM PUBLIC;
+```
+
+kills every realtime feature, with the identical reassuring log line.
+
+And that is a completely reasonable thing for a security reviewer to ask for —
+*more* likely under the shared-instance model of Part 6.5, where restricting
+cross-database access is the entire point of one role per domain. So the two
+good ideas collide, and you have to resolve it deliberately: every domain's role
+needs `CONNECT` on `postgres`, documented as load-bearing rather than looking
+like a default nobody got around to tightening.
+
+#### Why the Auth Proxy is safe
+
+Because it is **stupid**, and that is the point.
+
+An encrypted TCP tunnel with IAM authentication. One connection in, one
+connection out. It copies bytes. **It does not parse the Postgres protocol** — it
+cannot tell a `SELECT` from a `BEGIN` from a `LISTEN`.
+
+Something that doesn't understand your semantics cannot break them. PgBouncer
+breaks `LISTEN` *because* it understands transactions well enough to act on them
+and not well enough to know about the exception.
+
+**For a middlebox, less intelligence means fewer semantics it can violate.**
+Every bit of protocol awareness is a new chance to be subtly wrong.
+
+#### So what do you actually do about §6.1?
+
+In order of preference:
+
+1. **Cap `maxReplicas` from the connection budget.** The real lever, and it adds
+   no components. This is the whole recommendation.
+2. **Set Cloud SQL's `max_connections` explicitly** instead of inheriting a tier
+   default nobody has looked at.
+3. **If you genuinely need a pooler** — session-pooling mode preserves `LISTEN`.
+   Smaller saving, no breakage.
+4. **Best structural answer: pool the `web` pods and let the `bus` pod connect
+   direct.** It is one pod holding one long-lived connection; pooling buys it
+   nothing. Part 3.2's three-way split makes this trivial — the bus is already
+   its own Deployment, so it just gets a different `db_host`. **The component
+   that breaks under pooling is exactly the component that doesn't need it**,
+   which is a good sign the split was the right shape.
+
+A footnote for the arithmetic in §6.1: that listener connection comes from
+Odoo's own pool and is held for the process's lifetime. With `db_maxconn = 5`,
+the gevent process has **4** usable slots, not 5.
 
 ### 6.3 The 301 that poisons caches
 
@@ -1811,8 +1951,10 @@ readable in `odoo/`. Go check them; that's what the line numbers are for.
    Ask the user's question from where the user asks it.
 8. **The HPA is a connection multiplier.** Two pools per process × workers ×
    pods. Derive `maxReplicas` from the connection budget, not from CPU.
-9. **The bus is Postgres `LISTEN`/`NOTIFY`.** The dumb TCP proxy is safe;
-   transaction pooling silently kills every realtime feature.
+9. **The bus is Postgres `LISTEN`/`NOTIFY`, in the `postgres` database.** The
+   dumb TCP proxy is safe; transaction pooling kills every realtime feature —
+   and not silently, which is worse: the log asserts the bus started fine,
+   because it did. Revoking `CONNECT` on `postgres` breaks it the same way.
 10. **Do one thing at a time.** Four changes at once means four suspects and no
     rollback that isn't also four changes. Prove GCS, Redis and Cloud SQL on the
     VM. GKE last.
