@@ -812,6 +812,11 @@ That's the whole vocabulary.
 
 ### 3.2 Why three Deployments, not one
 
+> **Scope:** this whole part describes **one domain**. All four domains share a
+> single GKE cluster with a namespace each — see §6.5 for why compute is shared
+> while databases are not, and for the six controls that stop one domain
+> starving another.
+
 The obvious design is one Deployment where each pod runs the full prefork tree
 from §1.3. It works. It's also wrong, and it's worth understanding why, because
 it's the single most instructive design decision in the plan.
